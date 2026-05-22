@@ -34,6 +34,8 @@ if (builder.Environment.IsEnvironment("Testing"))
 builder.Services.AddJoyZoningAdapters();
 
 builder.Services.AddScoped<EventIngestor>();
+builder.Services.AddScoped<WorkspaceEventPublisher>();
+builder.Services.AddScoped<LeaseWorktreeMonitor>();
 builder.Services.AddScoped<LeaseRuntimeService>();
 builder.Services.AddScoped<KanbanExecutionOrchestrator>();
 builder.Services.AddScoped<OrchestrationService>();
@@ -45,6 +47,7 @@ builder.Services.AddSingleton<HermesRunEventConsumer>();
 builder.Services.AddSingleton<KanbanSyncState>();
 builder.Services.AddHostedService<KanbanAutoSyncHostedService>();
 builder.Services.AddHostedService<LeaseReconciliationHostedService>();
+builder.Services.AddHostedService<LeaseWorktreeMonitorHostedService>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {

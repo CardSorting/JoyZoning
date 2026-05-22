@@ -246,7 +246,11 @@ public partial class ExecutionViewportViewModel : ViewModelBase, IAsyncDisposabl
         }
         else if (evt.Type.Contains("terminal.output", StringComparison.OrdinalIgnoreCase))
         {
-            AppendTerminal(ExtractText(evt.PayloadJson));
+            AppendTerminal(ExtractTerminalPreview(evt.PayloadJson));
+        }
+        else if (evt.Type.Contains("git.status.changed", StringComparison.OrdinalIgnoreCase))
+        {
+            AppendTerminal($"◇ git status updated ({ExtractFileCount(evt.PayloadJson)} files)\n");
         }
     }
 
@@ -262,20 +266,48 @@ public partial class ExecutionViewportViewModel : ViewModelBase, IAsyncDisposabl
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.TryGetProperty("name", out var n)) return n.GetString() ?? "tool";
         }
-        catch { }
+        catch (JsonException)
+        {
+            // ignore malformed payloads
+        }
+
         return "tool";
     }
 
-    private static string ExtractText(string json)
+    private static string ExtractTerminalPreview(string json)
     {
         try
         {
             using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("text", out var t)) return t.GetString() ?? "";
-            if (doc.RootElement.TryGetProperty("output", out var o)) return o.GetString() ?? "";
+            if (doc.RootElement.TryGetProperty("preview", out var preview))
+                return preview.GetString() ?? "";
+            if (doc.RootElement.TryGetProperty("text", out var t))
+                return t.GetString() ?? "";
+            if (doc.RootElement.TryGetProperty("output", out var o))
+                return o.GetString() ?? "";
         }
-        catch { }
+        catch (JsonException)
+        {
+            // malformed payload from older events
+        }
+
         return "";
+    }
+
+    private static int ExtractFileCount(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("fileCount", out var count) && count.TryGetInt32(out var n))
+                return n;
+        }
+        catch (JsonException)
+        {
+            // ignore
+        }
+
+        return 0;
     }
 }
 

@@ -147,8 +147,27 @@ public sealed class JoyZoningCliClient : IDisposable
     public Task<CliHttpResult> WorkspaceTreeAsync(string workspaceRoot) =>
         GetAsync($"api/workspace/tree?workspaceRoot={Uri.EscapeDataString(workspaceRoot)}");
 
-    public Task<CliHttpResult> WorkspaceChangedAsync(string workspaceRoot) =>
-        GetAsync($"api/workspace/changed?workspaceRoot={Uri.EscapeDataString(workspaceRoot)}");
+    public Task<CliHttpResult> WorkspaceChangedAsync(string workspaceRoot, Guid? sessionId = null)
+    {
+        var q = $"api/workspace/changed?workspaceRoot={Uri.EscapeDataString(workspaceRoot)}";
+        if (sessionId is { } sid && sid != Guid.Empty)
+            q += $"&sessionId={sid}";
+        return GetAsync(q);
+    }
+
+    public Task<CliHttpResult> GetTaskWorkspaceChangedAsync(Guid taskId, Guid? sessionId = null)
+    {
+        var q = $"api/tasks/{taskId}/workspace/changed";
+        if (sessionId is { } sid && sid != Guid.Empty)
+            q += $"?sessionId={sid}";
+        return GetAsync(q);
+    }
+
+    public Task<CliHttpResult> GetTaskWorkspaceTreeAsync(Guid taskId) =>
+        GetAsync($"api/tasks/{taskId}/workspace/tree");
+
+    public Task<CliHttpResult> GetTaskWorkspaceDiffAsync(Guid taskId, string path) =>
+        GetAsync($"api/tasks/{taskId}/workspace/diff?path={Uri.EscapeDataString(path)}");
 
     public Task<CliHttpResult> WorkspaceDiffAsync(string workspaceRoot, string path) =>
         GetAsync($"api/workspace/diff?workspaceRoot={Uri.EscapeDataString(workspaceRoot)}&path={Uri.EscapeDataString(path)}");

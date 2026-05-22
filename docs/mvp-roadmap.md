@@ -6,7 +6,7 @@
 - [x] Domain models and enums
 - [x] SQLite schema + repositories
 - [x] Control plane REST + SignalR hub
-- [x] Hermes / DietCode adapter stubs
+- [x] Hermes / DietCode adapters (real HTTP; Testing env uses deterministic stubs)
 - [x] Avalonia shell with six surfaces
 - [x] Architecture documentation
 
@@ -147,6 +147,15 @@ Ensure diet-hermes API server is on port **8642** for live agent runs. Operator 
 - [x] Subprocess control plane + `jz` CLI against shared test DB (`scripts/dogfood-validate.sh`)
 - [x] [docs/dogfood-report.md](dogfood-report.md) — commands, expected/actual, bugs fixed, sharp edges
 - [x] macOS worktree path normalization; Testing agent stubs for dogfood server
+
+## Phase 27 — Workspace observability (complete)
+
+- [x] **Git porcelain** — `GitWorkspaceStatus` + `LocalWorkspaceAdapter` (mtime fallback only for non-git or failed git)
+- [x] **Timeline ingestion** — `WorkspaceEventPublisher` → `git.status.changed` / `workspace.file.changed`; `HermesRunEventConsumer` persists `terminal.output`
+- [x] **Task worktree APIs** — `GET /api/tasks/{id}/workspace/{changed,tree,diff}` via `WorkspaceInspection`
+- [x] **Desktop + CLI** — lease worktree label, Refresh, SignalR-driven refresh (`OnWorktreeRefreshed`, execution/lease events)
+- [x] **Background monitor** — `LeaseWorktreeMonitor` + hosted service; dedupe hash; tests in `LeaseWorktreeMonitorTests.cs`
+- [x] **Operator TUI** — `/workspace` uses task APIs when `/use <task>` is set; hub stream shows worktree updates
 
 ## Phase 26 — Agent-safe harness (`jz agent`) (complete)
 

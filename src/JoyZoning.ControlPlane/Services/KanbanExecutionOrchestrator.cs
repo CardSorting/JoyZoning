@@ -468,7 +468,7 @@ public class KanbanExecutionOrchestrator
         return task;
     }
 
-    public async Task ValidateTaskStatusChangeAsync(
+    public Task ValidateTaskStatusChangeAsync(
         Guid cardId,
         WorkTaskStatus target,
         StatusChangeActor actor,
@@ -483,6 +483,8 @@ public class KanbanExecutionOrchestrator
 
         if (target == WorkTaskStatus.Complete && actor != StatusChangeActor.Human)
             throw LeaseOrchestrationException.Forbidden("Only a human can mark a card done (merge).");
+
+        return Task.CompletedTask;
     }
 
     public Task<ExecutionLease?> GetActiveLeaseAsync(Guid cardId, CancellationToken cancellationToken = default) =>

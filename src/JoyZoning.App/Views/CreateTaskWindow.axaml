@@ -6,10 +6,10 @@
         WindowStartupLocation="CenterOwner">
   <StackPanel Margin="16" Spacing="10">
     <TextBlock Text="Title" />
-    <TextBox Name="TitleBox" Watermark="Implement feature X" />
+    <TextBox Name="TitleBox" PlaceholderText="Implement feature X" />
     <TextBlock Text="Description" />
     <TextBox Name="DescriptionBox" AcceptsReturn="True" Height="120"
-             Watermark="What should DietCode build or change?" />
+             PlaceholderText="What should DietCode build or change?" />
     <TextBlock Text="Assign to" />
     <ComboBox Name="AgentBox" SelectedIndex="1">
       <ComboBoxItem Content="Hermes" />

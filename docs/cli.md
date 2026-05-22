@@ -29,6 +29,7 @@ JOYZONING_NO_TUI=1 jz task list   # force JSON automation mode
 - **Conversation history** — `~/.joyzoning/cli_history`
 - **Interrupt-and-redirect** — Ctrl+C stops watch/poll/manager stream first; second Ctrl+C exits
 - **Streaming tool output** — `/watch` or Manager messages stream `hermes.tool.*` / `hermes.message.delta` via SignalR `OnJoyEvent`
+- **Workspace inspection** — `/workspace changed|tree|diff` uses the active task’s **lease worktree** when `/use <task>` is set; otherwise `--root`
 
 Plain text (no `/`) sends **Manager Chat** when a session is active. Run `/help` inside the TUI for the full command list.
 

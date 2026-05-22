@@ -11,6 +11,8 @@ public class OperatorTuiTests
     [InlineData("/dispatch --approve-critical", "dispatch")]
     [InlineData("/run --poll 5", "dispatch")]
     [InlineData("/hermes", "hermes")]
+    [InlineData("/ws changed", "workspace")]
+    [InlineData("/workspace tree", "workspace")]
     public void Slash_resolve_maps_aliases(string input, string expected)
     {
         Assert.True(OperatorSlashRegistry.TryResolve(input, out var canonical, out _));

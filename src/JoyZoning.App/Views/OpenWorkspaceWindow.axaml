@@ -6,7 +6,7 @@
         WindowStartupLocation="CenterOwner">
   <StackPanel Margin="16" Spacing="12">
     <TextBlock Text="Workspace root (absolute path to your repo)" />
-    <TextBox Name="PathBox" Watermark="/path/to/your/project" />
+    <TextBox Name="PathBox" PlaceholderText="/path/to/your/project" />
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
       <Button Content="Cancel" Click="OnCancel" />
       <Button Content="Open" Click="OnOpen" IsDefault="True" />

@@ -74,6 +74,8 @@ Optional; defaults come from `LeaseRuntimeOptions` in `JoyZoning.Domain`:
 | `Stale.CriticalLeasedMinutes` | 10 | Shorter for critical cards |
 | `Stale.CriticalRunningMinutes` | 20 | |
 | `Stale.CriticalVerifyingMinutes` | 45 | |
+| `WorktreeMonitorEnabled` | true | Background scan of active lease worktrees |
+| `WorktreeMonitorIntervalSeconds` | 45 | Period between scans (minimum 20s enforced) |
 
 Example override in `appsettings.Development.json`:
 
@@ -81,7 +83,9 @@ Example override in `appsettings.Development.json`:
 {
   "LeaseRuntime": {
     "MaxCriticalLeases": 1,
-    "Stale": { "RunningMinutes": 30 }
+    "Stale": { "RunningMinutes": 30 },
+    "WorktreeMonitorEnabled": true,
+    "WorktreeMonitorIntervalSeconds": 45
   }
 }
 ```

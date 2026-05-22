@@ -3,6 +3,9 @@
     <RootNamespace>JoyZoning.ControlPlane</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="JoyZoning.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\JoyZoning.Domain\JoyZoning.Domain.csproj" />
     <ProjectReference Include="..\JoyZoning.Persistence\JoyZoning.Persistence.csproj" />
     <ProjectReference Include="..\JoyZoning.Agents\JoyZoning.Agents.csproj" />

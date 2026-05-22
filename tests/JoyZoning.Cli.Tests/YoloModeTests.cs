@@ -193,6 +193,32 @@ public class YoloModeTests
     }
 
     [Fact]
+    public async Task Run_recovers_blocked_lease_when_allowRecover()
+    {
+        var client = new RecordingYoloClient();
+        var taskId = Guid.NewGuid();
+        client.Tasks.Add(TaskJson(taskId, "Retry #test", RiskLevel.Low, WorkTaskStatus.Blocked, "tags: test"));
+        client.DispatchSucceeds = true;
+        client.LeaseAfterDispatch = LeaseJson(taskId, CreateWorktree(), ExecutionLeaseStatus.Blocked);
+        client.LeaseAfterDispatchRunning = LeaseJson(taskId, CreateWorktree(), ExecutionLeaseStatus.Running);
+        client.VerificationAlwaysPasses = true;
+        client.DoneSetsReadyForReview = true;
+
+        var policy = SamplePolicy();
+        policy.AllowRecover = true;
+        policy.RequiredVerificationCommands = ["true"];
+        policy.RequireCleanWorktreeBeforeStart = false;
+        policy.DispatchSettleTimeoutSeconds = 5;
+        policy.DispatchPollIntervalSeconds = 1;
+
+        await YoloRunner.RunAsync(client, YesArgs(), policy);
+
+        Assert.Contains(client.Calls, c => c.StartsWith("Recover:", StringComparison.Ordinal));
+        Assert.Contains(client.Calls, c => c.StartsWith("DispatchRetry:", StringComparison.Ordinal));
+        Assert.Contains(client.Evidence, e => e.Kind == YoloEvidenceKinds.RecoverAttempted);
+    }
+
+    [Fact]
     public void Run_requires_yes_flag_via_cli_safety()
     {
         var args = CliArgs.Parse(["yolo", "run", "--policy", "x.json"]);
@@ -242,7 +268,10 @@ public class YoloModeTests
         return JsonSerializer.Deserialize<JsonElement>(json);
     }
 
-    private static JsonElement LeaseJson(Guid taskId, string worktree)
+    private static JsonElement LeaseJson(
+        Guid taskId,
+        string worktree,
+        ExecutionLeaseStatus status = ExecutionLeaseStatus.Running)
     {
         var sessionId = Guid.NewGuid();
         var handoff = HandoffPacketBuilder.Build(
@@ -262,7 +291,7 @@ public class YoloModeTests
               "assignedSessionId": "{{sessionId}}",
               "operatorSessionId": "{{sessionId}}",
               "worktreePath": "{{worktree.Replace("\\", "\\\\")}}",
-              "status": {{(int)ExecutionLeaseStatus.Running}},
+              "status": {{(int)status}},
               "riskLevel": {{(int)LeaseRiskLevel.Low}},
               "handoffPacketJson": {{JsonSerializer.Serialize(HandoffPacketBuilder.Serialize(handoff))}}
             }
@@ -278,6 +307,7 @@ public class YoloModeTests
         public HashSet<Guid> DispatchedTaskIds { get; } = [];
         public bool DispatchSucceeds { get; set; }
         public JsonElement? LeaseAfterDispatch { get; set; }
+        public JsonElement? LeaseAfterDispatchRunning { get; set; }
         public bool VerificationAlwaysPasses { get; set; } = true;
         public bool DoneSetsReadyForReview { get; set; }
 
@@ -292,17 +322,31 @@ public class YoloModeTests
         public Task<CliHttpResult> GetLeaseAsync(Guid taskId)
         {
             Calls.Add("GetLease");
-            if (!DispatchedTaskIds.Contains(taskId))
-            {
-                return Task.FromResult(CliHttpResult.FromResponse(HttpStatusCode.NotFound,
-                    """{"error":"lease_not_found"}"""));
-            }
+
+            if (DispatchedTaskIds.Contains(taskId) &&
+                LeaseAfterDispatchRunning is { } running &&
+                running.TryGetProperty("workTaskId", out var rwt) &&
+                Guid.TryParse(rwt.GetString(), out var rid) &&
+                rid == taskId)
+                return Task.FromResult(Ok(running));
 
             if (LeaseAfterDispatch is { } lease &&
                 lease.TryGetProperty("workTaskId", out var wt) &&
                 Guid.TryParse(wt.GetString(), out var id) &&
                 id == taskId)
-                return Task.FromResult(Ok(lease));
+            {
+                var visible = DispatchedTaskIds.Contains(taskId)
+                    || (lease.TryGetProperty("status", out var st)
+                        && st.GetInt32() == (int)ExecutionLeaseStatus.Blocked);
+                if (visible)
+                    return Task.FromResult(Ok(lease));
+            }
+
+            if (!DispatchedTaskIds.Contains(taskId))
+            {
+                return Task.FromResult(CliHttpResult.FromResponse(HttpStatusCode.NotFound,
+                    """{"error":"lease_not_found"}"""));
+            }
 
             return Task.FromResult(CliHttpResult.FromResponse(HttpStatusCode.NotFound,
                 """{"error":"lease_not_found"}"""));

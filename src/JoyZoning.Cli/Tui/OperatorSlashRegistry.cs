@@ -22,6 +22,7 @@ public static class OperatorSlashRegistry
         new("heartbeat", "Send lease heartbeat", "Workflow", "hb"),
         new("verify", "Run --cmd in worktree and submit report", "Workflow"),
         new("complete", "Human merge (--yes)", "Workflow", "merge"),
+        new("workspace", "Git tree/changed/diff (--root or active lease)", "Workflow", "ws"),
         new("events", "Tail recent joy_events", "Info"),
         new("approvals", "List pending approvals", "Info"),
         new("manager", "Send Manager Chat message (streaming)", "Workflow", "plan", "chat"),

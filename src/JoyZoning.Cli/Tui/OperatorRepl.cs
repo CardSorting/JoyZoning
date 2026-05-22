@@ -154,6 +154,9 @@ public sealed class OperatorRepl
             case "complete":
                 await RunCompleteAsync(args, cancellationToken);
                 return;
+            case "workspace":
+                await RunWorkspaceAsync(args, cancellationToken);
+                return;
             case "events":
                 await RunEventsAsync(args, cancellationToken);
                 return;
@@ -330,6 +333,71 @@ public sealed class OperatorRepl
 
         var taskId = RequireTask();
         PrintResult(await OperatorWorkflows.CompleteTaskAsync(_client, _ctx.Args, taskId));
+    }
+
+    private async Task RunWorkspaceAsync(string args, CancellationToken cancellationToken)
+    {
+        _ = cancellationToken;
+        var parts = SplitArgs(args);
+        if (parts.Length == 0)
+            throw new CliUsageException("Usage: /workspace changed|tree|diff [--root <path>] [--path <file>]");
+
+        var sub = parts[0].ToLowerInvariant();
+        var root = GetFlag(parts, "--root");
+        var taskId = _taskId;
+
+        if (taskId is not null && root is null &&
+            sub is "changed" or "tree" or "diff")
+        {
+            var taskResult = sub switch
+            {
+                "changed" => await _client.GetTaskWorkspaceChangedAsync(taskId.Value, _sessionId),
+                "tree" => await _client.GetTaskWorkspaceTreeAsync(taskId.Value),
+                "diff" => await _client.GetTaskWorkspaceDiffAsync(
+                    taskId.Value,
+                    GetFlag(parts, "--path") ?? throw new CliUsageException("/workspace diff requires --path")),
+                _ => throw new CliUsageException("workspace changed | tree | diff"),
+            };
+            PrintResult(taskResult);
+            return;
+        }
+
+        root ??= await ResolveWorkspaceRootFromLeaseAsync();
+        PrintResult(await DispatchWorkspaceForTuiAsync(sub, root, _sessionId, GetFlag(parts, "--path")));
+    }
+
+    private async Task<CliHttpResult> DispatchWorkspaceForTuiAsync(
+        string sub,
+        string root,
+        Guid? sessionId,
+        string? diffPath)
+    {
+        return sub switch
+        {
+            "tree" => await _client.WorkspaceTreeAsync(root),
+            "changed" => await _client.WorkspaceChangedAsync(root, sessionId),
+            "diff" => await _client.WorkspaceDiffAsync(
+                root,
+                diffPath ?? throw new CliUsageException("/workspace diff requires --path")),
+            _ => throw new CliUsageException("workspace changed | tree | diff"),
+        };
+    }
+
+    private async Task<string> ResolveWorkspaceRootFromLeaseAsync()
+    {
+        if (_taskId is not { } taskId)
+            throw new CliUsageException("Use /use <task-id> or pass --root <path>.");
+
+        var lease = await _client.GetLeaseAsync(taskId);
+        if (lease.IsSuccess && lease.Body is { } body &&
+            body.TryGetProperty("worktreePath", out var wt))
+        {
+            var path = wt.GetString();
+            if (!string.IsNullOrWhiteSpace(path))
+                return path;
+        }
+
+        throw new CliUsageException("No lease worktree — pass --root or dispatch the task first.");
     }
 
     private async Task RunEventsAsync(string args, CancellationToken cancellationToken)

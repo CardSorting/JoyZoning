@@ -52,8 +52,11 @@ Manager is **not** a code editor — use Workspace + external IDE for file edits
 ## Workspace
 
 - `GET /api/workspace/tree` — file tree for active workspace root.
-- `GET /api/workspace/changed` — git changed files.
-- `GET /api/workspace/diff` — unified diff; UI splits removed (red) / added (green) hunks.
+- `GET /api/workspace/changed` — `git status --porcelain` (24h mtime fallback when not a git repo or git fails); emits timeline events when `sessionId` is supplied.
+- **Task-scoped inspection** — selecting a kanban card, dispatch, execution updates, or `OnWorktreeRefreshed` refreshes via `GET /api/tasks/{id}/workspace/changed`, resolving the **lease worktree** under `.joyzoning/worktrees/<task-id>/` when dispatched.
+- Header shows **Lease worktree** vs **Session workspace**; **Refresh** re-fetches without changing selection.
+- Background monitor (`LeaseRuntime:WorktreeMonitorEnabled`) scans active leases periodically and pushes `OnWorktreeRefreshed` when the snapshot hash changes.
+- `GET /api/workspace/diff` / task-scoped diff — unified diff; UI splits removed (red) / added (green) hunks.
 - Line-numbered preview when diff unavailable.
 
 ## Approvals

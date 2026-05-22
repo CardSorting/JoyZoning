@@ -62,6 +62,14 @@ public sealed class OperatorHubStream : IAsyncDisposable
             Emit(new StreamLine("execution", $"▸ {phase}: {objective}"));
         });
 
+        _connection.On<JsonElement>("OnWorktreeRefreshed", payload =>
+        {
+            if (!TryGetGuid(payload, "taskId", out var taskId))
+                return;
+            var count = payload.TryGetProperty("fileCount", out var fc) && fc.TryGetInt32(out var n) ? n : 0;
+            Emit(new StreamLine("workspace", $"◇ worktree updated ({count} files) task={taskId}"));
+        });
+
         await _connection.StartAsync(cancellationToken);
     }
 
@@ -101,7 +109,7 @@ public sealed class OperatorHubStream : IAsyncDisposable
 
         if (type is "hermes.run.started" or "hermes.run.completed" or
             "dietcode.execution.started" or "dietcode.execution.completed" or
-            "task.status_changed")
+            "task.status_changed" or "git.status.changed")
         {
             return new StreamLine("event", $"• {type}");
         }
@@ -128,6 +136,13 @@ public sealed class OperatorHubStream : IAsyncDisposable
             return p.GetString();
         var pascal = char.ToUpper(name[0]) + name[1..];
         return el.TryGetProperty(pascal, out p) ? p.GetString() : null;
+    }
+
+    private static bool TryGetGuid(JsonElement el, string name, out Guid guid)
+    {
+        guid = Guid.Empty;
+        var s = GetString(el, name);
+        return !string.IsNullOrEmpty(s) && Guid.TryParse(s, out guid);
     }
 
     public async ValueTask DisposeAsync()

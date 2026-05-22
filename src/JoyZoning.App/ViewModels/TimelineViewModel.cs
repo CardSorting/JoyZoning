@@ -17,7 +17,10 @@ public partial class TimelineViewModel : ViewModelBase
     [ObservableProperty]
     private TimelineEventViewModel? _selectedEvent;
 
-    public string[] FilterOptions { get; } = { "All", "Hermes", "DietCode", "JoyZoning", "Approvals" };
+    public string[] FilterOptions { get; } =
+    {
+        "All", "Hermes", "DietCode", "JoyZoning", "Terminal", "Git", "Workspace", "Approvals",
+    };
 
     partial void OnSelectedEventChanged(TimelineEventViewModel? value)
     {
@@ -64,6 +67,12 @@ public partial class TimelineViewModel : ViewModelBase
     {
         "Hermes" => evt.Source.Contains("Hermes", StringComparison.OrdinalIgnoreCase),
         "DietCode" => evt.Source.Contains("DietCode", StringComparison.OrdinalIgnoreCase),
+        "Terminal" => evt.Source.Contains("Terminal", StringComparison.OrdinalIgnoreCase)
+            || evt.Type.Contains("terminal", StringComparison.OrdinalIgnoreCase),
+        "Git" => evt.Source.Contains("Git", StringComparison.OrdinalIgnoreCase)
+            || evt.Type.Contains("git.", StringComparison.OrdinalIgnoreCase),
+        "Workspace" => evt.Source.Contains("Workspace", StringComparison.OrdinalIgnoreCase)
+            || evt.Type.Contains("workspace.", StringComparison.OrdinalIgnoreCase),
         "Approvals" => evt.Type.Contains("approval", StringComparison.OrdinalIgnoreCase),
         "JoyZoning" => evt.Source.Contains("JoyZoning", StringComparison.OrdinalIgnoreCase) || evt.Source == "0",
         _ => true,
@@ -75,6 +84,12 @@ public partial class TimelineViewModel : ViewModelBase
             return evt.Type;
         if (evt.Type.Contains("message", StringComparison.OrdinalIgnoreCase))
             return "Assistant output";
+        if (evt.Type.Contains("git.status", StringComparison.OrdinalIgnoreCase))
+            return "Git working tree snapshot";
+        if (evt.Type.Contains("workspace.file", StringComparison.OrdinalIgnoreCase))
+            return "Workspace file change";
+        if (evt.Type.Contains("terminal.output", StringComparison.OrdinalIgnoreCase))
+            return "Terminal output";
         return evt.Type;
     }
 }

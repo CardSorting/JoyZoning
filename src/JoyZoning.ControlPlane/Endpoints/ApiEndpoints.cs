@@ -359,8 +359,18 @@ public static class ApiEndpoints
         app.MapGet("/api/workspace/tree", async (string workspaceRoot, IWorkspaceAdapter workspace) =>
             Results.Ok(await workspace.ListTreeAsync(workspaceRoot)));
 
-        app.MapGet("/api/workspace/changed", async (string workspaceRoot, IWorkspaceAdapter workspace) =>
-            Results.Ok(await workspace.ListChangedFilesAsync(workspaceRoot)));
+        app.MapGet("/api/workspace/changed", async (
+            string workspaceRoot,
+            Guid? sessionId,
+            IWorkspaceAdapter workspace,
+            WorkspaceEventPublisher workspaceEvents,
+            CancellationToken cancellationToken) =>
+        {
+            var files = await workspace.ListChangedFilesAsync(workspaceRoot, cancellationToken);
+            await workspaceEvents.PublishChangedFilesAsync(
+                workspaceRoot, files, sessionId, cancellationToken);
+            return Results.Ok(files);
+        });
 
         app.MapGet("/api/workspace/diff", async (string workspaceRoot, string path, IWorkspaceAdapter workspace) =>
         {
@@ -368,6 +378,83 @@ public static class ApiEndpoints
             return diff is null
                 ? Results.NotFound(new { message = "Not a git repo or no diff for path." })
                 : Results.Ok(new { path, diff });
+        });
+
+        app.MapGet("/api/tasks/{id:guid}/workspace/changed", async (
+            Guid id,
+            Guid? sessionId,
+            IWorkTaskRepository tasks,
+            IOperatorSessionRepository sessions,
+            KanbanExecutionOrchestrator exec,
+            IWorkspaceAdapter workspace,
+            WorkspaceEventPublisher workspaceEvents,
+            CancellationToken cancellationToken) =>
+        {
+            var target = await WorkspaceInspection.ResolveForTaskAsync(
+                id, tasks, sessions, exec, cancellationToken);
+            if (target is null)
+                return Results.NotFound(new { error = "task_not_found", message = "Task or workspace root not found." });
+
+            var files = await workspace.ListChangedFilesAsync(target.Root, cancellationToken);
+            await workspaceEvents.PublishChangedFilesAsync(
+                target.Root, files, sessionId ?? target.SessionId, cancellationToken);
+            return Results.Ok(new
+            {
+                taskId = id,
+                workspaceRoot = target.Root,
+                inspect = target.IsWorktree ? "worktree" : "session",
+                files,
+            });
+        });
+
+        app.MapGet("/api/tasks/{id:guid}/workspace/tree", async (
+            Guid id,
+            IWorkTaskRepository tasks,
+            IOperatorSessionRepository sessions,
+            KanbanExecutionOrchestrator exec,
+            IWorkspaceAdapter workspace,
+            CancellationToken cancellationToken) =>
+        {
+            var target = await WorkspaceInspection.ResolveForTaskAsync(
+                id, tasks, sessions, exec, cancellationToken);
+            if (target is null)
+                return Results.NotFound(new { error = "task_not_found", message = "Task or workspace root not found." });
+
+            var tree = await workspace.ListTreeAsync(target.Root, cancellationToken: cancellationToken);
+            return Results.Ok(new
+            {
+                taskId = id,
+                workspaceRoot = target.Root,
+                inspect = target.IsWorktree ? "worktree" : "session",
+                tree,
+            });
+        });
+
+        app.MapGet("/api/tasks/{id:guid}/workspace/diff", async (
+            Guid id,
+            string path,
+            IWorkTaskRepository tasks,
+            IOperatorSessionRepository sessions,
+            KanbanExecutionOrchestrator exec,
+            IWorkspaceAdapter workspace,
+            CancellationToken cancellationToken) =>
+        {
+            var target = await WorkspaceInspection.ResolveForTaskAsync(
+                id, tasks, sessions, exec, cancellationToken);
+            if (target is null)
+                return Results.NotFound(new { error = "task_not_found", message = "Task or workspace root not found." });
+
+            var diff = await workspace.GetGitDiffAsync(target.Root, path, cancellationToken);
+            return diff is null
+                ? Results.NotFound(new { message = "Not a git repo or no diff for path." })
+                : Results.Ok(new
+                {
+                    taskId = id,
+                    workspaceRoot = target.Root,
+                    inspect = target.IsWorktree ? "worktree" : "session",
+                    path,
+                    diff,
+                });
         });
 
         app.MapGet("/api/hermes/health", async (

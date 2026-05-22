@@ -126,10 +126,21 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             Timeline.AddEvent(evt);
             Execution.HandleJoyEvent(evt);
+            if (ShouldRefreshWorkspaceForEvent(evt))
+            {
+                var taskId = Kanban.SelectedCard?.Id;
+                if (taskId is not null && taskId == evt.CorrelationId)
+                    _ = RefreshWorkspaceForTaskAsync(taskId);
+            }
         };
         hub.TaskChangedReceived += _ =>
         {
-            Avalonia.Threading.Dispatcher.UIThread.Post(async () => await Kanban.RefreshAsync());
+            Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+            {
+                await Kanban.RefreshAsync();
+                if (Kanban.SelectedCard is { } card)
+                    await RefreshWorkspaceForTaskAsync(card.Id);
+            });
         };
         hub.KanbanSyncedReceived += msg =>
         {
@@ -142,11 +153,21 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(async () => await Approvals.RefreshAsync());
         };
-        hub.ExecutionUpdatedReceived += msg => Execution.UpdateFromRun(msg);
+        hub.ExecutionUpdatedReceived += msg =>
+        {
+            Execution.UpdateFromRun(msg);
+            if (msg.WorkTaskId is { } taskId && Kanban.SelectedCard?.Id == taskId)
+                _ = RefreshWorkspaceForTaskAsync(taskId);
+        };
         hub.TerminalOutputReceived += msg =>
         {
             if (ActiveSessionId == msg.CorrelationId || Kanban.SelectedCard?.Id == msg.CorrelationId)
                 Execution.AppendTerminal(msg.Text);
+        };
+        hub.WorktreeRefreshedReceived += msg =>
+        {
+            if (Kanban.SelectedCard?.Id == msg.TaskId)
+                _ = RefreshWorkspaceForTaskAsync(msg.TaskId);
         };
     }
 
@@ -499,7 +520,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
         ManagerChat.SessionId = sessionId;
         Kanban.SessionId = sessionId;
+        Workspace.SessionId = sessionId;
         Workspace.WorkspaceRoot = workspaceRoot;
+        Workspace.ClearTaskInspection();
 
         await AppServices.Hub.SubscribeSessionAsync(sessionId);
         await Kanban.RefreshAsync();
@@ -514,5 +537,19 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         var list = await AppServices.ControlPlane.ListInterruptedExecutionsAsync();
         PendingInterruptedCount = list.Count;
+    }
+
+    public Task RefreshWorkspaceForTaskAsync(Guid? taskId) =>
+        Workspace.RefreshForTaskAsync(taskId);
+
+    private static bool ShouldRefreshWorkspaceForEvent(JoyEventMessage evt)
+    {
+        if (evt.Type.Contains("execution.lease", StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (evt.Type.Contains("dietcode.execution", StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (evt.Type.Contains("verification.report", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return evt.Type.Contains("git.status", StringComparison.OrdinalIgnoreCase);
     }
 }

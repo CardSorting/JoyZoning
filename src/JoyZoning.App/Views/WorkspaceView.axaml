@@ -6,6 +6,15 @@
              x:DataType="vm:WorkspaceViewModel">
   <DockPanel>
     <views:SurfaceTipBar DockPanel.Dock="Top" x:Name="SurfaceTip" />
+    <Border DockPanel.Dock="Top" Padding="8,6" Margin="0,0,0,8" Background="#161b22" CornerRadius="4">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel>
+          <TextBlock Classes="subtitle" Text="WORKSPACE INSPECTION" />
+          <TextBlock Text="{Binding InspectLabel}" Opacity="0.85" IsVisible="{Binding ShowInspectLabel}" />
+        </StackPanel>
+        <Button Grid.Column="1" Content="Refresh" Command="{Binding RefreshFromUiCommand}" VerticalAlignment="Center" />
+      </Grid>
+    </Border>
   <Grid ColumnDefinitions="200,200,*" RowDefinitions="*,Auto">
     <StackPanel Grid.Column="0" Margin="0,0,8,0">
       <TextBlock Classes="subtitle" Text="FILE TREE" />

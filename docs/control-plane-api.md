@@ -74,8 +74,13 @@ See [event-catalog.md](event-catalog.md).
 | Method | Path | Query |
 |--------|------|-------|
 | `GET` | `/api/workspace/tree` | `workspaceRoot` |
-| `GET` | `/api/workspace/changed` | `workspaceRoot` |
+| `GET` | `/api/workspace/changed` | `workspaceRoot`, optional `sessionId` (timeline correlation) |
 | `GET` | `/api/workspace/diff` | `workspaceRoot`, `path` |
+| `GET` | `/api/tasks/{id}/workspace/changed` | Resolves **lease worktree** when dispatched, else session root |
+| `GET` | `/api/tasks/{id}/workspace/tree` | Same resolution as above |
+| `GET` | `/api/tasks/{id}/workspace/diff` | `path` — diff inside resolved worktree/session root |
+
+**Background:** `LeaseWorktreeMonitorHostedService` (config: `LeaseRuntime:WorktreeMonitor*`) scans active lease worktrees, dedupes snapshots, ingests timeline events, and broadcasts `OnWorktreeRefreshed`.
 
 ## Hermes connectivity
 

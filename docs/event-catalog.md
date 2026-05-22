@@ -9,9 +9,9 @@ All events are stored in `joy_events` with monotonic `Id` (replay cursor), `Corr
 | `JoyZoning` | Control plane orchestration |
 | `Hermes` | Manager runs via SSE |
 | `DietCode` | Executor runs via SSE |
-| `Terminal` | Local PTY output (future) |
-| `Git` | Repository status (future) |
-| `Workspace` | File watcher |
+| `Terminal` | Hermes tool/terminal previews (persisted + `OnTerminalOutput`) |
+| `Git` | Working tree snapshot on workspace refresh (API or background monitor; git repos) |
+| `Workspace` | Per-file change rows on workspace refresh (non-git uses 24h mtime fallback) |
 
 ## Canonical event types
 
@@ -83,6 +83,9 @@ Server → client:
 - `OnApprovalRequested` — new pending approval
 - `OnTerminalOutput` — Hermes tool output preview (execution viewport)
 - `OnKanbanSynced` — background kanban auto-import finished
+- `OnWorktreeRefreshed` — active lease worktree snapshot changed after background scan or deduped API refresh (`taskId`, `workspaceRoot`, `fileCount`, `inspect`)
+
+Background: `LeaseWorktreeMonitorHostedService` scans active leases every `LeaseRuntime:WorktreeMonitorIntervalSeconds` (default 45s), publishes `git.status.changed` / `workspace.file.changed` when the porcelain hash changes, then pushes `OnWorktreeRefreshed` for desktop/TUI subscribers.
 
 ## Example sequence
 

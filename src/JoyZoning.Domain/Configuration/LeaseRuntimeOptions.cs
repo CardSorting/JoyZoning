@@ -10,6 +10,11 @@ public class LeaseRuntimeOptions
     public int MaxCriticalLeases { get; set; } = 1;
     public int ReconciliationIntervalSeconds { get; set; } = 60;
 
+    /// <summary>Background scan of active lease worktrees for git/mtime changes.</summary>
+    public bool WorktreeMonitorEnabled { get; set; } = true;
+
+    public int WorktreeMonitorIntervalSeconds { get; set; } = 45;
+
     /// <summary>When true, absolute ExpiresAt transitions to revoked; otherwise blocked.</summary>
     public bool AbsoluteExpirationRevokes { get; set; }
 

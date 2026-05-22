@@ -72,7 +72,7 @@ Use one **workspace folder** and one **session** — both surfaces read the same
 | Run tests as proof | Via verify flow | `task verify --cmd` | `agent verify --cmd` |
 | Mark ready for review | After verify | — | `agent done` |
 | **Merge → Complete** | **You** (merge button) | `task complete --yes` | **Not allowed** |
-| Approve risky tools | Approvals surface | API / future CLI | — |
+| Approve risky tools | Approvals surface | `jz approval list` / `resolve` or `/approvals` in `jz tui` | — |
 
 ---
 

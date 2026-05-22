@@ -56,7 +56,7 @@
     </Border>
 
     <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,8,0,0">
-      <TextBox Text="{Binding ComposerText}" Watermark="{Binding Placeholder}" AcceptsReturn="True" MinHeight="48" />
+      <TextBox Text="{Binding ComposerText}" PlaceholderText="{Binding Placeholder}" AcceptsReturn="True" MinHeight="48" />
       <Button Grid.Column="1" Content="Parse" Command="{Binding ParseSuggestedTasksCommand}"
               Margin="8,0,0,0" VerticalAlignment="Bottom" />
       <Button Grid.Column="2" Content="→ Task" Command="{Binding CreateTaskFromReplyCommand}"

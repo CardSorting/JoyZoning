@@ -22,16 +22,32 @@ public class LocalWorkspaceAdapter : IWorkspaceAdapter
         return Task.FromResult<IReadOnlyList<string>>(results);
     }
 
-    public Task<IReadOnlyList<ChangedFile>> ListChangedFilesAsync(
+    public async Task<IReadOnlyList<ChangedFile>> ListChangedFilesAsync(
         string workspaceRoot,
         CancellationToken cancellationToken = default)
     {
-        // MVP: return recently modified files in workspace (last 24h)
         if (!Directory.Exists(workspaceRoot))
-            return Task.FromResult<IReadOnlyList<ChangedFile>>(Array.Empty<ChangedFile>());
+            return Array.Empty<ChangedFile>();
 
+        if (GitWorkspaceStatus.IsGitRepository(workspaceRoot))
+        {
+            var (gitOk, gitFiles) = await GitWorkspaceStatus.TryListChangedFilesAsync(
+                workspaceRoot, cancellationToken);
+            if (gitOk)
+                return gitFiles;
+
+            _logger.LogWarning(
+                "git status failed for {Root}; falling back to recent file scan",
+                workspaceRoot);
+        }
+
+        return ListRecentlyModifiedFiles(workspaceRoot);
+    }
+
+    private static IReadOnlyList<ChangedFile> ListRecentlyModifiedFiles(string workspaceRoot)
+    {
         var cutoff = DateTime.UtcNow.AddHours(-24);
-        var files = Directory.EnumerateFiles(workspaceRoot, "*", SearchOption.AllDirectories)
+        return Directory.EnumerateFiles(workspaceRoot, "*", SearchOption.AllDirectories)
             .Where(f => !f.Contains("/.git/", StringComparison.Ordinal) &&
                         !f.Contains("\\.git\\", StringComparison.Ordinal))
             .Select(f => new FileInfo(f))
@@ -42,8 +58,6 @@ public class LocalWorkspaceAdapter : IWorkspaceAdapter
                 "modified",
                 fi.LastWriteTimeUtc))
             .ToList();
-
-        return Task.FromResult<IReadOnlyList<ChangedFile>>(files);
     }
 
     public async Task<string?> ReadFileAsync(string path, CancellationToken cancellationToken = default)

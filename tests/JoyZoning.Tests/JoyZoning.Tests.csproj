@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\JoyZoning.Adapters\JoyZoning.Adapters.csproj" />
     <ProjectReference Include="..\..\src\JoyZoning.Domain\JoyZoning.Domain.csproj" />
     <ProjectReference Include="..\..\src\JoyZoning.Persistence\JoyZoning.Persistence.csproj" />
     <ProjectReference Include="..\..\src\JoyZoning.ControlPlane\JoyZoning.ControlPlane.csproj" />

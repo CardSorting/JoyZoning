@@ -56,7 +56,7 @@ public class HermesRunEventConsumer
 
                     var hub = scope.ServiceProvider.GetRequiredService<IHubContext<OperatorHub>>();
                     await PushUiEventsAsync(hub, agentKind, correlationId, evt, cts.Token);
-                    await PushTerminalOutputAsync(hub, correlationId, evt, cts.Token);
+                    await PushTerminalOutputAsync(events, hub, correlationId, evt, cts.Token);
 
                     if (evt.EventType.Contains("approval.request", StringComparison.OrdinalIgnoreCase))
                     {
@@ -138,6 +138,7 @@ public class HermesRunEventConsumer
     }
 
     private static async Task PushTerminalOutputAsync(
+        EventIngestor events,
         IHubContext<OperatorHub> hub,
         Guid? correlationId,
         NormalizedAgentEvent evt,
@@ -159,6 +160,12 @@ public class HermesRunEventConsumer
             new TerminalOutputDto(correlationId.Value, text),
             cancellationToken);
 
+        await events.IngestAsync(
+            correlationId.Value,
+            EventSource.Terminal,
+            EventTypes.TerminalOutput,
+            new { preview = text, agentEventType = evt.EventType },
+            cancellationToken);
     }
 
     private static string ExtractTerminalText(string json)

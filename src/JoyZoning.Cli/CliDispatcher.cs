@@ -377,7 +377,7 @@ public static class CliDispatcher
         return a[1].ToLowerInvariant() switch
         {
             "tree" => await client.WorkspaceTreeAsync(root),
-            "changed" => await client.WorkspaceChangedAsync(root),
+            "changed" => await client.WorkspaceChangedAsync(root, ctx.Args.SessionId),
             "diff" => await client.WorkspaceDiffAsync(root,
                 CliArgs.OptStatic(ctx.Args.Raw, "--path") ?? throw Usage("--path required")),
             _ => throw Usage("workspace tree | changed | diff"),

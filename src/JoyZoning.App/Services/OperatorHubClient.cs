@@ -15,6 +15,7 @@ public class OperatorHubClient : IAsyncDisposable
     public event Action<ExecutionUpdatedMessage>? ExecutionUpdatedReceived;
     public event Action<TerminalOutputMessage>? TerminalOutputReceived;
     public event Action<KanbanSyncedMessage>? KanbanSyncedReceived;
+    public event Action<WorktreeRefreshedMessage>? WorktreeRefreshedReceived;
 
     public bool IsConnected => _connection?.State == HubConnectionState.Connected;
 
@@ -91,6 +92,18 @@ public class OperatorHubClient : IAsyncDisposable
             }
         });
 
+        _connection.On<JsonElement>("OnWorktreeRefreshed", payload =>
+        {
+            if (TryGetGuid(payload, "taskId", out var taskId))
+            {
+                var root = GetString(payload, "workspaceRoot") ?? "";
+                var count = payload.TryGetProperty("fileCount", out var fc) && fc.TryGetInt32(out var n)
+                    ? n
+                    : 0;
+                WorktreeRefreshedReceived?.Invoke(new WorktreeRefreshedMessage(taskId, root, count));
+            }
+        });
+
         await _connection.StartAsync(cancellationToken);
     }
 
@@ -126,12 +139,17 @@ public class OperatorHubClient : IAsyncDisposable
         if (!el.TryGetProperty("type", out var typeProp) && !el.TryGetProperty("Type", out typeProp))
             return null;
 
+        TryGetGuid(el, "correlationId", out var correlationId);
+
         return new JoyEventMessage(
             el.TryGetProperty("id", out var id) ? id.GetInt64() : el.GetProperty("Id").GetInt64(),
+            correlationId,
             GetString(el, "source") ?? "",
             typeProp.GetString() ?? "",
             GetString(el, "payloadJson") ?? "{}",
-            DateTimeOffset.UtcNow);
+            el.TryGetProperty("occurredAt", out var at) && at.TryGetDateTimeOffset(out var when)
+                ? when
+                : DateTimeOffset.UtcNow);
     }
 
     private static TaskChangedMessage? ParseTaskChanged(JsonElement el)
@@ -162,8 +180,11 @@ public class OperatorHubClient : IAsyncDisposable
         if (!TryGetGuid(el, "id", out var id))
             return null;
 
+        TryGetGuid(el, "workTaskId", out var taskId);
+
         return new ExecutionUpdatedMessage(
             id,
+            taskId == Guid.Empty ? null : taskId,
             GetString(el, "objective") ?? "",
             GetString(el, "phase") ?? "");
     }
@@ -176,10 +197,17 @@ public class OperatorHubClient : IAsyncDisposable
     }
 }
 
-public record JoyEventMessage(long Id, string Source, string Type, string PayloadJson, DateTimeOffset OccurredAt);
+public record JoyEventMessage(
+    long Id,
+    Guid CorrelationId,
+    string Source,
+    string Type,
+    string PayloadJson,
+    DateTimeOffset OccurredAt);
 public record ManagerChatDeltaMessage(Guid SessionId, string Delta);
 public record TaskChangedMessage(Guid Id, string Title, string Status);
 public record ApprovalRequestedMessage(Guid Id, string Command, string Description, string Risk);
-public record ExecutionUpdatedMessage(Guid Id, string Objective, string Phase);
+public record ExecutionUpdatedMessage(Guid Id, Guid? WorkTaskId, string Objective, string Phase);
 public record TerminalOutputMessage(Guid CorrelationId, string Text);
 public record KanbanSyncedMessage(Guid SessionId, string Message);
+public record WorktreeRefreshedMessage(Guid TaskId, string WorkspaceRoot, int FileCount);

@@ -120,6 +120,8 @@ public partial class KanbanViewModel : ViewModelBase
         ShowCriticalApproval = value?.Risk == nameof(RiskLevel.Critical);
         if (!ShowCriticalApproval)
             ApproveCriticalDispatch = false;
+
+        _ = _shell.RefreshWorkspaceForTaskAsync(value?.Id);
     }
 
     [RelayCommand]
@@ -177,6 +179,7 @@ public partial class KanbanViewModel : ViewModelBase
         {
             _shell.MarkOptionalOnboardingStep(OnboardingStepIds.FirstDispatch);
             _ = _shell.OnboardingHub.RefreshAsync();
+            await _shell.RefreshWorkspaceForTaskAsync(SelectedCard.Id);
         }
 
         await RefreshAsync();
