@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# JoyZoning CLI — terminal automation against the control plane REST API.
+# Usage: ./scripts/jz health
+# Install: ./scripts/install-jz.sh  (adds ~/.local/bin/jz)
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT="$ROOT/src/JoyZoning.Cli/JoyZoning.Cli.csproj"
+
+if [[ -n "${JOYZONING_CLI_BIN:-}" && -x "${JOYZONING_CLI_BIN}" ]]; then
+  exec "${JOYZONING_CLI_BIN}" "$@"
+fi
+
+if [[ -x "$ROOT/dist/jz" ]]; then
+  exec "$ROOT/dist/jz" "$@"
+fi
+
+export PATH="${HOME}/.dotnet:${PATH}"
+exec dotnet run --project "$PROJECT" -- "$@"

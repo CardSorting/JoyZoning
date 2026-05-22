@@ -1,0 +1,134 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:JoyZoning.App.ViewModels"
+        xmlns:views="using:JoyZoning.App.Views"
+        x:Class="JoyZoning.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="JoyZoning — Operator Cockpit"
+        Width="1280" Height="800"
+        MinWidth="960" MinHeight="600">
+
+  <Panel>
+  <DockPanel>
+    <Menu DockPanel.Dock="Top">
+      <MenuItem Header="Project">
+        <MenuItem Header="Open Workspace…" Click="OnOpenWorkspace" />
+      </MenuItem>
+      <MenuItem Header="Hermes">
+        <MenuItem Header="Getting Started" Click="OnNavGettingStarted" />
+        <MenuItem Header="Setup wizard…" Click="OnOpenSetupWizard" />
+        <MenuItem Header="Connection…" Click="OnOpenHermesConnection" />
+        <MenuItem Header="Connect Hermes" Command="{Binding ConnectHermesCommand}" />
+        <MenuItem Header="Refresh Status" Command="{Binding RefreshStatusCommand}" />
+        <MenuItem Header="Ensure Gateway" Command="{Binding EnsureHermesCommand}" />
+        <MenuItem Header="Open TUI Terminal" Click="OnOpenTuiTerminal" />
+      </MenuItem>
+      <MenuItem Header="Settings" Click="OnOpenSettings" />
+      <MenuItem Header="Recovery" Click="OnResumeExecutions" />
+    </Menu>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="8">
+      <Border Grid.Row="0" Classes="panel" Padding="12,8"
+              IsVisible="{Binding ShowSetupBanner}" Background="#1c2128">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+          <StackPanel>
+            <TextBlock Text="{Binding SetupBannerMessage}" TextWrapping="Wrap" />
+            <TextBlock Classes="subtitle" Text="{Binding SetupProgressText}" />
+          </StackPanel>
+          <Button Grid.Column="1" Content="Getting Started" Click="OnNavGettingStarted"
+                  Margin="8,0" VerticalAlignment="Center" />
+          <Button Grid.Column="2" Name="BannerSmartSetup" Content="Smart setup"
+                  Margin="8,0" VerticalAlignment="Center" Click="OnBannerSmartSetup" />
+          <Button Grid.Column="3" Content="Setup wizard…" Click="OnOpenSetupWizard"
+                  VerticalAlignment="Center" />
+          <Button Grid.Column="4" Content="✕" Command="{Binding DismissSetupBannerCommand}"
+                  ToolTip.Tip="Dismiss until next launch" VerticalAlignment="Center" />
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="1" Classes="panel" Padding="12,8"
+              IsVisible="{Binding ShowWorkspaceBanner}" Background="#1f2d3d">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="Hermes is connected — open a workspace to use Manager Chat, Kanban, and Workspace."
+                     TextWrapping="Wrap" VerticalAlignment="Center" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button Content="Open workspace…" Command="{Binding OpenWorkspaceFromBannerCommand}" />
+            <Button Content="Open last" Command="{Binding OpenRecentWorkspaceCommand}"
+                    ToolTip.Tip="Reopen last workspace folder" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="2" Classes="panel" Padding="12,8">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+          <StackPanel>
+            <TextBlock Classes="title" Text="JoyZoning" />
+            <TextBlock Classes="subtitle" Text="{Binding ProjectName}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
+            <Button Classes="nav" Background="Transparent" BorderThickness="0" Padding="0"
+                    Click="OnOpenHermesConnection" HorizontalAlignment="Left">
+              <TextBlock Text="{Binding HermesStatus, StringFormat=API: {0}}" />
+            </Button>
+            <Button Classes="nav" Background="Transparent" BorderThickness="0" Padding="0"
+                    Click="OnOpenHermesConnection" HorizontalAlignment="Left">
+              <TextBlock Text="{Binding DashboardStatus, StringFormat=Dashboard: {0}}" />
+            </Button>
+            <TextBlock Text="{Binding DietCodeStatus, StringFormat=DietCode: {0}}" />
+          </StackPanel>
+          <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="16,0"
+                     Text="{Binding StatusLine}" TextWrapping="Wrap" MaxWidth="320" />
+          <Button Grid.Column="3" Content="Refresh" Command="{Binding RefreshStatusCommand}"
+                  VerticalAlignment="Center" />
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="3" ColumnDefinitions="180,*,280">
+        <Border Grid.Column="0" Classes="panel">
+          <StackPanel>
+            <TextBlock Classes="subtitle" Text="START" Margin="0,0,0,8" />
+            <Button Name="NavGettingStarted" Classes="nav" Click="OnNavGettingStarted">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="Getting Started" />
+                <TextBlock Grid.Column="1" Text="●" Foreground="#d29922"
+                           IsVisible="{Binding ShowGettingStartedNavBadge}" Margin="4,0,0,0" />
+              </Grid>
+            </Button>
+            <TextBlock Classes="subtitle" Text="SURFACES" Margin="0,12,0,8" />
+            <Button Name="NavManager" Classes="nav" Content="Manager Chat" Click="OnNavManager" />
+            <Button Name="NavKanban" Classes="nav" Content="Kanban" Click="OnNavKanban" />
+            <Button Name="NavExecution" Classes="nav" Content="Execution" Click="OnNavExecution" />
+            <Button Name="NavWorkspace" Classes="nav" Content="Workspace" Click="OnNavWorkspace" />
+            <Button Name="NavTimeline" Classes="nav" Content="Timeline" Click="OnNavTimeline" />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Column="1" Classes="panel" Margin="8,0">
+          <ContentControl Name="MainContent" />
+        </Border>
+
+        <Border Grid.Column="2" Classes="panel">
+          <StackPanel>
+            <TextBlock Classes="title" Text="Approvals" FontSize="14" />
+            <views:ApprovalsPanel DataContext="{Binding Approvals}" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Border Grid.Row="4" Classes="panel" Margin="0,8,0,0" Padding="8,6">
+        <TextBlock Classes="subtitle" Text="{Binding OnboardingToast}" />
+      </Border>
+    </Grid>
+  </DockPanel>
+
+  <Border IsVisible="{Binding IsAutoSettingUp}" Background="#E60d1117" ZIndex="200">
+    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="520" Spacing="16" Margin="24">
+      <TextBlock Classes="title" Text="Setting up JoyZoning" FontSize="20" HorizontalAlignment="Center" />
+      <TextBlock TextWrapping="Wrap" TextAlignment="Center" Opacity="0.95"
+                 Text="You don't need to configure anything. JoyZoning uses one diet-hermes install (~/Downloads/diet-hermes-main-master), sets it up if needed, and connects. Manager and executor roles are separate sessions synced on the kanban board." />
+      <ProgressBar Minimum="0" Maximum="100" Value="{Binding AutoSetupPercent}" Height="8" />
+      <TextBlock Text="{Binding AutoSetupLine}" TextWrapping="Wrap" TextAlignment="Center" Classes="subtitle" />
+    </StackPanel>
+  </Border>
+  </Panel>
+</Window>

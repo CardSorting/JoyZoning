@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>JoyZoning.Cli</RootNamespace>
+    <AssemblyName>jz</AssemblyName>
+    <Description>JoyZoning control plane CLI for terminal automation</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JoyZoning.Domain\JoyZoning.Domain.csproj" />
+  </ItemGroup>
+</Project>

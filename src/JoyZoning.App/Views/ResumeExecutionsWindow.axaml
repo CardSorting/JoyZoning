@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:services="using:JoyZoning.App.Services"
+        x:Class="JoyZoning.App.Views.ResumeExecutionsWindow"
+        Title="Interrupted Executions"
+        Width="520" Height="300"
+        WindowStartupLocation="CenterOwner">
+  <DockPanel Margin="12">
+    <TextBlock DockPanel.Dock="Top" Classes="subtitle" Margin="0,0,0,8"
+               Text="These DietCode runs were interrupted. Resume or dismiss each one." />
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,8,0,0">
+      <Button Content="Dismiss All" Click="OnDismissAll" />
+      <Button Content="Close" Click="OnClose" IsDefault="True" />
+    </StackPanel>
+    <ListBox Name="ExecutionList">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="services:ControlPlaneClient+InterruptedExecution">
+          <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4">
+            <StackPanel Grid.Column="0">
+              <TextBlock FontWeight="SemiBold" Text="{Binding Objective}" />
+              <TextBlock Classes="subtitle" Text="{Binding HermesRunId}" FontSize="10" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="Resume" Margin="4,0" Click="OnResumeClick" />
+            <Button Grid.Column="2" Content="Dismiss" Margin="4,0" Click="OnDismissClick" />
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</Window>

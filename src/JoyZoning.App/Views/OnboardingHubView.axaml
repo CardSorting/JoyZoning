@@ -1,0 +1,215 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:JoyZoning.App.ViewModels"
+             x:Class="JoyZoning.App.Views.OnboardingHubView"
+             x:DataType="vm:OnboardingHubViewModel"
+             x:Name="HubRoot">
+  <ScrollViewer>
+    <StackPanel Margin="20" Spacing="16" MaxWidth="760">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="subtitle" Text="{Binding PhaseLabel}" />
+          <TextBlock Classes="title" Text="{Binding Headline}" FontSize="22" />
+          <TextBlock Text="{Binding Subheadline}" TextWrapping="Wrap" Opacity="0.9" />
+          <TextBlock Classes="subtitle" Text="{Binding StepsSummaryText}" />
+          <TextBlock Classes="subtitle" Text="{Binding CoreCompletedAgoText}" />
+        </StackPanel>
+        <Border Grid.Column="1" Padding="12,8" CornerRadius="6" Background="#21262d" MinWidth="100">
+          <StackPanel HorizontalAlignment="Center" Spacing="2">
+            <TextBlock Classes="subtitle" Text="HEALTH" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding HealthGradeLabel}" FontWeight="Bold" FontSize="16"
+                       Foreground="{Binding HealthGradeColor}" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding ProgressPercent, StringFormat={}{0}%}" Classes="subtitle"
+                       HorizontalAlignment="Center" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Border Classes="panel" Padding="16" Background="#1c2128" IsVisible="{Binding ShowCelebration}">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="title" Text="Setup complete" FontSize="16" Foreground="#3fb950" />
+          <TextBlock TextWrapping="Wrap"
+                     Text="JoyZoning connected to Hermes automatically. Try Manager Chat, or use What's next to explore Kanban and Execution." />
+          <Button Content="Got it" Command="{Binding DismissCelebrationCommand}" HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="panel" Padding="16" IsVisible="{Binding !IsComplete}">
+        <StackPanel Spacing="12">
+          <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="8" />
+          <TextBlock Classes="subtitle" Text="{Binding TimeEstimateText}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="{Binding PrimaryActionLabel}" Command="{Binding PrimaryActionCommand}"
+                    IsEnabled="{Binding !IsRunningSmartSetup}" />
+            <Button Content="Smart setup" Command="{Binding RunSmartSetupCommand}"
+                    IsEnabled="{Binding !IsRunningSmartSetup}" />
+            <Button Content="Copy health report" Command="{Binding CopyDiagnosticsCommand}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Guided wizard" Command="{Binding OpenWizardCommand}" />
+            <Button Content="Connection…" Command="{Binding OpenConnectionCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="subtitle" Text="QUICK ACTIONS" />
+      <ItemsControl ItemsSource="{Binding QuickActions}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:OnboardingQuickActionViewModel">
+            <Button Content="{Binding Title}" Margin="0,0,8,8"
+                    Command="{Binding DataContext.RunQuickActionCommand, ElementName=HubRoot}"
+                    CommandParameter="{Binding Id}"
+                    ToolTip.Tip="{Binding Description}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <TextBlock Classes="subtitle" Text="CORE CHECKLIST" />
+      <ItemsControl ItemsSource="{Binding Steps}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:OnboardingStepRowViewModel">
+            <Border Classes="panel" Margin="0,0,0,8" Padding="12"
+                    BorderThickness="2" BorderBrush="{Binding RowBorderBrush}">
+              <Grid ColumnDefinitions="Auto,*,Auto">
+                <TextBlock Grid.Column="0" Text="{Binding StatusIcon}" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Top" />
+                <StackPanel Grid.Column="1" Spacing="4">
+                  <TextBlock FontWeight="SemiBold">
+                    <Run Text="{Binding OrderLabel}" />
+                    <Run Text=". " />
+                    <Run Text="{Binding Title}" />
+                  </TextBlock>
+                  <TextBlock Classes="subtitle" Text="{Binding Description}" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding WhyItMatters}" TextWrapping="Wrap" FontSize="11" Opacity="0.85" FontStyle="Italic" />
+                  <TextBlock Text="{Binding RequiresLabel}" Foreground="#8b949e" IsVisible="{Binding ShowRequires}" />
+                  <TextBlock Text="{Binding BlockedReason}" Foreground="#d29922" IsVisible="{Binding ShowBlocked}" />
+                  <TextBlock Text="{Binding CompletedAtText}" Foreground="#3fb950" FontSize="11"
+                             IsVisible="{Binding ShowCompletedAt}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Top">
+                  <Button Content="{Binding FixLabel}" IsVisible="{Binding ShowFix}"
+                          Command="{Binding DataContext.FixStepCommand, ElementName=HubRoot}"
+                          CommandParameter="{Binding Id}" />
+                  <Button Content="Open →" IsVisible="{Binding ShowNavigate}"
+                          Command="{Binding DataContext.NavigateSurfaceCommand, ElementName=HubRoot}"
+                          CommandParameter="{Binding NavigateSurfaceId}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <Expander Header="Diagnostics &amp; health" IsExpanded="{Binding ShowDiagnostics}">
+        <StackPanel Spacing="8" Margin="0,8,0,0">
+          <Button Content="Copy full health report" Command="{Binding CopyDiagnosticsCommand}" HorizontalAlignment="Left" />
+          <ItemsControl ItemsSource="{Binding Diagnostics}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:OnboardingDiagnosticViewModel">
+                <Border Padding="10" Margin="0,0,0,6" Background="#21262d" CornerRadius="4">
+                  <StackPanel Spacing="4">
+                    <TextBlock FontWeight="SemiBold" Foreground="{Binding SeverityColor}" Text="{Binding Title}" />
+                    <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" FontSize="12" />
+                    <Button Content="Fix" IsVisible="{Binding ShowFix}"
+                            Command="{Binding DataContext.FixStepCommand, ElementName=HubRoot}"
+                            CommandParameter="{Binding FixStepId}" HorizontalAlignment="Left" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Expander>
+
+      <Expander Header="Troubleshooting playbooks">
+        <ItemsControl ItemsSource="{Binding Playbooks}" Margin="0,8,0,0">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:OnboardingPlaybookViewModel">
+              <Border Padding="10" Margin="0,0,0,8" Background="#21262d" CornerRadius="4">
+                <StackPanel Spacing="6">
+                  <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+                  <TextBlock Classes="subtitle" Text="{Binding Summary}" TextWrapping="Wrap" />
+                  <ItemsControl ItemsSource="{Binding Steps}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Margin="8,2,0,0" TextWrapping="Wrap">
+                          <Run Text="• " />
+                          <Run Text="{Binding}" />
+                        </TextBlock>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Button Content="Run fix for this issue" IsVisible="{Binding ShowFix}"
+                          Command="{Binding DataContext.ApplyPlaybookFixCommand, ElementName=HubRoot}"
+                          CommandParameter="{Binding RelatedStepId}" HorizontalAlignment="Left" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Expander>
+
+      <TextBlock Classes="subtitle" Text="LEARN" />
+      <ItemsControl ItemsSource="{Binding Resources}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:OnboardingResourceLinkViewModel">
+            <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Margin="0,0,0,6"
+                    Command="{Binding DataContext.OpenResourceCommand, ElementName=HubRoot}"
+                    CommandParameter="{Binding}">
+              <StackPanel>
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                <TextBlock Classes="subtitle" Text="{Binding Description}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <StackPanel IsVisible="{Binding IsComplete}" Spacing="8">
+        <TextBlock Classes="subtitle" Text="OPTIONAL MILESTONES" />
+        <ItemsControl ItemsSource="{Binding OptionalSteps}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:OnboardingStepRowViewModel">
+              <Border Classes="panel" Margin="0,0,0,6" Padding="10">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <TextBlock Grid.Column="0" Text="{Binding StatusIcon}" Margin="0,0,8,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                    <TextBlock Classes="subtitle" Text="{Binding Description}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding CompletedAtText}" Foreground="#3fb950" FontSize="11" />
+                  </StackPanel>
+                  <Button Grid.Column="2" Content="{Binding FixLabel}" IsVisible="{Binding ShowFix}"
+                          Command="{Binding DataContext.FixStepCommand, ElementName=HubRoot}"
+                          CommandParameter="{Binding Id}" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Classes="subtitle" Text="WHAT'S NEXT" Margin="0,12,0,0" />
+        <ItemsControl ItemsSource="{Binding WhatsNext}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:OnboardingWhatsNextCardViewModel">
+              <Border Classes="panel" Margin="0,0,0,8" Padding="12">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel>
+                    <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+                    <TextBlock Classes="subtitle" Text="{Binding Description}" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <Button Grid.Column="1" Content="{Binding ActionLabel}"
+                          Command="{Binding DataContext.NavigateSurfaceCommand, ElementName=HubRoot}"
+                          CommandParameter="{Binding SurfaceId}" VerticalAlignment="Center" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

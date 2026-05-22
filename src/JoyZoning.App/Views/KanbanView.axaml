@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:JoyZoning.App.ViewModels"
+             xmlns:views="using:JoyZoning.App.Views"
+             x:Class="JoyZoning.App.Views.KanbanView"
+             x:DataType="vm:KanbanViewModel">
+  <DockPanel>
+    <views:SurfaceTipBar DockPanel.Dock="Top" x:Name="SurfaceTip" />
+    <Border DockPanel.Dock="Top" Classes="panel" Margin="0,0,0,8" Padding="10,8"
+            IsVisible="{Binding ShowHermesBanner}" Background="#1c2128">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="{Binding HermesBannerMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Content="Connect Hermes" Click="OnConnectHermes" Margin="8,0,0,0" />
+      </Grid>
+    </Border>
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+      <TextBlock Classes="subtitle" Text="{Binding Hint}" VerticalAlignment="Center" />
+      <Button Content="Refresh" Command="{Binding RefreshBoardCommand}" />
+      <Button Content="Import from Hermes" Command="{Binding ImportFromHermesCommand}" />
+      <Button Content="New Task" Click="OnNewTask" />
+      <CheckBox Content="Approve critical dispatch"
+                IsVisible="{Binding ShowCriticalApproval}"
+                IsChecked="{Binding ApproveCriticalDispatch}" />
+      <Button Content="Dispatch" Command="{Binding DispatchSelectedCommand}" />
+      <Button Content="Revoke lease" Command="{Binding RevokeLeaseCommand}" />
+      <ComboBox Width="140" SelectedIndex="0" Name="MoveStatusCombo">
+        <ComboBoxItem Content="Planned" />
+        <ComboBoxItem Content="InProgress" />
+        <ComboBoxItem Content="Blocked" />
+        <ComboBoxItem Content="Complete" Tag="Merge" />
+      </ComboBox>
+      <Button Content="Move" Click="OnMoveClick" />
+    </StackPanel>
+    <ScrollViewer HorizontalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding Columns}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="8" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:KanbanColumnViewModel">
+            <Border Width="150" MinHeight="220" Background="#21262d" CornerRadius="4" Padding="8"
+                    Name="KanbanColumn">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Top" FontWeight="SemiBold" Text="{Binding Name}" Margin="0,0,0,8" />
+                <ListBox ItemsSource="{Binding Cards}" SelectionChanged="OnCardSelected">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:KanbanCardViewModel">
+                      <Border Background="Transparent" Padding="4" Cursor="Hand"
+                              PointerPressed="OnCardPointerPressed">
+                        <StackPanel>
+                          <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                          <TextBlock Classes="subtitle" Text="{Binding Agent}" />
+                          <TextBlock Classes="subtitle" Text="{Binding Risk, StringFormat=Risk: {0}}" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </DockPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

@@ -1,0 +1,13 @@
+using JoyZoning.Adapters.Workspace;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace JoyZoning.Adapters;
+
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddJoyZoningAdapters(this IServiceCollection services)
+    {
+        services.AddSingleton<IWorkspaceAdapter, LocalWorkspaceAdapter>();
+        return services;
+    }
+}

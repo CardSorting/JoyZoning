@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:JoyZoning.App.ViewModels"
+             x:Class="JoyZoning.App.Views.SurfaceTipBar"
+             x:DataType="vm:SurfaceTipViewModel">
+  <Border Classes="panel" Padding="10,8" Margin="0,0,0,8" Background="#1f2d3d"
+          IsVisible="{Binding IsVisible}">
+    <Grid ColumnDefinitions="*,Auto,Auto">
+      <StackPanel Grid.Column="0">
+        <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+        <TextBlock Classes="subtitle" Text="{Binding Body}" TextWrapping="Wrap" />
+      </StackPanel>
+      <Button Grid.Column="1" Name="LearnMoreButton" Content="Learn more" Margin="8,0,0,0" VerticalAlignment="Center"
+              Click="OnLearnMore" IsVisible="False" />
+      <Button Grid.Column="2" Content="✕" Command="{Binding DismissCommand}" Margin="8,0,0,0"
+              ToolTip.Tip="Don't show again for this surface" VerticalAlignment="Center" />
+    </Grid>
+  </Border>
+</UserControl>

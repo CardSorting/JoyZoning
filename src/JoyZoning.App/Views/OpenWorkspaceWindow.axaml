@@ -1,0 +1,15 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="JoyZoning.App.Views.OpenWorkspaceWindow"
+        Title="Open Workspace"
+        Width="520" Height="160"
+        WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="16" Spacing="12">
+    <TextBlock Text="Workspace root (absolute path to your repo)" />
+    <TextBox Name="PathBox" Watermark="/path/to/your/project" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="Cancel" Click="OnCancel" />
+      <Button Content="Open" Click="OnOpen" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+</Window>

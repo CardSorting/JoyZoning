@@ -1,0 +1,117 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:JoyZoning.App.ViewModels"
+        x:Class="JoyZoning.App.Views.SetupWizardWindow"
+        x:DataType="vm:SetupWizardViewModel"
+        Title="Welcome to JoyZoning"
+        Width="560" Height="580"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        x:Name="WizardRoot">
+  <DockPanel Margin="20">
+    <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,16,0,0">
+      <ProgressBar Minimum="0" Maximum="100" Value="{Binding SetupProgress}" Height="6" />
+      <TextBlock Classes="subtitle" Text="{Binding StatusLine}" TextWrapping="Wrap" />
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Name="BackButton" Content="Back" Command="{Binding BackStepCommand}" />
+          <Button Name="NextButton" Content="Next" Command="{Binding NextStepCommand}" />
+          <Button Name="ConnectButton" Content="Connect Hermes" Command="{Binding ConnectHermesCommand}" />
+          <Button Name="WorkspaceButton" Content="Open workspace…" Command="{Binding OpenWorkspaceCommand}" />
+          <Button Name="FinishButton" Content="Finish" Command="{Binding FinishCommand}" IsDefault="True" />
+        </StackPanel>
+        <Button Grid.Column="1" Content="Skip for now" Command="{Binding SkipForNowCommand}" />
+      </Grid>
+    </StackPanel>
+
+    <ScrollViewer>
+      <StackPanel Spacing="12">
+        <TextBlock Text="{Binding ProgressDots}" Classes="subtitle" FontSize="14" />
+        <TextBlock Classes="subtitle" Text="{Binding StepIndicator}" />
+        <TextBlock Classes="title" Text="{Binding StepTitle}" FontSize="18" />
+
+        <Border Name="ChecklistPanel" Classes="panel" Padding="10">
+          <ItemsControl ItemsSource="{Binding Checklist}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:OnboardingChecklistItemViewModel">
+                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2">
+                  <TextBlock Grid.Column="0" Text="{Binding StatusIcon}" Margin="0,0,6,0" />
+                  <TextBlock Grid.Column="1" Text="{Binding Label}" VerticalAlignment="Center" />
+                  <Button Grid.Column="2" Content="{Binding FixHint}" IsVisible="{Binding ShowFix}"
+                          Command="{Binding DataContext.FixChecklistItemCommand, ElementName=WizardRoot}"
+                          CommandParameter="{Binding Id}" Padding="8,2" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
+
+        <StackPanel Name="StepWelcome" Spacing="8">
+          <TextBlock TextWrapping="Wrap">
+            JoyZoning supervises Hermes (orchestration) and DietCode (execution) from one desktop cockpit.
+            This short wizard connects to your local diet-hermes install — no manual dashboard tokens.
+          </TextBlock>
+          <Button Content="Auto-detect install path" Command="{Binding AutoDetectInstallRootCommand}"
+                  HorizontalAlignment="Left" />
+          <TextBlock Classes="subtitle" Text="{Binding DetectedPathsSummary}" />
+        </StackPanel>
+
+        <StackPanel Name="StepPaths" Spacing="8" IsVisible="False">
+          <TextBlock Classes="subtitle" Text="Hermes install root (diet-hermes checkout)" />
+          <Grid ColumnDefinitions="*,Auto,Auto">
+            <TextBox Grid.Column="0" Text="{Binding Connection.InstallRoot}" />
+            <Button Grid.Column="1" Content="Auto-detect" Command="{Binding AutoDetectInstallRootCommand}" Margin="8,0,0,0" />
+            <Button Grid.Column="2" Content="Browse…" Command="{Binding BrowseInstallRootCommand}" Margin="8,0,0,0" />
+          </Grid>
+          <TextBlock Name="PathValidationText" Classes="subtitle" Text="{Binding PathValidationMessage}" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding DetectedInstallRoots}" IsVisible="{Binding HasDetectedPaths}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Button Content="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                        Command="{Binding DataContext.UseDetectedPathCommand, ElementName=WizardRoot}"
+                        CommandParameter="{Binding}" Margin="0,2" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="subtitle" Text="Hermes profile" />
+          <TextBox Text="{Binding Connection.Profile}" />
+          <TextBlock Classes="subtitle" Text="API URL" />
+          <TextBox Text="{Binding Connection.ApiBaseUrl}" />
+          <TextBlock Classes="subtitle" Text="Dashboard URL" />
+          <TextBox Text="{Binding Connection.DashboardBaseUrl}" />
+        </StackPanel>
+
+        <StackPanel Name="StepConnect" Spacing="8" IsVisible="False">
+          <TextBlock TextWrapping="Wrap"
+                     Text="JoyZoning starts the Hermes gateway and dashboard, then acquires the session token automatically." />
+          <TextBlock Name="HermesReadyText" Classes="subtitle" />
+          <ItemsControl ItemsSource="{Binding Connection.Steps}" IsVisible="{Binding IsBusy}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ConnectionStepViewModel">
+                <TextBlock Margin="0,2">
+                  <Run Text="{Binding StatusIcon}" />
+                  <Run Text=" " />
+                  <Run Text="{Binding Label}" />
+                </TextBlock>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <StackPanel Name="StepWorkspace" Spacing="8" IsVisible="False">
+          <TextBlock TextWrapping="Wrap"
+                     Text="Open a project folder to enable Manager Chat, Kanban, and Workspace views." />
+          <TextBlock Classes="subtitle"
+                     Text="{Binding HasWorkspace, StringFormat=Workspace open: {0}}" />
+          <TextBlock Classes="subtitle" Text="{Binding RecentWorkspaceLabel}" IsVisible="{Binding HasRecentWorkspace}" />
+          <Button Content="Open last workspace" Command="{Binding OpenRecentWorkspaceCommand}"
+                  HorizontalAlignment="Left" IsVisible="{Binding HasRecentWorkspace}" />
+          <CheckBox Content="Auto-connect Hermes on startup" IsChecked="{Binding AutoConnectOnStartup}" />
+          <CheckBox Content="Open Hermes TUI after finishing" IsChecked="{Binding OpenTuiOnFinish}" />
+          <TextBlock Classes="subtitle" Text="You can finish without Hermes connected — the setup banner will guide you later."
+                     IsVisible="{Binding ShowFinishWithoutHermes}" TextWrapping="Wrap" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

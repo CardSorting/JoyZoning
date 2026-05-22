@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:JoyZoning.App.ViewModels"
+             xmlns:views="using:JoyZoning.App.Views"
+             x:Class="JoyZoning.App.Views.WorkspaceView"
+             x:DataType="vm:WorkspaceViewModel">
+  <DockPanel>
+    <views:SurfaceTipBar DockPanel.Dock="Top" x:Name="SurfaceTip" />
+  <Grid ColumnDefinitions="200,200,*" RowDefinitions="*,Auto">
+    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+      <TextBlock Classes="subtitle" Text="FILE TREE" />
+      <ListBox ItemsSource="{Binding FileTree}" Height="400" />
+    </StackPanel>
+    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+      <TextBlock Classes="subtitle" Text="CHANGED" />
+      <ListBox ItemsSource="{Binding ChangedFiles}" SelectedItem="{Binding SelectedFile}" Height="400" />
+    </StackPanel>
+
+    <Grid Grid.Column="2" RowDefinitions="Auto,*">
+      <TextBlock Classes="subtitle" Text="{Binding DiffContent}" Margin="0,0,0,4" />
+      <Grid Grid.Row="1" IsVisible="{Binding ShowSplitDiff}" ColumnDefinitions="*,*">
+        <Border Grid.Column="0" Background="#2d1f1f" Padding="8" Margin="0,0,4,0" CornerRadius="4">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Classes="subtitle" Text="REMOVED" Margin="0,0,0,4" />
+            <ScrollViewer>
+              <TextBlock FontFamily="Consolas,Courier New,monospace" Text="{Binding RemovedLines}" TextWrapping="Wrap" />
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+        <Border Grid.Column="1" Background="#1f2d1f" Padding="8" Margin="4,0,0,0" CornerRadius="4">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Classes="subtitle" Text="ADDED" Margin="0,0,0,4" />
+            <ScrollViewer>
+              <TextBlock FontFamily="Consolas,Courier New,monospace" Text="{Binding AddedLines}" TextWrapping="Wrap" />
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+      </Grid>
+      <Border Grid.Row="1" Background="#0d1117" Padding="8" CornerRadius="4"
+              IsVisible="{Binding !ShowSplitDiff}">
+        <ScrollViewer>
+          <TextBlock FontFamily="Consolas,Courier New,monospace" Text="{Binding DiffContent}" TextWrapping="Wrap" />
+        </ScrollViewer>
+      </Border>
+    </Grid>
+
+    <Button Grid.Row="1" Grid.Column="2" Content="Open in External Editor"
+            Command="{Binding OpenExternalCommand}" HorizontalAlignment="Right" Margin="0,8,0,0" />
+  </Grid>
+  </DockPanel>
+</UserControl>

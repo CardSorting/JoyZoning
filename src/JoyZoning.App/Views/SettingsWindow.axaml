@@ -1,0 +1,64 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="JoyZoning.App.Views.SettingsWindow"
+        Title="JoyZoning Settings"
+        Width="560" Height="520"
+        WindowStartupLocation="CenterOwner">
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="10">
+      <TextBlock Classes="title" Text="Settings" FontSize="16" />
+
+      <Border Classes="panel">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="subtitle" Text="HERMES CONNECTION" />
+          <TextBlock Name="ConnectionSummary" Classes="subtitle" TextWrapping="Wrap" />
+          <Button Name="OpenConnectionButton" Content="Open Hermes Connection…" Click="OnOpenConnection" HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+
+      <CheckBox Name="AutoSetupOnLaunchBox" Content="Automatic setup on launch (recommended)" Margin="0,4,0,0" />
+      <CheckBox Name="AutoInstallHermesBox" Content="Set up diet-hermes automatically if missing (~/Downloads/diet-hermes-main-master)" />
+      <CheckBox Name="UseSampleWorkspaceBox" Content="Use sample workspace when no project folder is found" />
+      <CheckBox Name="AutoConnectHermesBox" Content="Auto-connect Hermes on startup (when automatic setup is off)" />
+
+      <Border Classes="panel" Margin="0,8,0,0">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="subtitle" Text="ONBOARDING" />
+          <TextBlock Classes="subtitle" Text="Reset clears saved progress; the next launch runs automatic setup again."
+                     TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Name="OpenGettingStartedButton" Content="Open Getting Started" Click="OnOpenGettingStarted" />
+            <Button Name="CopyDiagnosticsButton" Content="Copy health report" Click="OnCopyDiagnostics" />
+            <Button Name="ResetOnboardingButton" Content="Reset onboarding…" Click="OnResetOnboarding" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="title" Text="Kanban sync" FontSize="16" Margin="0,8,0,0" />
+      <CheckBox Name="AutoSyncBox" Content="Auto-import from Hermes kanban (background)" />
+      <TextBlock Classes="subtitle" Text="Sync interval (seconds, 30–3600)" />
+      <TextBox Name="IntervalBox" PlaceholderText="120" />
+
+      <Expander Header="Advanced paths &amp; token" Margin="0,8,0,0">
+        <StackPanel Spacing="8" Margin="0,8,0,0">
+          <TextBlock Classes="subtitle" Text="Hermes install root" />
+          <TextBox Name="InstallRootBox" />
+          <TextBlock Classes="subtitle" Text="API base URL (gateway)" />
+          <TextBox Name="ApiUrlBox" />
+          <TextBlock Classes="subtitle" Text="Dashboard base URL" />
+          <TextBox Name="DashboardUrlBox" />
+          <TextBlock Classes="subtitle" Text="Hermes profile" />
+          <TextBox Name="ProfileBox" />
+          <TextBlock Classes="subtitle" Text="Manual dashboard token (optional)" />
+          <TextBox Name="TokenBox" PlaceholderText="Only if not using Connect dashboard" />
+          <TextBlock Name="DashboardStatus" Classes="subtitle" />
+        </StackPanel>
+      </Expander>
+
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
+        <Button Content="Cancel" Click="OnCancel" />
+        <Button Content="Save" Click="OnSave" IsDefault="True" />
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</Window>

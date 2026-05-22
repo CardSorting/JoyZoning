@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:JoyZoning.App.ViewModels"
+             xmlns:views="using:JoyZoning.App.Views"
+             x:Class="JoyZoning.App.Views.ManagerChatView"
+             x:DataType="vm:ManagerChatViewModel">
+  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+    <views:SurfaceTipBar Grid.Row="0" x:Name="SurfaceTip" />
+    <Border Grid.Row="1" Classes="panel" Padding="16" Margin="8"
+            IsVisible="{Binding ShowOnboardingNudge}" Background="#1c2128">
+      <StackPanel Spacing="10" MaxWidth="480" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock Classes="title" Text="Manager Chat" FontSize="16" HorizontalAlignment="Center" />
+        <TextBlock Text="{Binding OnboardingNudgeMessage}" TextWrapping="Wrap" TextAlignment="Center" />
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+          <Button Content="Open workspace…" Command="{Binding OpenWorkspaceFromNudgeCommand}" />
+          <Button Content="Connect Hermes" Command="{Binding ConnectHermesFromNudgeCommand}"
+                  IsVisible="{Binding ShowConnectHermesNudge}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer Grid.Row="2" IsVisible="{Binding !ShowOnboardingNudge}">
+      <ItemsControl ItemsSource="{Binding Messages}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:ChatLineViewModel">
+            <Border Margin="0,4" Padding="8" Background="#21262d" CornerRadius="4">
+              <StackPanel>
+                <TextBlock FontWeight="Bold" Text="{Binding Speaker}" />
+                <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <Border Grid.Row="2" Background="#161b22" Padding="8" Margin="0,8,0,0" CornerRadius="4"
+            IsVisible="{Binding HasSuggestedTasks}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
+          <TextBlock Classes="subtitle" Text="SUGGESTED TASKS" VerticalAlignment="Center" />
+          <Button Content="Create all" Command="{Binding CreateAllSuggestedTasksCommand}" />
+          <Button Content="Re-parse" Command="{Binding ParseSuggestedTasksCommand}" />
+        </StackPanel>
+        <ListBox ItemsSource="{Binding SuggestedTasks}" MaxHeight="140">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                <TextBlock Grid.Column="0" Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="Create" Margin="8,0,0,0" Click="OnSuggestedCreateClick" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,8,0,0">
+      <TextBox Text="{Binding ComposerText}" Watermark="{Binding Placeholder}" AcceptsReturn="True" MinHeight="48" />
+      <Button Grid.Column="1" Content="Parse" Command="{Binding ParseSuggestedTasksCommand}"
+              Margin="8,0,0,0" VerticalAlignment="Bottom" />
+      <Button Grid.Column="2" Content="→ Task" Command="{Binding CreateTaskFromReplyCommand}"
+              IsEnabled="{Binding CanCreateTaskFromReply}"
+              Margin="8,0,0,0" VerticalAlignment="Bottom" />
+      <Button Grid.Column="3" Content="Send" Command="{Binding SendCommand}"
+              IsEnabled="{Binding !IsStreaming}"
+              Margin="8,0,0,0" VerticalAlignment="Bottom" />
+    </Grid>
+  </Grid>
+</UserControl>

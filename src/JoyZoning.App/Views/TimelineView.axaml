@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:JoyZoning.App.ViewModels"
+             xmlns:views="using:JoyZoning.App.Views"
+             x:Class="JoyZoning.App.Views.TimelineView"
+             x:DataType="vm:TimelineViewModel">
+  <DockPanel>
+    <views:SurfaceTipBar DockPanel.Dock="Top" x:Name="SurfaceTip" />
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,280">
+    <ComboBox Grid.Row="0" Grid.ColumnSpan="2"
+              ItemsSource="{Binding FilterOptions}" SelectedItem="{Binding Filter}"
+              Width="160" Margin="0,0,0,8" />
+    <ScrollViewer Grid.Row="1" Grid.Column="0" Margin="0,0,8,0">
+      <ListBox ItemsSource="{Binding Events}" SelectedItem="{Binding SelectedEvent}">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:TimelineEventViewModel">
+            <Grid ColumnDefinitions="70,70,160,*" Margin="0,2">
+              <TextBlock Grid.Column="0" Text="{Binding Time}" FontSize="11" />
+              <TextBlock Grid.Column="1" Text="{Binding Source}" FontSize="11" />
+              <TextBlock Grid.Column="2" Text="{Binding Type}" FontSize="11" />
+              <TextBlock Grid.Column="3" Text="{Binding Summary}" TextWrapping="Wrap" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </ScrollViewer>
+    <Border Grid.Row="1" Grid.Column="1" Background="#161b22" CornerRadius="4" Padding="8">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Classes="subtitle" Text="Payload" Margin="0,0,0,6" />
+        <ScrollViewer>
+          <TextBox Text="{Binding SelectedPayload}" IsReadOnly="True" TextWrapping="Wrap"
+                   FontFamily="Consolas,Courier New,monospace" FontSize="11"
+                   Background="Transparent" BorderThickness="0" />
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+  </Grid>
+  </DockPanel>
+</UserControl>

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>JoyZoning.ControlPlane</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JoyZoning.Domain\JoyZoning.Domain.csproj" />
+    <ProjectReference Include="..\JoyZoning.Persistence\JoyZoning.Persistence.csproj" />
+    <ProjectReference Include="..\JoyZoning.Agents\JoyZoning.Agents.csproj" />
+    <ProjectReference Include="..\JoyZoning.Adapters\JoyZoning.Adapters.csproj" />
+  </ItemGroup>
+</Project>
