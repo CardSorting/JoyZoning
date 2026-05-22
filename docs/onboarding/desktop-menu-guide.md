@@ -38,7 +38,8 @@ Maps JoyZoning menus to outcomes. Familiar if you have used **VS Code**, **Figma
 | Create / move tasks | **Kanban** |
 | Start agent on a card | Kanban → select card → **Dispatch** |
 | Watch agent work | **Execution** |
-| See file changes | **Workspace** |
+| See file changes (like a PR) | **Workspace** — pick card on Kanban first |
+| Understand which folder is shown | Workspace header: **Lease worktree** vs **Session workspace** |
 | Allow/deny risky tool | **Approvals** |
 | Debug what happened | **Timeline** |
 | Open my real project | **Project → Open Workspace** |
@@ -128,13 +129,27 @@ Agents **cannot** drag to Complete without verification + merge.
 
 ---
 
-## Workspace
+## Workspace (review before merge)
+
+**Think:** GitHub **Files changed** on a pull request — but tied to the **kanban card you selected**, not the whole company repo at once.
+
+| Step | Action |
+|------|--------|
+| 1 | Kanban → **click the card** you are reviewing |
+| 2 | Sidebar → **Workspace** |
+| 3 | Read the **header** — must say **Lease worktree** after Dispatch |
+| 4 | **Changed** list → click a file → red/green **diff** |
+| 5 | Satisfied? Kanban → **Merge** (only you — not the agent) |
 
 | Panel | Does what |
 |-------|-----------|
-| File tree | Browse workspace root |
-| Changed files | Git-detected changes in worktree/repo |
+| Header label | Tells you **which folder** is inspected (sandbox vs project root) |
+| **Refresh** | Update file list without losing card selection |
+| File tree | Browse that same folder |
+| Changed files | Git-detected changes (`git status` — industry-standard source) |
 | Diff | Red/green split — review before merge |
+
+**Deep dive:** [workspace-state.md](../workspace-state.md)
 
 ---
 

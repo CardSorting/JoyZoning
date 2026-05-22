@@ -49,7 +49,16 @@ Manager is **not** a code editor — use Workspace + external IDE for file edits
 - **Connect dashboard & TUI** — ensures dashboard, acquires token, opens PTY (resize via `\x1b[RESIZE:cols;rows]`).
 - Contextual nudge when dashboard not connected.
 
-## Workspace
+## Workspace (1:1 with selected card)
+
+**Mental model:** like **GitHub PR → Files changed** or **VS Code → Source Control** — one kanban card drives one folder. Full guide: [workspace-state.md](workspace-state.md).
+
+| UI part | Familiar analog |
+|---------|-----------------|
+| Header label | “Lease worktree” = agent sandbox; “Session workspace” = project you opened |
+| **Changed** list | PR file list (`git status --porcelain`) |
+| Split diff | Removed (red) / added (green) hunks |
+| **Refresh** | Re-fetch without changing card selection |
 
 - `GET /api/workspace/tree` — file tree for active workspace root.
 - `GET /api/workspace/changed` — `git status --porcelain` (24h mtime fallback when not a git repo or git fails); emits timeline events when `sessionId` is supplied.

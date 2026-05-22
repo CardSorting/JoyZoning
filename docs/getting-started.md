@@ -16,6 +16,7 @@ JoyZoning is a **desktop operator console** (and optional `jz` CLI) for running 
 | **From Hermes/ChatGPT chat only** | [Coming from Hermes chat](onboarding/coming-from-hermes-chat.md) |
 | **Installing from scratch** | [Installation guide](onboarding/installation.md) · [macOS](onboarding/platform-macos.md) · [Linux](onboarding/platform-linux.md) |
 | **Understanding the product** | [Before you begin](onboarding/before-you-begin.md) · [concepts.md](concepts.md) |
+| **Reviewing file changes before merge** | [workspace-state.md](workspace-state.md) (1:1 card → folder) |
 | **Something failed** | [Setup troubleshooting trees](onboarding/troubleshooting-setup.md) · [troubleshooting.md](troubleshooting.md) |
 
 ---

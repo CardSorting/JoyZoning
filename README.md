@@ -7,7 +7,31 @@
 
 Works with one local [diet-hermes](https://github.com/NousResearch/hermes-agent) install. Not a second IDE. Not unattended auto-ship.
 
-**Repository:** https://github.com/CardSorting/JoyZoning · **Docs:** [docs/README.md](docs/README.md) · **Concepts:** [docs/concepts.md](docs/concepts.md)
+**Repository:** https://github.com/CardSorting/JoyZoning · **Docs:** [docs/README.md](docs/README.md) · **Concepts:** [docs/concepts.md](docs/concepts.md) · **Workspace 1:1:** [docs/workspace-state.md](docs/workspace-state.md)
+
+---
+
+## One card, one folder, one truth
+
+JoyZoning mirrors patterns you already know from **GitHub PR reviews**, **VS Code Source Control**, and **CI job workspaces**:
+
+| You pick… | JoyZoning shows… |
+|-----------|------------------|
+| A **kanban card** (not yet dispatched) | Your **session workspace** — the project folder you opened |
+| A **dispatched card** | That card’s **lease worktree** — `.joyzoning/worktrees/<task-id>/` |
+
+**Workspace**, **Timeline** (Git/Workspace), and **`jz /workspace`** all read the **same path** for that card. Chat and Hermes TUI are for **planning**; Workspace is for **what actually changed on disk** before you merge.
+
+```mermaid
+flowchart LR
+  Card[Kanban card] --> CP[Control plane resolves path]
+  CP --> WS[Workspace diff]
+  CP --> TL[Timeline audit]
+  CP --> Git[git status porcelain]
+  WS --> You[Human merge]
+```
+
+**New operators:** [docs/workspace-state.md](docs/workspace-state.md) (plain language) · [Desktop menu guide](docs/onboarding/desktop-menu-guide.md) (where to click)
 
 ---
 
@@ -120,7 +144,7 @@ jz task complete <task-id> --yes
 | 2 | **Manager Chat** | Planning; parse reply → tasks |
 | 3 | **Kanban** | Board, dispatch, critical approval, lease merge |
 | 4 | **Execution** | Run steps, terminal, Hermes TUI (dashboard PTY) |
-| 5 | **Workspace** | Changed files, split diff |
+| 5 | **Workspace** | 1:1 card → folder; PR-style changed files + split diff |
 | 6 | **Approvals** | Once / Task / Session / Deny |
 | 7 | **Timeline** | Audit stream + JSON inspector |
 
@@ -166,7 +190,9 @@ App ──► Control plane :9470 ──► SQLite
 
 | Start here | …then |
 |------------|-------|
+| [workspace-state.md](docs/workspace-state.md) | **1:1 card → folder** — PR-style review before merge |
 | [concepts.md](docs/concepts.md) | Why leases, human merge, one Hermes |
+| [onboarding/README.md](docs/onboarding/README.md) | GUI-first path, glossary, menu map |
 | [getting-started.md](docs/getting-started.md) | Install and first dispatch |
 | [use-cases.md](docs/use-cases.md) | Scenario walkthroughs |
 | [cli.md](docs/cli.md) | Terminal recipes |

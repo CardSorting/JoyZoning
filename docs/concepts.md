@@ -29,7 +29,7 @@ You interact through **surfaces** tuned for supervision:
 - **Plan** — Manager Chat with Hermes as project lead  
 - **Track** — Kanban aligned with Hermes board (two-way sync)  
 - **Observe** — Execution viewport, terminal preview, optional Hermes TUI  
-- **Review** — Workspace diffs before merge  
+- **Review** — Workspace diffs before merge ([1:1 workspace state](workspace-state.md))  
 - **Govern** — Approvals + Timeline audit trail  
 
 The cockpit is **local-first** (`127.0.0.1` only). Your code stays on disk; the control plane stores **orchestration state**, not source-of-truth repositories.
@@ -84,6 +84,17 @@ sequenceDiagram
 ```
 
 **Merge is the only door to Complete.** Agents may reach `ready_for_review`; they cannot call merge or set `WorkTaskStatus.Complete`. The same rule applies in the desktop UI, REST API, `jz`, and `jz agent` (enforced by `KanbanExecutionRules`, `AgentGuard`, and API 403s).
+
+### 4. One card → one folder (1:1 workspace state)
+
+Dispatch creates a **lease worktree**; the control plane resolves **one inspection path per kanban card**. Workspace, git porcelain, timeline events, and `GET /api/tasks/{id}/workspace/*` all use that path — the same contract as a **GitHub PR “Files changed”** tab tied to one issue.
+
+| You select | Inspected folder |
+|------------|------------------|
+| Card without active lease | Session workspace (project you opened) |
+| Dispatched card | `.joyzoning/worktrees/<task-id>/` |
+
+Chat shows **intent**; Workspace shows **disk truth** for the selected card. Details: [workspace-state.md](workspace-state.md).
 
 ---
 
@@ -146,6 +157,7 @@ JoyZoning **orchestrates**; Hermes **executes**. Neither duplicates the other.
 
 | Question | Doc |
 |----------|-----|
+| How does one card map to one folder? | [workspace-state.md](workspace-state.md) |
 | How do I install and run it? | [getting-started.md](getting-started.md) |
 | What is each lease state? | [lease-lifecycle.md](lease-lifecycle.md) |
 | How does Hermes connect? | [hermes-integration.md](hermes-integration.md) |

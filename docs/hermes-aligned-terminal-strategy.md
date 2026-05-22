@@ -7,7 +7,7 @@ JoyZoning separates **cognition** from **authority**.
 
 `jz` is **not** a Hermes clone. `jz` is the **operator shell** for the JoyZoning local kanban runtime — the same control plane the desktop app uses, with the same gates and evidence rules.
 
-**See also:** [cli.md](cli.md) (command reference) · [concepts.md](concepts.md) (why leases exist) · [architecture.md](architecture.md) (layers) · [diet-hermes TUI architecture](https://github.com/NousResearch/hermes-agent/blob/main/AGENTS.md#tui-architecture-ui-tui--tui_gateway) (upstream pattern we follow for agent chat)
+**See also:** [cli.md](cli.md) (command reference) · [concepts.md](concepts.md) (why leases exist) · [workspace-state.md](workspace-state.md) (1:1 card → folder) · [architecture.md](architecture.md) (layers) · [diet-hermes TUI architecture](https://github.com/NousResearch/hermes-agent/blob/main/AGENTS.md#tui-architecture-ui-tui--tui_gateway) (upstream pattern we follow for agent chat)
 
 ---
 
@@ -79,6 +79,16 @@ jz hermes tui             # spawns hermes --tui (Node Ink + Python gateway)
 ```
 
 **Do not re-implement the primary agent chat experience in JoyZoning.** The desktop embeds Hermes TUI over dashboard PTY for the same reason: one transcript, one composer, one slash-command behavior.
+
+### Workspace state stays 1:1 (not in chat)
+
+| Layer | Shows |
+|-------|--------|
+| Hermes TUI / Manager Chat | Plans, tool streams, reasoning |
+| JoyZoning **Workspace** | Files on disk for the **selected card** (lease worktree after dispatch) |
+| JoyZoning **Timeline** | Same paths, persisted as `git.status.changed` / `workspace.file.changed` |
+
+`jz /workspace` with `/use <task>` hits the same APIs as the desktop — not a second copy of git state. See [workspace-state.md](workspace-state.md).
 
 ---
 
@@ -237,5 +247,6 @@ JOYZONING_NO_TUI=1 jz --field .status task lease "$TASK_ID"
 | **`jz agent`** | Constrained worker harness — inside a lease worktree only |
 | **Kanban** | Scheduler — cards, dispatch, sync with Hermes board |
 | **Human merge** | Final authority — Complete after evidence and review |
+| **Workspace (1:1)** | One card → one folder — PR-style file review, not chat scrollback |
 
-Use Hermes to **explore and execute**. Use JoyZoning to **govern and sign off**.
+Use Hermes to **explore and execute**. Use JoyZoning to **govern and sign off** — and use **Workspace** to see what actually changed on disk.

@@ -156,6 +156,7 @@ Ensure diet-hermes API server is on port **8642** for live agent runs. Operator 
 - [x] **Desktop + CLI** — lease worktree label, Refresh, SignalR-driven refresh (`OnWorktreeRefreshed`, execution/lease events)
 - [x] **Background monitor** — `LeaseWorktreeMonitor` + hosted service; dedupe hash; tests in `LeaseWorktreeMonitorTests.cs`
 - [x] **Operator TUI** — `/workspace` uses task APIs when `/use <task>` is set; hub stream shows worktree updates
+- [x] **Docs** — [workspace-state.md](workspace-state.md) (1:1 card → folder, PR/VS Code analogies, non-technical navigation)
 
 ## Phase 26 — Agent-safe harness (`jz agent`) (complete)
 

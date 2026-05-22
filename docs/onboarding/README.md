@@ -8,6 +8,7 @@ Welcome to JoyZoning. This section is the **guided path** from zero to your firs
 | **Something broken?** | [Setup troubleshooting](troubleshooting-setup.md) |
 | **Never used a terminal?** | [Desktop menu guide](desktop-menu-guide.md) |
 | **Big picture first?** | [Before you begin](before-you-begin.md) → [concepts.md](../concepts.md) |
+| **Reviewing agent file changes?** | [workspace-state.md](../workspace-state.md) (PR-style, one card → one folder) |
 
 ---
 

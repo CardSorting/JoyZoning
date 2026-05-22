@@ -1,6 +1,6 @@
 # Glossary
 
-Terms used across JoyZoning docs, UI, and APIs. For the product story behind these terms, see [concepts.md](concepts.md).
+Terms used across JoyZoning docs, UI, and APIs. For the product story behind these terms, see [concepts.md](concepts.md). For non-technical wording, see [onboarding/plain-language-glossary.md](onboarding/plain-language-glossary.md).
 
 | Term | Meaning |
 |------|---------|
@@ -10,7 +10,10 @@ Terms used across JoyZoning docs, UI, and APIs. For the product story behind the
 | **Execution session** | Tracks a single DietCode/Hermes **run** linked to a task (`ExecutionSession`). |
 | **Execution lease** | Bounded authority to work on one card: worktree path, status, handoff, verification, evidence log. |
 | **Handoff packet** | JSON prompt package for the executor: objective, acceptance criteria, verification commands. |
-| **Worktree** | Isolated git directory under `<workspace>/.joyzoning/worktrees/<task-id>/`. |
+| **Session workspace** | `OperatorSession.WorkspaceRoot` — the project folder opened via **Project → Open Workspace**. |
+| **Worktree / lease worktree** | Isolated directory under `<session>/.joyzoning/worktrees/<task-id>/`; executor edits after dispatch. |
+| **1:1 workspace state** | One selected task resolves to one inspection path; Workspace, git porcelain, and timeline agree. See [workspace-state.md](workspace-state.md). |
+| **WorkspaceInspection** | Control-plane resolver: task id → lease worktree if active, else session root. |
 | **Manager** | Hermes agent role for planning (Manager Chat); not a separate install. |
 | **Executor / DietCode** | Worker agent role for implementation runs (Execution viewport). |
 | **diet-hermes** | Local [Hermes Agent](https://github.com/NousResearch/hermes-agent) checkout; single install for both roles. |

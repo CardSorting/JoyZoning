@@ -56,6 +56,18 @@ A **local operator cockpit** for supervising Hermes **Manager** (planning) and *
 
 No. It is a **supervision layer**: kanban, leases, approvals, diffs, timeline. You keep editing in your IDE; JoyZoning tracks agent work and sign-off.
 
+### What is “1:1 workspace state”?
+
+One **kanban card** → one **inspection folder**. After dispatch, that folder is the **lease worktree**; before dispatch, it is your **session workspace**. Workspace, Timeline, and git all agree. Plain language: [workspace-state.md](workspace-state.md).
+
+### Why does Workspace say “Lease worktree” vs “Session workspace”?
+
+**Session workspace** = the project you opened (**Project → Open Workspace**). **Lease worktree** = the agent’s sandbox for that card after **Dispatch**. Always check the header before merge — like confirming the right PR branch.
+
+### Should I trust Manager Chat or Workspace for “what changed”?
+
+**Workspace** for files on disk; **Manager Chat** for plans and reasoning. Same split as GitHub issue comments vs the PR **Files changed** tab.
+
 ### Why “JoyZoning”?
 
 The name reflects **zoning** agent authority: each task gets a bounded **lease** (worktree + rules), like zoning land for a specific use.

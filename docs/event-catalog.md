@@ -2,6 +2,8 @@
 
 All events are stored in `joy_events` with monotonic `Id` (replay cursor), `CorrelationId` (usually task or session GUID), `Source`, `Type`, and `PayloadJson`.
 
+**Workspace alignment:** Git and Workspace events describe the same folder the **Workspace** surface shows for a card. See [workspace-state.md](workspace-state.md).
+
 ## Sources
 
 | Source | Origin |

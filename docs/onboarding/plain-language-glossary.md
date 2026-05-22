@@ -2,7 +2,7 @@
 
 **Reading level:** Beginner — everyday words first, technical name in parentheses.
 
-For precise API terms see [glossary.md](../glossary.md).
+For precise API terms see [glossary.md](../glossary.md). **How one card maps to one folder:** [workspace-state.md](../workspace-state.md).
 
 ---
 
@@ -24,8 +24,10 @@ For precise API terms see [glossary.md](../glossary.md).
 | **JoyZoning app** | `JoyZoning.App` | Mission control window |
 | **Local coordinator** | Control plane (`:9470`) | Air traffic control — remembers tasks and rules |
 | **AI engine** | diet-hermes | One engine; different “channels” for manager vs worker |
-| **Your project folder** | Workspace / `workspaceRoot` | The repo you opened — same idea as “Open Folder” in VS Code |
-| **Sandbox copy** | Worktree | A practice lane — agent edits here, not randomly on `main` |
+| **Your project folder** | Session workspace / `workspaceRoot` | The repo you opened — same idea as “Open Folder” in VS Code |
+| **Sandbox copy** | Lease worktree | A practice lane — agent edits here after **Dispatch**, like a CI job workspace |
+| **Files changed tab** | Workspace → Changed | Same idea as GitHub PR “Files changed” — one card, one folder |
+| **1:1 workspace state** | Card-scoped inspection | Pick a card → every panel shows that card’s folder (not chat guesswork) |
 | **Hidden agent notes** | `.joyzoning/context.json` | Sticky note in the sandbox: task id, what agent may/may not do |
 
 ---

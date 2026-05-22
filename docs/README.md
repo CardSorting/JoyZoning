@@ -28,6 +28,16 @@ flowchart TD
 
 **Concepts (why JoyZoning exists):** [concepts.md](concepts.md) · **FAQ:** [faq.md](faq.md)
 
+### Understand workspace state (recommended)
+
+Before your first **Merge**, read how one kanban card maps to one folder — the same mental model as a **GitHub PR “Files changed”** tab:
+
+| Doc | For |
+|-----|-----|
+| **[workspace-state.md](workspace-state.md)** | **1:1 card → folder** — plain language + diagrams |
+| [desktop-menu-guide.md](onboarding/desktop-menu-guide.md) | Where to click: Kanban → Workspace → Merge |
+| [plain-language-glossary.md](onboarding/plain-language-glossary.md) | Session workspace vs worktree |
+
 ---
 
 ## Documentation by role
@@ -38,6 +48,7 @@ flowchart TD
 |-----|----------|
 | **[onboarding/README.md](onboarding/README.md)** | **Start here** — “I'm stuck”, reading levels, full index |
 | [before-you-begin.md](onboarding/before-you-begin.md) | Do you need JoyZoning? Time, keys, privacy |
+| [workspace-state.md](workspace-state.md) | **One card → one folder** (PR-style review) |
 | [desktop-menu-guide.md](onboarding/desktop-menu-guide.md) | Where to click (no Terminal) |
 | [plain-language-glossary.md](onboarding/plain-language-glossary.md) | Words explained with analogies |
 | [troubleshooting-setup.md](onboarding/troubleshooting-setup.md) | Setup decision trees |
@@ -50,6 +61,7 @@ flowchart TD
 |-----|----------|
 | [getting-started.md](getting-started.md) | Overview + links |
 | [desktop-ui.md](desktop-ui.md) | All six surfaces |
+| [workspace-state.md](workspace-state.md) | 1:1 inspection model (GitHub PR / VS Code analogies) |
 | [cli.md](cli.md) | `jz` / `jz agent` |
 | [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) | Cognition vs authority; `jz` vs `hermes --tui` |
 | [use-cases.md](use-cases.md) | Scenario walkthroughs |
@@ -158,6 +170,7 @@ JoyZoning.App          →  http://127.0.0.1:9470  →  JoyZoning.ControlPlane
 | [mvp-roadmap.md](mvp-roadmap.md) | Product |
 | [troubleshooting.md](troubleshooting.md) | Operators |
 | [use-cases.md](use-cases.md) | Operators |
+| [workspace-state.md](workspace-state.md) | Everyone — 1:1 card → folder |
 | [yolo-mode.md](yolo-mode.md) | Operators / automation |
 | [glossary.md](glossary.md) | Everyone |
 | [development.md](development.md) | Contributors |
