@@ -1,5 +1,6 @@
 using System.Net.Http;
 using System.Text.Json;
+using JoyZoning.Cli.Tui;
 using JoyZoning.Domain.Enums;
 using JoyZoning.Domain.Orchestration;
 
@@ -33,6 +34,7 @@ public static class CliDispatcher
             "workspace" => CliOutput.WriteResult(ctx, await DispatchWorkspaceAsync(client, ctx, a)),
             "config" => await DispatchConfigAsync(client, ctx, a),
             "kanban" => CliOutput.WriteResult(ctx, await DispatchKanbanAsync(client, ctx, a)),
+            "tui" => await OperatorTuiRunner.RunAsync(ctx),
             "completion" => DispatchCompletion(ctx, a),
             "agent" => await DispatchAgentAsync(client, ctx, a),
             "raw" => CliOutput.WriteResult(ctx, await DispatchRawAsync(client, ctx, a)),
@@ -339,13 +341,30 @@ public static class CliDispatcher
         JoyZoningCliClient client, CliContext ctx, string[] a)
     {
         RequireArgs(a, 2, "hermes <subcommand>");
-        return a[1].ToLowerInvariant() switch
+        var sub = a[1].ToLowerInvariant();
+        if (sub == "tui")
+        {
+            var (installRoot, profile) = await HermesTuiLauncher.ResolveHermesConfigAsync(client);
+            var resume = ctx.Args.Has("-c") || ctx.Args.Has("--continue");
+            var code = await HermesTuiLauncher.LaunchAsync(installRoot, profile, resume);
+            if (code != 0)
+                throw new CliUsageException($"Hermes TUI exited with code {code}.");
+            return new CliHttpResult(
+                System.Net.HttpStatusCode.OK,
+                """{"ok":true,"message":"Hermes TUI session ended."}""",
+                JsonSerializer.Deserialize<JsonElement>("""{"ok":true}""", JoyZoningCliClient.JsonOptions),
+                null,
+                null,
+                false);
+        }
+
+        return sub switch
         {
             "health" => await client.HermesHealthAsync(),
             "ensure" => await client.HermesEnsureAsync(),
             "dashboard" => await client.HermesDashboardAsync(),
             "ensure-dashboard" => await client.HermesEnsureDashboardAsync(!ctx.Args.Has("--no-gateway")),
-            _ => throw Usage("hermes health | ensure | dashboard | ensure-dashboard"),
+            _ => throw Usage("hermes health | ensure | dashboard | ensure-dashboard | tui"),
         };
     }
 

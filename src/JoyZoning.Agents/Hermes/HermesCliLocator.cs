@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace JoyZoning.Agents.Hermes;
 
-internal static class HermesCliLocator
+public static class HermesCliLocator
 {
     public static string? FindHermesExecutable(string installRoot)
     {

@@ -6,12 +6,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="${HOME}/.local/bin"
 mkdir -p "$OUT" "$ROOT/dist"
 
-export PATH="${HOME}/.dotnet:${PATH}"
-
-if ! command -v dotnet >/dev/null 2>&1; then
-  echo "error: .NET SDK not found. Install .NET 8 SDK from https://dot.net" >&2
-  exit 2
-fi
+# shellcheck source=dotnet-env.sh
+source "$ROOT/scripts/dotnet-env.sh"
 
 dotnet publish "$ROOT/src/JoyZoning.Cli/JoyZoning.Cli.csproj" \
   -c Release \

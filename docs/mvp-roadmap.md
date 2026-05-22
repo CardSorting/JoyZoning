@@ -233,6 +233,16 @@ Ensure diet-hermes API server is on port **8642** for live agent runs. Operator 
 - [x] **Last workspace** — remembered path, **Open last** on workspace banner + wizard step
 - [x] **Open Hermes TUI after wizard** optional checkbox
 
+## Phase 16 — Hermes-aligned operator terminal (complete)
+
+Strategy doc: [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md).
+
+- [x] **`jz tui`** — operator REPL: slash registry, tab completion, line history, multiline input (`\`, Ctrl+G → `$EDITOR`)
+- [x] **Live event stream** — SignalR `OnJoyEvent` + manager deltas (`/watch`); tool lines via `hermes.tool.*`
+- [x] **`jz hermes tui`** — delegate agent chat to `hermes --tui` (no second chat stack in .NET)
+- [x] **TTY vs automation** — bare `jz` on TTY → operator TUI; `JOYZONING_NO_TUI=1` → JSON stdout
+- [x] **`scripts/dotnet-env.sh`** — prefer `~/.dotnet` SDK 8 for builds (macOS PATH pitfall)
+
 ## Phase 15 — Onboarding depth (complete)
 
 - [x] **`OnboardingEvaluator`** — install-path validation, 4-item checklist, setup % progress

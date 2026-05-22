@@ -29,9 +29,33 @@ JoyZoning/
 dotnet test tests/JoyZoning.Tests/JoyZoning.Tests.csproj
 ```
 
+## .NET SDK (required: 8.x)
+
+`global.json` pins **8.0.421**. On macOS, `/usr/local/share/dotnet` is often **.NET 6 only** while **.NET 8** is installed under `~/.dotnet`.
+
+```bash
+source scripts/dotnet-env.sh   # sets DOTNET_ROOT + PATH
+dotnet --list-sdks             # should show 8.0.421
+```
+
+If no 8.x SDK is listed:
+
+```bash
+curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 8.0
+source scripts/dotnet-env.sh
+```
+
+Add to your shell profile (optional):
+
+```bash
+export DOTNET_ROOT="$HOME/.dotnet"
+export PATH="$DOTNET_ROOT:$PATH"
+```
+
 ## Build
 
 ```bash
+source scripts/dotnet-env.sh
 dotnet restore
 dotnet build JoyZoning.sln
 ```
@@ -56,6 +80,8 @@ dotnet run --project src/JoyZoning.App
 ## Test
 
 ```bash
+source scripts/dotnet-env.sh
+
 # CLI tests (in solution)
 dotnet test tests/JoyZoning.Cli.Tests/JoyZoning.Cli.Tests.csproj
 

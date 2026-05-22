@@ -4,6 +4,34 @@
 
 Control plane default: `http://127.0.0.1:9470` (`JOYZONING_URL`).
 
+## Interactive operator TUI (Hermes-style)
+
+**Full strategy:** [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) — cognition vs authority, why `jz` is not a Hermes clone, governance invariants.
+
+Following the [diet-hermes TUI strategy](https://github.com/NousResearch/hermes-agent/blob/main/AGENTS.md#tui-architecture-ui-tui--tui_gateway): **JoyZoning owns the operator cockpit; Hermes owns agent chat.**
+
+| Surface | Command | Role |
+|---------|---------|------|
+| **Operator TUI** | `jz` or `jz tui` | Slash commands, tab completion, line history, live tool/event stream (SignalR), Manager Chat, lease workflows |
+| **Hermes agent TUI** | `jz hermes tui` or `/hermes` inside `jz tui` | Full `hermes --tui` (multiline agent chat, skills, tools — not reimplemented in .NET) |
+
+```bash
+jz                          # auto-starts TUI when stdin is a TTY
+jz tui --session <guid>     # pre-bind session / task
+jz hermes tui -c            # resume latest Hermes TUI session
+JOYZONING_NO_TUI=1 jz task list   # force JSON automation mode
+```
+
+**Operator TUI highlights** (aligned with Hermes classic/TUI docs):
+
+- **Slash-command autocomplete** — Tab on `/dis…` etc.; centralized registry like Hermes `COMMAND_REGISTRY`
+- **Multiline input** — trailing `\` continues; **Ctrl+G** opens `$EDITOR`
+- **Conversation history** — `~/.joyzoning/cli_history`
+- **Interrupt-and-redirect** — Ctrl+C stops watch/poll/manager stream first; second Ctrl+C exits
+- **Streaming tool output** — `/watch` or Manager messages stream `hermes.tool.*` / `hermes.message.delta` via SignalR `OnJoyEvent`
+
+Plain text (no `/`) sends **Manager Chat** when a session is active. Run `/help` inside the TUI for the full command list.
+
 ## Install
 
 ```bash
@@ -187,6 +215,7 @@ Dangerous raw calls (`DELETE`, merge/revoke paths) require `--yes`.
 
 ## See also
 
+- [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) — terminal architecture and mental model  
 - [README.md](README.md) — documentation index  
 - [lease-lifecycle.md](lease-lifecycle.md) — state machine  
 - [troubleshooting.md](troubleshooting.md) — CLI exit codes and fixes  

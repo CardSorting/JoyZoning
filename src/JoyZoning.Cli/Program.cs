@@ -1,18 +1,30 @@
+using JoyZoning.Cli.Tui;
+
 namespace JoyZoning.Cli;
 
 public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        if (args.Length == 0 || args is ["--help"] or ["-h"] or ["help"])
+        if (args is ["--help"] or ["-h"] or ["help"])
         {
             CliOutput.PrintHelpEmbedded();
             return 0;
         }
 
+        if (OperatorTuiRunner.ShouldLaunchInteractive(args))
+            return await OperatorTuiRunner.RunAsync(CliContext.FromArgs([]));
+
         var ctx = CliContext.FromArgs(args);
         try
         {
+            if (OperatorTuiRunner.WantsTui(ctx.Args) &&
+                (ctx.Args.Positionals.Length == 0 ||
+                 ctx.Args.Positionals[0].Equals("tui", StringComparison.OrdinalIgnoreCase)))
+            {
+                return await OperatorTuiRunner.RunAsync(ctx);
+            }
+
             using var client = new JoyZoningCliClient(ctx.BaseUrl);
             return await CliDispatcher.DispatchAsync(client, ctx);
         }

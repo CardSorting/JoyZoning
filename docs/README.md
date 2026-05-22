@@ -51,6 +51,7 @@ flowchart TD
 | [getting-started.md](getting-started.md) | Overview + links |
 | [desktop-ui.md](desktop-ui.md) | All six surfaces |
 | [cli.md](cli.md) | `jz` / `jz agent` |
+| [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) | Cognition vs authority; `jz` vs `hermes --tui` |
 | [use-cases.md](use-cases.md) | Scenario walkthroughs |
 | [troubleshooting.md](troubleshooting.md) | Symptom → fix |
 
@@ -152,6 +153,7 @@ JoyZoning.App          →  http://127.0.0.1:9470  →  JoyZoning.ControlPlane
 | [faq.md](faq.md) | Everyone |
 | [getting-started.md](getting-started.md) | New operators |
 | [hermes-integration.md](hermes-integration.md) | Operators / integrators |
+| [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) | Terminal / CLI architecture |
 | [lease-lifecycle.md](lease-lifecycle.md) | Everyone |
 | [mvp-roadmap.md](mvp-roadmap.md) | Product |
 | [troubleshooting.md](troubleshooting.md) | Operators |

@@ -6,6 +6,8 @@ JoyZoning is a **human operator cockpit** for multi-agent software workflows on 
 
 **Product concepts (read first):** [concepts.md](concepts.md) — operator cockpit, execution leases, human merge, one Hermes / two roles.
 
+**Terminal strategy:** [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) — **cognition vs authority**: Hermes owns agent chat (`hermes --tui`); JoyZoning owns runtime governance (`jz` / `jz tui`). Chat does not hold final authority on merge or Complete.
+
 **Stack:** .NET 8, Avalonia 12 desktop, ASP.NET Core control plane, SQLite + EF Core, SignalR, optional `jz` CLI.
 
 ```mermaid
@@ -138,14 +140,14 @@ JoyZoning UI statuses map to Hermes kanban when sync is enabled:
 
 ## CLI layer (`JoyZoning.Cli`)
 
-Two surfaces share the same HTTP API:
+Two surfaces share the same HTTP API. See [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) for the full cognition/authority split.
 
 | Surface | Role |
 |---------|------|
-| **`jz`** | Human operator — dispatch, verify (local `--cmd`), merge (`task complete`), recovery |
+| **`jz` / `jz tui`** | Operator shell — slash commands, live SignalR events, lease workflows; launches `hermes --tui` via `jz hermes tui` (does not reimplement agent chat) |
 | **`jz agent`** | Constrained worker — heartbeat, verify, blocked, `done` → `ready_for_review` only |
 
-`LeaseContextResolver` infers task/session from cwd (worktree), env vars, or single active lease. `AgentGuard` blocks forbidden raw paths and CLI subcommands in agent mode.
+`LeaseContextResolver` infers task/session from cwd (worktree), env vars, or single active lease. `AgentGuard` blocks forbidden raw paths and CLI subcommands in agent mode. `JOYZONING_NO_TUI=1` forces JSON automation mode (no interactive REPL).
 
 ## Persistence schema (high level)
 
@@ -172,6 +174,7 @@ See [configuration.md](configuration.md) and `src/JoyZoning.ControlPlane/appsett
 
 ## Related docs
 
+- [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) — Hermes vs JoyZoning terminal roles  
 - [concepts.md](concepts.md) — why JoyZoning is structured this way  
 - [use-cases.md](use-cases.md) — scenarios  
 - [getting-started.md](getting-started.md) — first run  

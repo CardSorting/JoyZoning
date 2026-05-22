@@ -4,6 +4,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+# shellcheck source=dotnet-env.sh
+source "$ROOT/scripts/dotnet-env.sh"
 
 RID="${RID:-osx-arm64}"
 CONFIG="${CONFIG:-Release}"

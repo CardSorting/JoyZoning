@@ -100,6 +100,13 @@ public static class CliOutput
 
             Positioning: human-supervised operator shell for the control plane (not a generic curl wrapper).
 
+            Interactive operator TUI (Hermes-style terminal cockpit):
+              jz                     Launch when stdin is a TTY (same as jz tui)
+              jz tui                 Slash commands, history, live tool stream, Manager Chat
+              jz --tui               Alias for jz tui
+              jz hermes tui          Full diet-hermes --tui (agent chat; do not rebuild in jz)
+              JOYZONING_NO_TUI=1     Disable auto-launch on bare jz
+
             Global flags:
               --base-url <url>       JOYZONING_URL (default http://127.0.0.1:9470)
               --session <guid>       JOYZONING_SESSION_ID
@@ -108,6 +115,7 @@ public static class CliOutput
               --quiet, -q            Exit code only; errors on stderr
               --yes, -y              Confirm dangerous operations
               --field <path>         Print one field (jq-friendly: .id, .status)
+              --tui, -t              Interactive operator shell
 
             Operator workflows:
               task run <id>          Dispatch + show lease [--poll 5] [--timeout 600]

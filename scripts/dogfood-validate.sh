@@ -4,8 +4,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-
-export PATH="${HOME}/.dotnet:${PATH}"
+# shellcheck source=dotnet-env.sh
+source "$ROOT/scripts/dotnet-env.sh"
 
 echo "==> Building solution"
 dotnet build tests/JoyZoning.Tests/JoyZoning.Tests.csproj -v q
