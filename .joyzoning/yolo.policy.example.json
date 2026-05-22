@@ -1,0 +1,28 @@
+{
+  "enabled": true,
+  "sessionId": "00000000-0000-0000-0000-000000000000",
+  "maxRiskLevel": "low",
+  "allowedTaskTags": ["docs", "test"],
+  "forbiddenTaskTags": ["infra", "prod", "deploy"],
+  "maxTasksPerRun": 2,
+  "maxRuntimeMinutes": 30,
+  "maxVerificationRetries": 1,
+  "dispatchSettleTimeoutSeconds": 600,
+  "dispatchPollIntervalSeconds": 5,
+  "heartbeatIntervalSeconds": 45,
+  "allowRecover": true,
+  "allowRevoke": false,
+  "requireCleanWorktreeBeforeStart": true,
+  "mergeHandoffVerificationCommands": true,
+  "requiredVerificationCommands": [
+    "dotnet build",
+    "dotnet test --no-restore"
+  ],
+  "forbiddenCommands": [
+    "git push",
+    "git reset --hard",
+    "rm -rf",
+    "sudo "
+  ],
+  "requireHumanMerge": true
+}

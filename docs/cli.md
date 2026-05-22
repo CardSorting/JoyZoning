@@ -78,6 +78,19 @@ jz heartbeat
 jz verify --cmd "dotnet test"
 ```
 
+## YOLO mode (`jz yolo`)
+
+Bounded **supervised autopilot** — autonomous `jz` inside a policy file, not autonomous authority. Humans still merge.
+
+```bash
+jz yolo plan --policy .joyzoning/yolo.policy.json     # dry-run selection
+jz yolo run --policy .joyzoning/yolo.policy.json --yes  # execute
+jz yolo stop
+jz yolo status
+```
+
+See [yolo-mode.md](yolo-mode.md). Example policy: `.joyzoning/yolo.policy.example.json`.
+
 ## Agent harness (`jz agent`)
 
 Constrained worker surface for DietCode/terminal agents. **Cannot** merge, revoke, or mark tasks Complete.

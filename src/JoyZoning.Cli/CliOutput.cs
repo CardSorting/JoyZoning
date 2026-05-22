@@ -140,6 +140,14 @@ public static class CliOutput
               agent blocked --reason "..."
               agent done
 
+            YOLO mode (supervised autopilot — not autonomous authority):
+              yolo plan --policy .joyzoning/yolo.policy.json   Dry-run task selection (no mutations)
+              yolo run --policy <file> --yes                   Autonomous pickup within policy envelope
+              yolo stop                                        Request graceful stop
+              yolo status                                      Show run state (~/.joyzoning/yolo-run.state.json)
+
+            Humans still own merge and Complete. See docs/yolo-mode.md.
+
             Reads .joyzoning/context.json from the lease worktree automatically.
 
             Run: jz doctor   Docs: docs/cli.md

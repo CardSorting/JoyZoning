@@ -158,6 +158,7 @@ JoyZoning.App          →  http://127.0.0.1:9470  →  JoyZoning.ControlPlane
 | [mvp-roadmap.md](mvp-roadmap.md) | Product |
 | [troubleshooting.md](troubleshooting.md) | Operators |
 | [use-cases.md](use-cases.md) | Operators |
+| [yolo-mode.md](yolo-mode.md) | Operators / automation |
 | [glossary.md](glossary.md) | Everyone |
 | [development.md](development.md) | Contributors |
 

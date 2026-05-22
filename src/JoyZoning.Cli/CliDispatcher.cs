@@ -37,6 +37,7 @@ public static class CliDispatcher
             "tui" => await OperatorTuiRunner.RunAsync(ctx),
             "completion" => DispatchCompletion(ctx, a),
             "agent" => await DispatchAgentAsync(client, ctx, a),
+            "yolo" => await YoloCommand.DispatchAsync(client, ctx, a),
             "raw" => CliOutput.WriteResult(ctx, await DispatchRawAsync(client, ctx, a)),
             _ => throw new CliUsageException($"Unknown command: {cmd}. Run jz --help."),
         };
