@@ -7,7 +7,20 @@
 
 Works with one local [diet-hermes](https://github.com/NousResearch/hermes-agent) install. Not a second IDE. Not unattended auto-ship.
 
-**Repository:** https://github.com/CardSorting/JoyZoning · **Docs:** [docs/README.md](docs/README.md) · **Concepts:** [docs/concepts.md](docs/concepts.md) · **Workspace 1:1:** [docs/workspace-state.md](docs/workspace-state.md)
+**Repository:** https://github.com/CardSorting/JoyZoning · **Docs:** [docs/README.md](docs/README.md) · **What is JoyZoning?** [docs/what-is-joyzoning.md](docs/what-is-joyzoning.md)
+
+---
+
+## What is JoyZoning?
+
+JoyZoning is a **governed execution runtime for AI-assisted software work** on your machine. AI can plan and code; your project still needs **review, boundaries, verification, and human ownership** — JoyZoning supplies those boundaries locally (kanban queue, isolated task folders, audit trail, merge only when you approve).
+
+| | |
+|---|---|
+| **Chat** | Cognition — planning and conversation (Hermes) |
+| **Workspace** | Truth — files and diffs you review before merge |
+
+**Plain-language guide:** [docs/what-is-joyzoning.md](docs/what-is-joyzoning.md) · **Technical concepts:** [docs/concepts.md](docs/concepts.md)
 
 ---
 
@@ -190,6 +203,7 @@ App ──► Control plane :9470 ──► SQLite
 
 | Start here | …then |
 |------------|-------|
+| [what-is-joyzoning.md](docs/what-is-joyzoning.md) | **What we built** — plain English, no jargon |
 | [workspace-state.md](docs/workspace-state.md) | **1:1 card → folder** — PR-style review before merge |
 | [concepts.md](docs/concepts.md) | Why leases, human merge, one Hermes |
 | [onboarding/README.md](docs/onboarding/README.md) | GUI-first path, glossary, menu map |

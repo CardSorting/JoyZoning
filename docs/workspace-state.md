@@ -4,7 +4,7 @@ JoyZoning keeps **what you see**, **what git reports**, and **what the audit log
 
 **Who this is for:** everyone — especially operators who do not want to guess which directory the agent edited.
 
-**See also:** [desktop-ui.md](desktop-ui.md) (Workspace surface) · [desktop-menu-guide.md](onboarding/desktop-menu-guide.md) (where to click) · [plain-language-glossary.md](onboarding/plain-language-glossary.md) (everyday words) · [event-catalog.md](event-catalog.md) (timeline types)
+**Start with the big picture:** [what-is-joyzoning.md](what-is-joyzoning.md) · **See also:** [desktop-ui.md](desktop-ui.md) (Workspace surface) · [desktop-menu-guide.md](onboarding/desktop-menu-guide.md) (where to click) · [plain-language-glossary.md](onboarding/plain-language-glossary.md) (everyday words) · [event-catalog.md](event-catalog.md) (timeline types)
 
 ---
 
@@ -156,6 +156,7 @@ Background scans: `LeaseRuntime:WorktreeMonitorEnabled` (default `true`), `Workt
 
 | Audience | Doc |
 |----------|-----|
+| What JoyZoning is (plain English) | [what-is-joyzoning.md](what-is-joyzoning.md) |
 | Click-by-click | [onboarding/desktop-menu-guide.md](onboarding/desktop-menu-guide.md) |
 | Concepts spine | [concepts.md](concepts.md) |
 | Terminal operators | [cli.md](cli.md) (`/workspace`, `/use`) |

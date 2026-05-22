@@ -50,7 +50,7 @@ Yes — **Project → Open Workspace** when ready. [first-run-desktop.md](onboar
 
 ### What is JoyZoning?
 
-A **local operator cockpit** for supervising Hermes **Manager** (planning) and **executor** (DietCode) agents on one machine. See [concepts.md](concepts.md).
+A **governed execution runtime for AI-assisted software work** on your machine — review, boundaries, verification, and human merge before changes count as done. Plain language: [what-is-joyzoning.md](what-is-joyzoning.md). Technical spine: [concepts.md](concepts.md).
 
 ### Is JoyZoning an IDE or a fork of Hermes?
 

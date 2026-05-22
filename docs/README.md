@@ -4,6 +4,8 @@
 
 **License:** [MIT](../LICENSE) · **Source:** https://github.com/CardSorting/JoyZoning
 
+**What did we actually build?** → **[what-is-joyzoning.md](what-is-joyzoning.md)** (plain English, start here if terms like “lease” or “orchestration” are unfamiliar)
+
 ---
 
 ## New here?
@@ -13,7 +15,8 @@ flowchart TD
   Start([New operator]) --> Q{Prefer GUI or terminal?}
   Q -->|GUI| QS[onboarding/quickstart.md]
   Q -->|Terminal| CLI[onboarding/first-run-cli.md]
-  Q -->|Learn first| C[concepts.md]
+  Q -->|Learn first| WI[what-is-joyzoning.md]
+  WI --> C[concepts.md]
   QS --> CHK[onboarding/setup-checklist.md]
   CLI --> CHK
   CHK --> NEXT[onboarding/whats-next.md]
@@ -21,12 +24,13 @@ flowchart TD
 
 | Step | Page | Time |
 |------|------|------|
+| 0 | **[What is JoyZoning?](what-is-joyzoning.md)** | 10 min read |
 | 1 | [Onboarding hub](onboarding/README.md) | — |
 | 2 | [5-minute quickstart](onboarding/quickstart.md) or [Choose your path](onboarding/choose-your-path.md) | 5–20 min |
 | 3 | [Setup checklist](onboarding/setup-checklist.md) | 10 min |
 | 4 | [What's next](onboarding/whats-next.md) | 20 min |
 
-**Concepts (why JoyZoning exists):** [concepts.md](concepts.md) · **FAQ:** [faq.md](faq.md)
+**Big picture:** [what-is-joyzoning.md](what-is-joyzoning.md) · **Technical concepts:** [concepts.md](concepts.md) · **FAQ:** [faq.md](faq.md)
 
 ### Understand workspace state (recommended)
 
@@ -46,6 +50,7 @@ Before your first **Merge**, read how one kanban card maps to one folder — the
 
 | Doc | Contents |
 |-----|----------|
+| **[what-is-joyzoning.md](what-is-joyzoning.md)** | **What we built** — cognition vs authority, no jargon |
 | **[onboarding/README.md](onboarding/README.md)** | **Start here** — “I'm stuck”, reading levels, full index |
 | [before-you-begin.md](onboarding/before-you-begin.md) | Do you need JoyZoning? Time, keys, privacy |
 | [workspace-state.md](workspace-state.md) | **One card → one folder** (PR-style review) |
@@ -114,7 +119,7 @@ Also: [first-run-desktop](onboarding/first-run-desktop.md) · [api-keys-and-mode
 
 ## Core concepts (one paragraph)
 
-JoyZoning is **not** an IDE and **not** a second Hermes. It is a **local cockpit** where you plan in Manager Chat, track work on kanban, dispatch executors into **isolated worktrees**, and **merge only after verification**. Agents cannot mark tasks Complete without you. Details: [concepts.md](concepts.md).
+JoyZoning is a **governed execution runtime for AI-assisted software work**: chat is **cognition**, workspace is **truth**, and **you** merge when satisfied. It is **not** an IDE and **not** a second Hermes. Full plain-language explanation: [what-is-joyzoning.md](what-is-joyzoning.md). Technical detail: [concepts.md](concepts.md).
 
 ---
 
@@ -155,6 +160,7 @@ JoyZoning.App          →  http://127.0.0.1:9470  →  JoyZoning.ControlPlane
 |-----|----------|
 | [architecture.md](architecture.md) | Contributors |
 | [cli.md](cli.md) | Terminal / CI |
+| [what-is-joyzoning.md](what-is-joyzoning.md) | Everyone — plain-language product explanation |
 | [concepts.md](concepts.md) | Everyone |
 | [configuration.md](configuration.md) | Operators / ops |
 | [control-plane-api.md](control-plane-api.md) | Integrators |

@@ -7,7 +7,7 @@ Welcome to JoyZoning. This section is the **guided path** from zero to your firs
 | **In a hurry?** | [5-minute quickstart](quickstart.md) |
 | **Something broken?** | [Setup troubleshooting](troubleshooting-setup.md) |
 | **Never used a terminal?** | [Desktop menu guide](desktop-menu-guide.md) |
-| **Big picture first?** | [Before you begin](before-you-begin.md) → [concepts.md](../concepts.md) |
+| **Big picture first?** | [What is JoyZoning?](../what-is-joyzoning.md) → [Before you begin](before-you-begin.md) → [concepts.md](../concepts.md) |
 | **Reviewing agent file changes?** | [workspace-state.md](../workspace-state.md) (PR-style, one card → one folder) |
 
 ---

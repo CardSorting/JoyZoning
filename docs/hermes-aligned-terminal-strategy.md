@@ -7,7 +7,7 @@ JoyZoning separates **cognition** from **authority**.
 
 `jz` is **not** a Hermes clone. `jz` is the **operator shell** for the JoyZoning local kanban runtime — the same control plane the desktop app uses, with the same gates and evidence rules.
 
-**See also:** [cli.md](cli.md) (command reference) · [concepts.md](concepts.md) (why leases exist) · [workspace-state.md](workspace-state.md) (1:1 card → folder) · [architecture.md](architecture.md) (layers) · [diet-hermes TUI architecture](https://github.com/NousResearch/hermes-agent/blob/main/AGENTS.md#tui-architecture-ui-tui--tui_gateway) (upstream pattern we follow for agent chat)
+**See also:** [what-is-joyzoning.md](what-is-joyzoning.md) (plain-language product explanation) · [cli.md](cli.md) (command reference) · [concepts.md](concepts.md) (why leases exist) · [workspace-state.md](workspace-state.md) (1:1 card → folder) · [architecture.md](architecture.md) (layers) · [diet-hermes TUI architecture](https://github.com/NousResearch/hermes-agent/blob/main/AGENTS.md#tui-architecture-ui-tui--tui_gateway) (upstream pattern we follow for agent chat)
 
 ---
 
