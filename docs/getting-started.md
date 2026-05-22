@@ -2,6 +2,8 @@
 
 JoyZoning is a **desktop operator console** (and optional `jz` CLI) for running multi-agent workflows on one local **diet-hermes** install. You supervise a **Manager** session (planning) and **executor** sessions (DietCode runs) on the same gateway, coordinated through kanban and execution leases.
 
+**New here?** Read [concepts.md](concepts.md) first (≈5 minutes) — it explains why merge is human-only and what a lease really is.
+
 ## Prerequisites
 
 | Requirement | Notes |

@@ -1,36 +1,87 @@
 # JoyZoning
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4)](global.json)
 
-Local-first **multi-agent operator cockpit** for supervising a **Manager** (planning) and **executor** (DietCode) on one [diet-hermes](https://github.com/NousResearch/hermes-agent) install. Roles are separated by **session**, not by duplicate Hermes trees; kanban and execution leases keep work aligned.
+**The operator cockpit for multi-agent development** — plan with a Manager, execute in bounded **worktrees**, verify with evidence, and **merge only when you approve**.
 
-**Repository:** https://github.com/CardSorting/JoyZoning
+Works with one local [diet-hermes](https://github.com/NousResearch/hermes-agent) install. Not a second IDE. Not unattended auto-ship.
+
+**Repository:** https://github.com/CardSorting/JoyZoning · **Docs:** [docs/README.md](docs/README.md) · **Concepts:** [docs/concepts.md](docs/concepts.md)
+
+---
+
+## Why JoyZoning exists
+
+Agent tools are good at **doing**. Operators still need **accountability**: what ran, in which folder, under what approval, with what proof, and who signed it off.
+
+JoyZoning adds a control plane between you and Hermes:
+
+| Without zoning | With JoyZoning |
+|----------------|----------------|
+| One chat, overlapping context | **Manager** session plans; **executor** works in lease worktrees |
+| “The agent said it’s done” | **Verify** → `ready_for_review` → **human merge** → Complete |
+| Risky tools fire quietly | **Approvals** inbox + scoped grants |
+| Opaque restarts | **SQLite + timeline**; recovery for interrupted runs |
+
+**Read the full model:** [docs/concepts.md](docs/concepts.md) (5 min, recommended before first dispatch).
+
+---
+
+## How it works (60 seconds)
 
 ```mermaid
-flowchart LR
-  UI[JoyZoning.App]
-  CP[ControlPlane :9470]
-  H[Hermes API :8642]
-  UI --> CP
-  CP --> H
+flowchart TB
+  subgraph you [You — operator]
+    Plan[Manager Chat]
+    Board[Kanban]
+    Review[Workspace diff]
+    Sign[Merge / Approve]
+  end
+
+  subgraph jz [JoyZoning :9470]
+    Lease[Execution lease]
+    Events[Timeline + evidence]
+  end
+
+  subgraph hermes [diet-hermes :8642]
+    Mgr[Manager run]
+    Exec[DietCode run]
+    KB[Kanban sync]
+  end
+
+  Plan --> Mgr
+  Board --> Lease
+  Lease --> Exec
+  Exec --> Review
+  Review --> Sign
+  Sign --> Lease
+  jz --> Events
+  Board --> KB
 ```
 
-## What it is
+1. **Plan** — Manager Chat (Hermes lead).  
+2. **Track** — Kanban card per task (syncs with Hermes board).  
+3. **Dispatch** — Control plane creates an **execution lease** + isolated worktree.  
+4. **Work** — DietCode / `jz agent` inside the lease (cannot merge or Complete).  
+5. **Verify** — Commands run in worktree; report attached to lease.  
+6. **Merge** — You review diff and approve → task **Complete**.
 
-| | JoyZoning | Typical IDE |
-|---|-----------|-------------|
-| Purpose | Supervise agents, approvals, kanban, execution | Edit code directly |
-| Agents | Hermes manager + DietCode worker via leases | N/A |
-| State | SQLite + append-only events | Project files |
-| Network | Loopback only (local-first) | Varies |
+Critical tasks (`risk: 3`) require explicit approval on every dispatch. One active critical lease globally by default.
 
-**Not in scope for MVP:** cloud control plane, second Hermes install, agents marking tasks **Complete** without human merge.
+---
 
-## Prerequisites
+## Three surfaces, one policy
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download) — repo pins `8.0.421` in `global.json`
-- **diet-hermes** — [Hermes Agent](https://github.com/NousResearch/hermes-agent) checkout (auto-installed on first launch, or set `Hermes:InstallRoot` yourself)
-- **macOS** recommended for publish scripts; control plane and CLI run on Linux
+| Surface | For | Examples |
+|---------|-----|----------|
+| **Desktop** (`JoyZoning.App`) | Visual supervision | Kanban drag, Execution TUI, Approvals, Timeline |
+| **`jz`** | Human operator shell | `task run`, `task verify`, `task complete --yes` |
+| **`jz agent`** | Worker in worktree | `agent verify`, `agent done` → review only |
+
+Desktop, REST (`:9470`), and CLI all call the same orchestrator — **no back door to Complete**.
+
+---
 
 ## Quick start
 
@@ -40,110 +91,90 @@ cd JoyZoning
 
 cp src/JoyZoning.ControlPlane/appsettings.example.json \
    src/JoyZoning.ControlPlane/appsettings.Development.json
-# Edit Hermes:InstallRoot in appsettings.Development.json
+# Set Hermes:InstallRoot to your diet-hermes path (or use first-launch auto-setup)
 
 ./scripts/run-dev.sh
 ```
 
-Or run the desktop only (auto-starts control plane on `http://127.0.0.1:9470`):
-
 ```bash
-dotnet run --project src/JoyZoning.App
-```
-
-**First launch:** auto-setup can install/configure diet-hermes (`joyzoning` profile, API on **8642**), start gateway/dashboard when needed, open a sample workspace, then land on **Manager Chat**. Use **Getting Started** if anything failed.
-
-**Terminal operator CLI:**
-
-```bash
+# Optional: terminal-only operator
 ./scripts/jz doctor
-./scripts/install-jz.sh          # optional: ~/.local/bin/jz
-
 jz task run <task-id> --poll 10
 jz task verify <task-id> --cmd "dotnet test"
 jz task complete <task-id> --yes
-
-# Inside lease worktree (after human dispatch):
-jz agent start --task <task-id>
-jz agent verify --cmd "dotnet build"
-jz agent done                    # ready_for_review — not Complete
 ```
 
-See [docs/cli.md](docs/cli.md).
+**Prerequisites:** [.NET 8 SDK](https://dotnet.microsoft.com/download) (`global.json`), diet-hermes. **macOS** recommended for `.app` publish; control plane runs on Linux.
 
-**macOS release build:**
+→ [docs/getting-started.md](docs/getting-started.md)
 
-```bash
-./scripts/publish-macos.sh
-./dist/run-joyzoning.sh
-./scripts/bundle-macos-app.sh && open dist/JoyZoning.app
+---
+
+## What you get
+
+### Operator surfaces
+
+| # | Surface | Role |
+|---|---------|------|
+| 1 | **Getting Started** | Health grade, setup checklist, playbooks |
+| 2 | **Manager Chat** | Planning; parse reply → tasks |
+| 3 | **Kanban** | Board, dispatch, critical approval, lease merge |
+| 4 | **Execution** | Run steps, terminal, Hermes TUI (dashboard PTY) |
+| 5 | **Workspace** | Changed files, split diff |
+| 6 | **Approvals** | Once / Task / Session / Deny |
+| 7 | **Timeline** | Audit stream + JSON inspector |
+
+[docs/desktop-ui.md](docs/desktop-ui.md)
+
+### Execution lease (the governance primitive)
+
 ```
+Dispatch → leased → running → verifying → ready_for_review → merge → Complete
+              └→ blocked / revoked (worktree + evidence preserved)
+```
+
+- One active lease per card.  
+- Worktrees under `<workspace>/.joyzoning/worktrees/<task-id>/`.  
+- Append-only **evidence** on every transition.  
+
+[docs/lease-lifecycle.md](docs/lease-lifecycle.md) · [docs/execution-orchestration-api.md](docs/execution-orchestration-api.md)
+
+---
 
 ## Architecture
 
-| Layer | Project | Role |
-|-------|---------|------|
-| Desktop | `JoyZoning.App` | Avalonia UI — six surfaces + onboarding hub |
-| Control plane | `JoyZoning.ControlPlane` | REST `:9470`, SignalR `/hubs/operator`, lease orchestration |
-| CLI | `JoyZoning.Cli` | `jz` / `jz agent` — same authority rules as UI |
-| Domain | `JoyZoning.Domain` | Entities, lease rules, verification DTOs |
-| Persistence | `JoyZoning.Persistence` | SQLite + EF Core |
-| Agents | `JoyZoning.Agents` | Hermes / DietCode HTTP adapters |
-| Adapters | `JoyZoning.Adapters` | Workspace tree + `git diff` |
+| Project | Role |
+|---------|------|
+| `JoyZoning.App` | Avalonia 12 desktop |
+| `JoyZoning.ControlPlane` | REST + SignalR + lease scheduler |
+| `JoyZoning.Cli` | `jz` / `jz agent` |
+| `JoyZoning.Domain` | Rules, entities, verification |
+| `JoyZoning.Persistence` | SQLite + EF Core |
+| `JoyZoning.Agents` | Hermes / DietCode adapters |
+| `JoyZoning.Adapters` | Workspace + git diff |
 
 ```
-JoyZoning.App  ──HTTP + SignalR──►  JoyZoning.ControlPlane (:9470)
-                                         │
-                                         ├── SQLite (joyzoning.db)
-                                         └── Hermes API (:8642) / dashboard (:9119)
+App ──► Control plane :9470 ──► SQLite
+                    └──► Hermes API :8642 / dashboard :9119
 ```
 
-Default data (macOS): `~/Library/Application Support/JoyZoning/joyzoning.db`
+[docs/architecture.md](docs/architecture.md)
 
-## Product surfaces
-
-1. **Getting Started** — health grade, checklist, quick actions, playbooks  
-2. **Manager Chat** — Hermes lead; parse reply → tasks  
-3. **Kanban** — board, drag columns, dispatch, critical approval, lease merge  
-4. **Execution** — DietCode steps, terminal preview, Hermes TUI (PTY via dashboard)  
-5. **Workspace** — tree, changed files, split diff  
-6. **Approvals** — Once / Task / Session / Deny  
-7. **Timeline** — event replay + JSON inspector  
-
-Details: [docs/desktop-ui.md](docs/desktop-ui.md).
-
-## Execution leases (governance)
-
-Each kanban card can hold **one active execution lease**:
-
-```
-Dispatch → leased → running → verifying → ready_for_review → human merge → Complete
-                └→ blocked / revoked (recoverable; worktree preserved)
-```
-
-- **Critical** cards (`risk: 3`) require `humanApprovedCritical` on every dispatch/retry.  
-- Only **one** critical active lease globally (configurable via `LeaseRuntime:MaxCriticalLeases`).  
-- Agents cannot set task **Complete** — `POST .../lease/merge` only.  
-
-Deep dive: [docs/lease-lifecycle.md](docs/lease-lifecycle.md) · API: [docs/execution-orchestration-api.md](docs/execution-orchestration-api.md).
+---
 
 ## Documentation
 
-| Doc | Description |
-|-----|-------------|
-| [docs/README.md](docs/README.md) | Documentation index and learning paths |
-| [docs/getting-started.md](docs/getting-started.md) | First run, Hermes setup, workflows |
-| [docs/hermes-integration.md](docs/hermes-integration.md) | diet-hermes ports, profile, kanban, SSE |
-| [docs/lease-lifecycle.md](docs/lease-lifecycle.md) | Lease state machine and evidence |
-| [docs/architecture.md](docs/architecture.md) | Layers, leases, background services |
-| [docs/desktop-ui.md](docs/desktop-ui.md) | UI surfaces and menus |
-| [docs/cli.md](docs/cli.md) | `jz` operator CLI |
-| [docs/control-plane-api.md](docs/control-plane-api.md) | Full REST reference |
-| [docs/troubleshooting.md](docs/troubleshooting.md) | Symptom-first fixes |
-| [docs/glossary.md](docs/glossary.md) | Terms and enums |
-| [docs/configuration.md](docs/configuration.md) | Settings, paths, env vars |
-| [docs/development.md](docs/development.md) | Build, test, contribute |
-| [docs/mvp-roadmap.md](docs/mvp-roadmap.md) | Phase 0–27 history |
+| Start here | …then |
+|------------|-------|
+| [concepts.md](docs/concepts.md) | Why leases, human merge, one Hermes |
+| [getting-started.md](docs/getting-started.md) | Install and first dispatch |
+| [use-cases.md](docs/use-cases.md) | Scenario walkthroughs |
+| [cli.md](docs/cli.md) | Terminal recipes |
+| [faq.md](docs/faq.md) | Short answers |
+
+**Full index:** [docs/README.md](docs/README.md) — API, Hermes integration, troubleshooting, glossary, roadmap.
+
+---
 
 ## Development
 
@@ -154,7 +185,7 @@ dotnet test tests/JoyZoning.Tests/JoyZoning.Tests.csproj
 ./scripts/dogfood-validate.sh
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/development.md](docs/development.md).
+[CONTRIBUTING.md](CONTRIBUTING.md) · [docs/development.md](docs/development.md)
 
 ## License
 

@@ -4,7 +4,7 @@ Thank you for contributing. JoyZoning is MIT-licensed — see [LICENSE](LICENSE)
 
 ## Before you start
 
-1. Read [docs/architecture.md](docs/architecture.md) and [docs/development.md](docs/development.md).
+1. Read [docs/concepts.md](docs/concepts.md), then [docs/architecture.md](docs/architecture.md) and [docs/development.md](docs/development.md).
 2. Understand the **authority model**: agents cannot merge or mark tasks Complete; humans own dispatch and merge ([docs/execution-orchestration-api.md](docs/execution-orchestration-api.md)).
 3. Install [.NET 8 SDK](https://dotnet.microsoft.com/download) (see `global.json`).
 

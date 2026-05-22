@@ -4,6 +4,8 @@
 
 JoyZoning is a **human operator cockpit** for multi-agent software workflows on a single local **diet-hermes** install. It is not an IDE, not a chatbot wrapper, and not a VS Code clone.
 
+**Product concepts (read first):** [concepts.md](concepts.md) — operator cockpit, execution leases, human merge, one Hermes / two roles.
+
 **Stack:** .NET 8, Avalonia 12 desktop, ASP.NET Core control plane, SQLite + EF Core, SignalR, optional `jz` CLI.
 
 ```mermaid
@@ -47,7 +49,7 @@ flowchart TB
 
 ## Agent roles (one Hermes install)
 
-JoyZoning uses **one** diet-hermes checkout (`~/Downloads/diet-hermes-main-master` by default). There is no second Hermes install for “master” vs “slave” — that split is **session-based** and **kanban-synced**:
+JoyZoning uses **one** diet-hermes checkout (`Hermes:InstallRoot` in config). There is no second Hermes install for “master” vs “slave” — that split is **session-based** and **kanban-synced**:
 
 | Role | UI surface | Backend (MVP) |
 |------|------------|----------------|
@@ -170,6 +172,8 @@ See [configuration.md](configuration.md) and `src/JoyZoning.ControlPlane/appsett
 
 ## Related docs
 
+- [concepts.md](concepts.md) — why JoyZoning is structured this way  
+- [use-cases.md](use-cases.md) — scenarios  
 - [getting-started.md](getting-started.md) — first run  
 - [hermes-integration.md](hermes-integration.md) — diet-hermes wiring  
 - [lease-lifecycle.md](lease-lifecycle.md) — lease state machine  

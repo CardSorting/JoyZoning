@@ -1,6 +1,6 @@
 # Glossary
 
-Terms used across JoyZoning docs, UI, and APIs.
+Terms used across JoyZoning docs, UI, and APIs. For the product story behind these terms, see [concepts.md](concepts.md).
 
 | Term | Meaning |
 |------|---------|

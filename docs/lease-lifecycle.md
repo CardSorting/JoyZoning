@@ -2,6 +2,8 @@
 
 End-to-end reference for **execution leases** — the governance boundary between human operators and DietCode workers.
 
+Conceptual overview: [concepts.md#execution-lease-governance-boundary](concepts.md#3-execution-lease-governance-boundary).
+
 ## State machine
 
 ```mermaid
