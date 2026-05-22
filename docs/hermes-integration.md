@@ -2,6 +2,8 @@
 
 JoyZoning does not embed an LLM runtime. It supervises agents through a **local diet-hermes** ([Hermes Agent](https://github.com/NousResearch/hermes-agent)) install and normalizes runs into operator-visible state.
 
+**Setup-focused guide:** [onboarding/hermes-setup.md](onboarding/hermes-setup.md) · [API keys](onboarding/api-keys-and-models.md)
+
 ## One install, two roles
 
 ```

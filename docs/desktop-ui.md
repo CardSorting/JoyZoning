@@ -69,6 +69,8 @@ Manager is **not** a code editor — use Workspace + external IDE for file edits
 
 ## Onboarding hub (Phase 17–18)
 
+**Written guide:** [onboarding/README.md](onboarding/README.md) · [setup checklist](onboarding/setup-checklist.md) · [status indicators](onboarding/status-indicators.md)
+
 Patterns borrowed from VS Code Welcome / Linear checklists:
 
 - **Journey phases** with numbered steps, time estimates, “why it matters” copy

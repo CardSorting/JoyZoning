@@ -1,6 +1,14 @@
 # Troubleshooting
 
-Symptom-first guide for operators and developers. For setup walkthroughs see [getting-started.md](getting-started.md).
+Symptom-first guide for operators and developers.
+
+| Situation | Doc |
+|-----------|-----|
+| **Setup failed (decision trees)** | **[onboarding/troubleshooting-setup.md](onboarding/troubleshooting-setup.md)** |
+| Red chips / health grade | [onboarding/status-indicators.md](onboarding/status-indicators.md) |
+| Step-by-step setup | [onboarding/setup-checklist.md](onboarding/setup-checklist.md) |
+| Menu “where to click” | [onboarding/desktop-menu-guide.md](onboarding/desktop-menu-guide.md) |
+| Overview | [getting-started.md](getting-started.md) |
 
 ## Quick diagnostics
 

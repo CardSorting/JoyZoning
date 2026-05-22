@@ -12,9 +12,15 @@ if [[ -n "${JOYZONING_CLI_BIN:-}" && -x "${JOYZONING_CLI_BIN}" ]]; then
   exec "${JOYZONING_CLI_BIN}" "$@"
 fi
 
-if [[ -x "$ROOT/dist/jz" ]]; then
-  exec "$ROOT/dist/jz" "$@"
+export DOTNET_ROOT="${DOTNET_ROOT:-$HOME/.dotnet}"
+export PATH="${DOTNET_ROOT}:${PATH}"
+
+if [[ -x "${HOME}/.local/bin/joyzoning-jz/jz" ]]; then
+  exec "${HOME}/.local/bin/joyzoning-jz/jz" "$@"
 fi
 
-export PATH="${HOME}/.dotnet:${PATH}"
+if [[ -x "$ROOT/dist/jz-publish/jz" ]]; then
+  exec "$ROOT/dist/jz-publish/jz" "$@"
+fi
+
 exec dotnet run --project "$PROJECT" -- "$@"

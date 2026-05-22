@@ -6,71 +6,102 @@
 
 ---
 
-## Start with the concept
+## New here?
 
-If you read one page first, make it **[concepts.md](concepts.md)**. Everything else assumes you understand:
+```mermaid
+flowchart TD
+  Start([New operator]) --> Q{Prefer GUI or terminal?}
+  Q -->|GUI| QS[onboarding/quickstart.md]
+  Q -->|Terminal| CLI[onboarding/first-run-cli.md]
+  Q -->|Learn first| C[concepts.md]
+  QS --> CHK[onboarding/setup-checklist.md]
+  CLI --> CHK
+  CHK --> NEXT[onboarding/whats-next.md]
+```
 
-- **Operator cockpit** vs IDE vs raw Hermes chat  
-- **One Hermes, two roles** (sessions + kanban, not two installs)  
-- **Execution lease** = bounded authority + worktree + evidence  
-- **Human merge** = the only path to Complete  
+| Step | Page | Time |
+|------|------|------|
+| 1 | [Onboarding hub](onboarding/README.md) | — |
+| 2 | [5-minute quickstart](onboarding/quickstart.md) or [Choose your path](onboarding/choose-your-path.md) | 5–20 min |
+| 3 | [Setup checklist](onboarding/setup-checklist.md) | 10 min |
+| 4 | [What's next](onboarding/whats-next.md) | 20 min |
 
----
-
-## Learning paths
-
-### Understand the product (recommended order)
-
-1. [concepts.md](concepts.md) — pillars, authority split, sequence diagram  
-2. [use-cases.md](use-cases.md) — nine real scenarios  
-3. [getting-started.md](getting-started.md) — clone, configure, first launch  
-4. [faq.md](faq.md) — quick answers  
-
-### Run it day to day
-
-1. [getting-started.md](getting-started.md)  
-2. [desktop-ui.md](desktop-ui.md) or [cli.md](cli.md)  
-3. [hermes-integration.md](hermes-integration.md)  
-4. [troubleshooting.md](troubleshooting.md)  
-
-### Govern work (leases & merge)
-
-1. [lease-lifecycle.md](lease-lifecycle.md)  
-2. [execution-orchestration-api.md](execution-orchestration-api.md)  
-3. [glossary.md](glossary.md)  
-
-### Integrate or extend
-
-1. [architecture.md](architecture.md)  
-2. [control-plane-api.md](control-plane-api.md)  
-3. [event-catalog.md](event-catalog.md)  
-4. [development.md](development.md)  
-5. [../CONTRIBUTING.md](../CONTRIBUTING.md)  
+**Concepts (why JoyZoning exists):** [concepts.md](concepts.md) · **FAQ:** [faq.md](faq.md)
 
 ---
 
-## Full index
+## Documentation by role
 
-| Doc | Audience | Contents |
-|-----|----------|----------|
-| **[concepts.md](concepts.md)** | **Everyone** | **Product spine — read first** |
-| [use-cases.md](use-cases.md) | Operators | Scenario walkthroughs |
-| [faq.md](faq.md) | Everyone | Short Q&A |
-| [getting-started.md](getting-started.md) | New operators | Install, first launch |
-| [hermes-integration.md](hermes-integration.md) | Operators / integrators | Gateway, dashboard, kanban, SSE |
-| [lease-lifecycle.md](lease-lifecycle.md) | Everyone | State machine, evidence |
-| [architecture.md](architecture.md) | Contributors | Layers, services, schema |
-| [desktop-ui.md](desktop-ui.md) | Desktop users | Surfaces, menus, onboarding |
-| [cli.md](cli.md) | Terminal / CI | `jz` and `jz agent` |
-| [control-plane-api.md](control-plane-api.md) | Integrators | REST on `:9470` |
-| [execution-orchestration-api.md](execution-orchestration-api.md) | Integrators | Dispatch, verify, merge |
-| [configuration.md](configuration.md) | Operators / ops | appsettings, env, `LeaseRuntime` |
-| [troubleshooting.md](troubleshooting.md) | Operators | Symptom → fix |
-| [glossary.md](glossary.md) | Everyone | Vocabulary |
-| [event-catalog.md](event-catalog.md) | Integrators | Events, SignalR |
-| [development.md](development.md) | Contributors | Build, test |
-| [mvp-roadmap.md](mvp-roadmap.md) | Product | Phase 0–27 |
-| [dogfood-report.md](dogfood-report.md) | QA | Validation harness |
+### I am a new operator (non-technical friendly)
+
+| Doc | Contents |
+|-----|----------|
+| **[onboarding/README.md](onboarding/README.md)** | **Start here** — “I'm stuck”, reading levels, full index |
+| [before-you-begin.md](onboarding/before-you-begin.md) | Do you need JoyZoning? Time, keys, privacy |
+| [desktop-menu-guide.md](onboarding/desktop-menu-guide.md) | Where to click (no Terminal) |
+| [plain-language-glossary.md](onboarding/plain-language-glossary.md) | Words explained with analogies |
+| [troubleshooting-setup.md](onboarding/troubleshooting-setup.md) | Setup decision trees |
+| [quickstart.md](onboarding/quickstart.md) | Desktop in ~5–15 min |
+| [whats-next.md](onboarding/whats-next.md) | First dispatch → merge |
+
+### I run JoyZoning day to day
+
+| Doc | Contents |
+|-----|----------|
+| [getting-started.md](getting-started.md) | Overview + links |
+| [desktop-ui.md](desktop-ui.md) | All six surfaces |
+| [cli.md](cli.md) | `jz` / `jz agent` |
+| [use-cases.md](use-cases.md) | Scenario walkthroughs |
+| [troubleshooting.md](troubleshooting.md) | Symptom → fix |
+
+### I install or administer locally
+
+| Doc | Contents |
+|-----|----------|
+| [installation.md](onboarding/installation.md) | Full install + .NET 8 |
+| [hermes-setup.md](onboarding/hermes-setup.md) | diet-hermes profile `joyzoning` |
+| [configuration.md](configuration.md) | appsettings, env, leases |
+| [hermes-integration.md](hermes-integration.md) | Ports, token, kanban sync |
+
+### I need governance / audit detail
+
+| Doc | Contents |
+|-----|----------|
+| [lease-lifecycle.md](lease-lifecycle.md) | State machine, evidence |
+| [execution-orchestration-api.md](execution-orchestration-api.md) | Dispatch, verify, merge |
+| [glossary.md](glossary.md) | Vocabulary |
+
+### I integrate or contribute
+
+| Doc | Contents |
+|-----|----------|
+| [architecture.md](architecture.md) | Layers, services |
+| [control-plane-api.md](control-plane-api.md) | REST `:9470` |
+| [event-catalog.md](event-catalog.md) | SignalR events |
+| [development.md](development.md) | Build, test |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | PRs |
+
+---
+
+## Onboarding section (17 guides)
+
+**Hub:** [onboarding/README.md](onboarding/README.md) — **Stuck?** [troubleshooting-setup.md](onboarding/troubleshooting-setup.md)
+
+| Beginner | Operator | Technical |
+|----------|----------|-----------|
+| [before-you-begin](onboarding/before-you-begin.md) | [quickstart](onboarding/quickstart.md) | [installation](onboarding/installation.md) |
+| [plain-language-glossary](onboarding/plain-language-glossary.md) | [whats-next](onboarding/whats-next.md) | [first-run-cli](onboarding/first-run-cli.md) |
+| [desktop-menu-guide](onboarding/desktop-menu-guide.md) | [setup-checklist](onboarding/setup-checklist.md) | [platform-linux](onboarding/platform-linux.md) |
+| [coming-from-hermes-chat](onboarding/coming-from-hermes-chat.md) | [status-indicators](onboarding/status-indicators.md) | [hermes-setup](onboarding/hermes-setup.md) |
+| [platform-macos](onboarding/platform-macos.md) | [choose-your-path](onboarding/choose-your-path.md) | [settings-explained](onboarding/settings-explained.md) |
+
+Also: [first-run-desktop](onboarding/first-run-desktop.md) · [api-keys-and-models](onboarding/api-keys-and-models.md) · [troubleshooting-setup](onboarding/troubleshooting-setup.md)
+
+---
+
+## Core concepts (one paragraph)
+
+JoyZoning is **not** an IDE and **not** a second Hermes. It is a **local cockpit** where you plan in Manager Chat, track work on kanban, dispatch executors into **isolated worktrees**, and **merge only after verification**. Agents cannot mark tasks Complete without you. Details: [concepts.md](concepts.md).
 
 ---
 
@@ -103,7 +134,30 @@ JoyZoning.App          →  http://127.0.0.1:9470  →  JoyZoning.ControlPlane
 | Merge → Complete | ✓ | **never** |
 | Revoke lease | ✓ | — |
 
-Details: [concepts.md#human-vs-agent-authority](concepts.md#human-vs-agent-authority).
+---
+
+## All docs (alphabetical)
+
+| Doc | Audience |
+|-----|----------|
+| [architecture.md](architecture.md) | Contributors |
+| [cli.md](cli.md) | Terminal / CI |
+| [concepts.md](concepts.md) | Everyone |
+| [configuration.md](configuration.md) | Operators / ops |
+| [control-plane-api.md](control-plane-api.md) | Integrators |
+| [desktop-ui.md](desktop-ui.md) | Desktop users |
+| [dogfood-report.md](dogfood-report.md) | QA |
+| [event-catalog.md](event-catalog.md) | Integrators |
+| [execution-orchestration-api.md](execution-orchestration-api.md) | Integrators |
+| [faq.md](faq.md) | Everyone |
+| [getting-started.md](getting-started.md) | New operators |
+| [hermes-integration.md](hermes-integration.md) | Operators / integrators |
+| [lease-lifecycle.md](lease-lifecycle.md) | Everyone |
+| [mvp-roadmap.md](mvp-roadmap.md) | Product |
+| [troubleshooting.md](troubleshooting.md) | Operators |
+| [use-cases.md](use-cases.md) | Operators |
+| [glossary.md](glossary.md) | Everyone |
+| [development.md](development.md) | Contributors |
 
 ---
 
@@ -114,5 +168,6 @@ Details: [concepts.md#human-vs-agent-authority](concepts.md#human-vs-agent-autho
 | `scripts/run-dev.sh` | Control plane + desktop |
 | `scripts/install-jz.sh` | `~/.local/bin/jz` |
 | `scripts/install-diet-hermes.sh` | Hermes stack |
+| `scripts/jz-env.sh` | Shell exports for CLI |
 | `scripts/dogfood-validate.sh` | E2E governance tests |
 | `scripts/examples/*.sh` | Happy path, critical, verify fail, merge |

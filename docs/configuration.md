@@ -2,6 +2,8 @@
 
 JoyZoning is **local-first**: all state and settings stay on your machine. There is no cloud control plane.
 
+**First-time setup** (paths, ports, keys explained for operators): [onboarding/installation.md](onboarding/installation.md) · [hermes-setup.md](onboarding/hermes-setup.md) · [api-keys-and-models.md](onboarding/api-keys-and-models.md).
+
 ## Configuration layers
 
 | Layer | Location | Used for |

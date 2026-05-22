@@ -2,7 +2,7 @@
 
 JoyZoning is built around one idea: **software work with agents needs an operator**, not just another chat window. You remain accountable for what ships; agents get **bounded authority** inside leases you can audit, recover, and approve.
 
-This page is the conceptual spine. Implementation details live in [architecture.md](architecture.md), [lease-lifecycle.md](lease-lifecycle.md), and [hermes-integration.md](hermes-integration.md).
+This page is the conceptual spine. **Hands-on setup:** [onboarding/README.md](onboarding/README.md). Implementation details: [architecture.md](architecture.md), [lease-lifecycle.md](lease-lifecycle.md), [hermes-integration.md](hermes-integration.md).
 
 ---
 

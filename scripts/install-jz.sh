@@ -18,9 +18,24 @@ dotnet publish "$ROOT/src/JoyZoning.Cli/JoyZoning.Cli.csproj" \
   -o "$ROOT/dist/jz-publish" \
   --self-contained false
 
-cp "$ROOT/dist/jz-publish/jz" "$ROOT/dist/jz"
-cp "$ROOT/dist/jz" "$OUT/jz"
-chmod +x "$OUT/jz" "$ROOT/dist/jz"
+# apphost resolves jz.dll next to itself — install the full publish output
+rm -rf "$OUT/joyzoning-jz"
+mkdir -p "$OUT/joyzoning-jz"
+cp -R "$ROOT/dist/jz-publish/." "$OUT/joyzoning-jz/"
+chmod +x "$OUT/joyzoning-jz/jz"
+
+# Wrapper script (do NOT symlink jz → joyzoning-jz/jz — writing the wrapper would clobber the binary)
+cat > "$OUT/jz" <<'WRAPPER'
+#!/usr/bin/env bash
+export DOTNET_ROOT="${DOTNET_ROOT:-$HOME/.dotnet}"
+export PATH="${DOTNET_ROOT}:${PATH}"
+export JOYZONING_URL="${JOYZONING_URL:-http://127.0.0.1:9470}"
+exec "${HOME}/.local/bin/joyzoning-jz/jz" "$@"
+WRAPPER
+chmod +x "$OUT/jz"
+
+cp "$OUT/joyzoning-jz/jz" "$ROOT/dist/jz"
+chmod +x "$ROOT/dist/jz"
 
 echo "Installed: $OUT/jz"
 echo "Run: jz --help"

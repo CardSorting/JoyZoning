@@ -2,6 +2,50 @@
 
 Short answers. Deep dives link to other docs.
 
+**Setting up for the first time?** See the [onboarding hub](onboarding/README.md) — checklists, GUI vs CLI, and plain-language status help.
+
+---
+
+## Onboarding & setup
+
+### Where do I start?
+
+[onboarding/README.md](onboarding/README.md) — pick [quickstart](onboarding/quickstart.md) (desktop) or [first-run-cli](onboarding/first-run-cli.md) (terminal).
+
+### Do I need to read the terminal commands?
+
+No for desktop-first setup. Use [quickstart](onboarding/quickstart.md) and the in-app **Getting Started** hub. CLI is optional: [choose-your-path](onboarding/choose-your-path.md).
+
+### What does the health grade mean?
+
+**Healthy / Degraded / Blocked** on Getting Started — same idea as Docker Desktop engine status. Details: [status-indicators.md](onboarding/status-indicators.md).
+
+### Why is setup taking several minutes?
+
+First diet-hermes install downloads Python packages (3–8 min). Later launches are seconds. [installation.md](onboarding/installation.md)
+
+### Manager Chat does not reply
+
+Usually missing LLM API keys on profile `joyzoning`. [api-keys-and-models.md](onboarding/api-keys-and-models.md)
+
+### Can I skip the sample workspace?
+
+Yes — **Project → Open Workspace** when ready. [first-run-desktop.md](onboarding/first-run-desktop.md)
+
+### Where is the “click here not terminal” guide?
+
+[desktop-menu-guide.md](onboarding/desktop-menu-guide.md) — menu bar and sidebar map.
+
+### Setup failed — which doc?
+
+[troubleshooting-setup.md](onboarding/troubleshooting-setup.md) — decision trees for app, checklist, chips, and `jz`.
+
+### I already use Hermes chat — what changes?
+
+[coming-from-hermes-chat.md](onboarding/coming-from-hermes-chat.md)
+
+---
+
 ## Product
 
 ### What is JoyZoning?

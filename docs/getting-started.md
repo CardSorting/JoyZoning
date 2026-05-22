@@ -1,19 +1,37 @@
 # Getting started
 
+> **New onboarding hub:** Step-by-step guides, checklists, and non-technical paths live in **[onboarding/](onboarding/README.md)**. This page is the short overview; use the hub for install detail, CLI vs desktop, and troubleshooting playbooks.
+
 JoyZoning is a **desktop operator console** (and optional `jz` CLI) for running multi-agent workflows on one local **diet-hermes** install. You supervise a **Manager** session (planning) and **executor** sessions (DietCode runs) on the same gateway, coordinated through kanban and execution leases.
 
-**New here?** Read [concepts.md](concepts.md) first (≈5 minutes) — it explains why merge is human-only and what a lease really is.
+---
 
-## Prerequisites
+## Start here
+
+| You are… | Go to |
+|----------|-------|
+| **New — want the fastest path** | [5-minute quickstart](onboarding/quickstart.md) |
+| **Non-technical — menus only** | [Desktop menu guide](onboarding/desktop-menu-guide.md) · [Plain-language glossary](onboarding/plain-language-glossary.md) |
+| **Choosing desktop vs terminal** | [Choose your path](onboarding/choose-your-path.md) |
+| **From Hermes/ChatGPT chat only** | [Coming from Hermes chat](onboarding/coming-from-hermes-chat.md) |
+| **Installing from scratch** | [Installation guide](onboarding/installation.md) · [macOS](onboarding/platform-macos.md) · [Linux](onboarding/platform-linux.md) |
+| **Understanding the product** | [Before you begin](onboarding/before-you-begin.md) · [concepts.md](concepts.md) |
+| **Something failed** | [Setup troubleshooting trees](onboarding/troubleshooting-setup.md) · [troubleshooting.md](troubleshooting.md) |
+
+---
+
+## Prerequisites (summary)
 
 | Requirement | Notes |
 |-------------|--------|
-| **.NET 8 SDK** | Pinned in `global.json` (`8.0.421`, `rollForward: latestFeature`) |
-| **diet-hermes** | Single checkout; set `Hermes:InstallRoot` or use auto-setup on first launch |
-| **macOS** (primary) | Dev scripts and `.app` bundle target arm64; control plane runs on Linux too |
-| **Disk / time** | First Hermes install via JoyZoning: ~3–8 minutes (venv + gateway) |
+| **.NET 8 SDK** | Pinned in `global.json` — see [installation § .NET 8](onboarding/installation.md#net-8-on-macos) |
+| **diet-hermes** | One checkout; [hermes-setup.md](onboarding/hermes-setup.md) |
+| **macOS** (primary) | `.app` targets arm64; control plane runs on Linux |
+| **LLM API keys** | Before Manager Chat replies — [api-keys-and-models.md](onboarding/api-keys-and-models.md) |
 
 Hermes must expose the **API server** on profile `joyzoning` (port **8642**). JoyZoning can install and configure this on first launch.
+
+---
 
 ## Quick start (desktop)
 
@@ -23,48 +41,39 @@ cd JoyZoning
 
 cp src/JoyZoning.ControlPlane/appsettings.example.json \
    src/JoyZoning.ControlPlane/appsettings.Development.json
-# Set Hermes:InstallRoot to your diet-hermes path (or rely on auto-setup)
+# Set Hermes:InstallRoot in Development.json (or use auto-setup)
 
 ./scripts/run-dev.sh
 ```
 
-`run-dev.sh` starts the control plane in the background, then launches the Avalonia app. The app **also** auto-starts the control plane on `http://127.0.0.1:9470` if nothing is listening — you only need a separate terminal when debugging the API.
+Full detail: [onboarding/quickstart.md](onboarding/quickstart.md) · [first-run-desktop.md](onboarding/first-run-desktop.md).
 
-Alternative:
+`run-dev.sh` starts the control plane, then the Avalonia app. The app **also** auto-starts the control plane on `http://127.0.0.1:9470` if nothing is listening.
 
-```bash
-dotnet run --project src/JoyZoning.App
-```
+---
 
-## First launch (what actually happens)
+## First launch (summary)
 
-1. **Control plane** binds to `http://127.0.0.1:9470` (unless already running).
-2. **Auto-setup** (`OnboardingAutoSetup`, default on) runs when `AutoSetupOnLaunch` is enabled:
-   - Detects or installs diet-hermes at the configured install root
-   - Ensures Hermes gateway + API on profile `joyzoning`
-   - Starts dashboard when needed and acquires session token for kanban sync / TUI
-   - Opens a **sample workspace** under Application Support if you have no project yet
-3. A **“Setting up JoyZoning…”** overlay shows progress; on success you land on **Manager Chat**.
-4. **Getting Started** hub remains available (menu: Settings → Open Getting Started) if any step failed or you want the checklist UI.
+1. **Control plane** on `:9470`  
+2. **Auto-setup** (default): diet-hermes, gateway, dashboard token, sample workspace  
+3. **Getting Started** hub with health grade and checklist  
+4. Land on **Manager Chat** when healthy  
 
-You do **not** need to complete a blocking wizard before using the app — the wizard and **Hermes → Connection…** are advanced paths.
+No blocking wizard required. See [first-run-desktop.md](onboarding/first-run-desktop.md).
 
-## Open your own workspace
+---
 
-When you are ready to leave the sample project:
+## Setup checklist (five core steps)
 
-1. **Project → Open Workspace** — pick a folder (or **Open last** if you used one before).
-2. Manager Chat and kanban tasks are scoped to the active **operator session** for that workspace.
+1. Control plane online  
+2. diet-hermes ready  
+3. API gateway (`:8642`)  
+4. Dashboard & token (`:9119`)  
+5. Workspace opened  
 
-## Hermes connection (manual path)
+Printable version: [onboarding/setup-checklist.md](onboarding/setup-checklist.md).
 
-Use when the status bar shows API or Dashboard unavailable:
-
-1. **Hermes → Connection…** (or click the API/Dashboard chips).
-2. **Connect all** or step through: install path → ensure gateway → connect dashboard.
-3. **Hermes → Ensure Gateway** from the menu if only the API chip is red.
-
-Kanban import/sync and **Execution → Hermes TUI** need a valid **dashboard session token** (scraped automatically after dashboard connect).
+---
 
 ## Daily operator workflow
 
@@ -77,77 +86,76 @@ flowchart LR
   E --> F[Complete]
 ```
 
-1. **Manager Chat** — send planning messages; optional **Parse** / **→ Task** from replies.
-2. **Kanban** — create tasks, drag columns, **Dispatch** to DietCode (critical cards need approval checkbox).
-3. **Execution** — watch tool steps and terminal; connect **Hermes TUI** via dashboard WebSocket.
-4. **Approvals** — resolve Once / Task / Session / Deny for risky Hermes tool calls.
-5. **Workspace** — tree, changed files, split diff preview.
-6. **Timeline** — audit events; select a row to inspect JSON payload.
+Walkthrough: [onboarding/whats-next.md](onboarding/whats-next.md).
 
-**Complete** on a card requires a passing verification report and **merge** (human-only). Dragging to Complete in the UI routes through the merge API when a lease is `ready_for_review`.
+| Step | Surface |
+|------|---------|
+| Plan | Manager Chat |
+| Track | Kanban |
+| Dispatch | Kanban → Execution |
+| Approve tools | Approvals |
+| Review diff | Workspace |
+| Audit | Timeline |
 
-## Terminal-only workflow (`jz`)
+**Complete** requires verification + **human merge** — agents cannot skip this gate.
 
-Same gates as the desktop, scriptable:
+---
+
+## Terminal workflow (`jz`)
+
+Same policy as desktop:
 
 ```bash
-./scripts/jz doctor
-./scripts/install-jz.sh   # optional: ~/.local/bin/jz
+./scripts/install-jz.sh
+source scripts/jz-env.sh
+jz doctor
 
 jz session create --name my-run --workspace "$HOME/src/myrepo"
-export JOYZONING_SESSION_ID="<session-guid>"
+# export JOYZONING_SESSION_ID=...
 
-TASK=$(jz --field .id task create --title "Fix build" --risk 1)
-jz task run "$TASK" --poll 10
-jz task verify "$TASK" --cmd "dotnet test"
-jz task complete "$TASK" --yes
+jz task run <task-id> --poll 10
+jz task verify <task-id> --cmd "dotnet test"
+jz task complete <task-id> --yes
 ```
 
-Agent work inside the lease worktree:
+Full path: [onboarding/first-run-cli.md](onboarding/first-run-cli.md) · [cli.md](cli.md).
 
-```bash
-cd "$WORKTREE"
-jz agent start --task "$TASK"
-jz agent verify --cmd "dotnet build" --cmd "dotnet test"
-jz agent done    # ready_for_review only
-# Human: jz task complete "$TASK" --yes
-```
-
-Full reference: [cli.md](cli.md).
+---
 
 ## Release build (macOS arm64)
 
 ```bash
 ./scripts/publish-macos.sh
 ./dist/run-joyzoning.sh
-
-# Optional .app bundle:
-./scripts/bundle-macos-app.sh
-open dist/JoyZoning.app
+./scripts/bundle-macos-app.sh && open dist/JoyZoning.app
 ```
 
-## Troubleshooting
+---
 
-| Symptom | What to try |
-|---------|-------------|
-| API chip red | Hermes → Ensure Gateway; check `Hermes:InstallRoot` in appsettings |
-| Kanban sync empty | Connection → Connect dashboard; confirm token in Settings → Advanced |
-| Interrupted execution on restart | **Recovery** menu or startup prompt; resume or dismiss |
-| Support bundle | Settings → **Copy health report** |
+## Troubleshooting (quick)
 
-Diagnostics CLI:
+| Symptom | Doc |
+|---------|-----|
+| Red API / Dashboard chips | [status-indicators.md](onboarding/status-indicators.md) |
+| First install slow | [installation.md](onboarding/installation.md) |
+| `jz` / .NET errors | [first-run-cli.md](onboarding/first-run-cli.md) |
 
 ```bash
 jz doctor
 jz config explain
 ```
 
-Full symptom tables: [troubleshooting.md](troubleshooting.md).
+Full tables: [troubleshooting.md](troubleshooting.md).
+
+---
 
 ## Next steps
 
-- [desktop-ui.md](desktop-ui.md) — surface-by-surface UI guide  
-- [hermes-integration.md](hermes-integration.md) — diet-hermes ports, token, kanban sync  
-- [lease-lifecycle.md](lease-lifecycle.md) — dispatch → merge state machine  
-- [configuration.md](configuration.md) — paths and settings  
-- [glossary.md](glossary.md) — terms  
+| Topic | Doc |
+|-------|-----|
+| **Onboarding hub** | [onboarding/README.md](onboarding/README.md) |
+| Desktop UI | [desktop-ui.md](desktop-ui.md) |
+| Hermes ports & sync | [hermes-integration.md](hermes-integration.md) |
+| Lease states | [lease-lifecycle.md](lease-lifecycle.md) |
+| Settings | [configuration.md](configuration.md) |
+| Terms | [glossary.md](glossary.md) |
