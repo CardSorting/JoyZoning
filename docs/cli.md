@@ -188,6 +188,9 @@ Dangerous raw calls (`DELETE`, merge/revoke paths) require `--yes`.
 ## See also
 
 - [README.md](README.md) — documentation index  
+- [lease-lifecycle.md](lease-lifecycle.md) — state machine  
+- [troubleshooting.md](troubleshooting.md) — CLI exit codes and fixes  
+- [glossary.md](glossary.md) — terms  
 - [getting-started.md](getting-started.md) — first-run setup  
 - [control-plane-api.md](control-plane-api.md) — full REST surface  
 - [execution-orchestration-api.md](execution-orchestration-api.md) — lease API  

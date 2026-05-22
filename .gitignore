@@ -8,3 +8,7 @@ obj/
 *.db-shm
 *.db-wal
 .DS_Store
+dist/
+
+# Local developer overrides (copy from appsettings.example.json)
+src/JoyZoning.ControlPlane/appsettings.Development.json

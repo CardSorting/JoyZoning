@@ -171,6 +171,9 @@ See [configuration.md](configuration.md) and `src/JoyZoning.ControlPlane/appsett
 ## Related docs
 
 - [getting-started.md](getting-started.md) — first run  
+- [hermes-integration.md](hermes-integration.md) — diet-hermes wiring  
+- [lease-lifecycle.md](lease-lifecycle.md) — lease state machine  
 - [desktop-ui.md](desktop-ui.md) — Avalonia surfaces  
 - [development.md](development.md) — build and test  
+- [troubleshooting.md](troubleshooting.md) — common failures  
 - [README.md](README.md) — documentation index  

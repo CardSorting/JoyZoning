@@ -1,5 +1,7 @@
 # Development guide
 
+Contributing: [CONTRIBUTING.md](../CONTRIBUTING.md) (MIT license, PR expectations).
+
 ## Repository layout
 
 ```

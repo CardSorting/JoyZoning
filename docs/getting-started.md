@@ -7,7 +7,7 @@ JoyZoning is a **desktop operator console** (and optional `jz` CLI) for running 
 | Requirement | Notes |
 |-------------|--------|
 | **.NET 8 SDK** | Pinned in `global.json` (`8.0.421`, `rollForward: latestFeature`) |
-| **diet-hermes** | Single checkout; default `~/Downloads/diet-hermes-main-master` |
+| **diet-hermes** | Single checkout; set `Hermes:InstallRoot` or use auto-setup on first launch |
 | **macOS** (primary) | Dev scripts and `.app` bundle target arm64; control plane runs on Linux too |
 | **Disk / time** | First Hermes install via JoyZoning: ~3–8 minutes (venv + gateway) |
 
@@ -16,8 +16,13 @@ Hermes must expose the **API server** on profile `joyzoning` (port **8642**). Jo
 ## Quick start (desktop)
 
 ```bash
-git clone <your-repo-url> JoyZoning
+git clone https://github.com/CardSorting/JoyZoning.git
 cd JoyZoning
+
+cp src/JoyZoning.ControlPlane/appsettings.example.json \
+   src/JoyZoning.ControlPlane/appsettings.Development.json
+# Set Hermes:InstallRoot to your diet-hermes path (or rely on auto-setup)
+
 ./scripts/run-dev.sh
 ```
 
@@ -135,8 +140,12 @@ jz doctor
 jz config explain
 ```
 
+Full symptom tables: [troubleshooting.md](troubleshooting.md).
+
 ## Next steps
 
 - [desktop-ui.md](desktop-ui.md) — surface-by-surface UI guide  
+- [hermes-integration.md](hermes-integration.md) — diet-hermes ports, token, kanban sync  
+- [lease-lifecycle.md](lease-lifecycle.md) — dispatch → merge state machine  
 - [configuration.md](configuration.md) — paths and settings  
-- [execution-orchestration-api.md](execution-orchestration-api.md) — lease API contract  
+- [glossary.md](glossary.md) — terms  

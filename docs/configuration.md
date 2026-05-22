@@ -6,7 +6,9 @@ JoyZoning is **local-first**: all state and settings stay on your machine. There
 
 | Layer | Location | Used for |
 |-------|----------|----------|
-| **appsettings.json** | `src/JoyZoning.ControlPlane/appsettings.json` | Defaults at dev time (Hermes install root, URLs) |
+| **appsettings.json** | `src/JoyZoning.ControlPlane/appsettings.json` | Committed defaults (placeholder `InstallRoot`) |
+| **appsettings.example.json** | Same directory | Copy template with documented `LeaseRuntime` block |
+| **appsettings.Development.json** | Same directory (gitignored) | **Your** machine: real `InstallRoot`, local overrides |
 | **SQLite `app_config`** | Inside `joyzoning.db` | Settings saved from the desktop UI (`PUT /api/config`) |
 | **Environment variables** | Shell / `.env` | CLI (`JOYZONING_*`), optional DB override, Hermes hints |
 | **onboarding.json** | Application Support | First-run checklist, surface tips, last workspace |
@@ -21,6 +23,15 @@ Runtime Hermes HTTP clients reload from saved config **without** restarting the 
 | Hermes API | `Hermes:ApiBaseUrl` | `http://127.0.0.1:8642` |
 | Hermes dashboard | `Hermes:DashboardBaseUrl` | `http://127.0.0.1:9119` |
 | Hermes profile | `Hermes:Profile` | `joyzoning` |
+
+## First-time developer setup
+
+```bash
+cp src/JoyZoning.ControlPlane/appsettings.example.json \
+   src/JoyZoning.ControlPlane/appsettings.Development.json
+```
+
+Edit `Hermes:InstallRoot` in **Development** only. ASP.NET Core merges `appsettings.json` + `appsettings.Development.json` when `ASPNETCORE_ENVIRONMENT=Development`.
 
 ## appsettings.json (checked in)
 
