@@ -7,6 +7,10 @@ cd "$ROOT"
 # shellcheck source=dotnet-env.sh
 source "$ROOT/scripts/dotnet-env.sh"
 
+if [[ -f "$ROOT/broccoliq/package.json" ]]; then
+  "$ROOT/scripts/broccoliq-verify.sh"
+fi
+
 MODE="${1:-fast}"
 if (($# > 1)); then EXTRA_ARGS=("${@:2}"); else EXTRA_ARGS=(); fi
 

@@ -261,6 +261,80 @@ public sealed class BroccoliQBridgeClient : IBroccoliQBridge, IHostedService, ID
         }
     }
 
+    public async Task<BroccoliQHiveAuditPage> QueryHiveAuditAsync(
+        int limit = 100,
+        string typePrefix = "joy.",
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsEnabled)
+            return new BroccoliQHiveAuditPage(0, Array.Empty<BroccoliQHiveAuditRow>());
+
+        try
+        {
+            var cap = Math.Clamp(limit, 1, 500);
+            var prefix = Uri.EscapeDataString(typePrefix);
+            using var response = await _http.GetAsync(
+                $"v1/hive/audit?limit={cap}&typePrefix={prefix}",
+                cancellationToken);
+            if (!response.IsSuccessStatusCode)
+                return new BroccoliQHiveAuditPage(0, Array.Empty<BroccoliQHiveAuditRow>());
+
+            var body = await response.Content.ReadFromJsonAsync<HiveAuditResponseDto>(cancellationToken);
+            if (body?.Items is null || body.Items.Count == 0)
+                return new BroccoliQHiveAuditPage(0, Array.Empty<BroccoliQHiveAuditRow>());
+
+            var rows = body.Items.Select(i => new BroccoliQHiveAuditRow(
+                i.Id ?? "",
+                i.Type ?? "",
+                i.Message ?? "",
+                i.Data,
+                i.Timestamp)).ToList();
+            return new BroccoliQHiveAuditPage(rows.Count, rows);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogDebug(ex, "BroccoliQ hive audit query failed");
+            return new BroccoliQHiveAuditPage(0, Array.Empty<BroccoliQHiveAuditRow>());
+        }
+    }
+
+    public async Task<BroccoliQHiveTaskPage> QueryHiveTasksAsync(
+        int limit = 100,
+        Guid? taskId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsEnabled)
+            return new BroccoliQHiveTaskPage(0, Array.Empty<BroccoliQHiveTaskRow>());
+
+        try
+        {
+            var cap = Math.Clamp(limit, 1, 500);
+            var path = taskId.HasValue
+                ? $"v1/hive/tasks?limit={cap}&taskId={taskId.Value}"
+                : $"v1/hive/tasks?limit={cap}";
+            using var response = await _http.GetAsync(path, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+                return new BroccoliQHiveTaskPage(0, Array.Empty<BroccoliQHiveTaskRow>());
+
+            var body = await response.Content.ReadFromJsonAsync<HiveTaskResponseDto>(cancellationToken);
+            if (body?.Items is null || body.Items.Count == 0)
+                return new BroccoliQHiveTaskPage(0, Array.Empty<BroccoliQHiveTaskRow>());
+
+            var rows = body.Items.Select(i => new BroccoliQHiveTaskRow(
+                i.TaskId ?? "",
+                i.Title ?? "",
+                i.Status ?? "",
+                i.Priority,
+                i.UpdatedAt)).ToList();
+            return new BroccoliQHiveTaskPage(rows.Count, rows);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogDebug(ex, "BroccoliQ hive tasks query failed");
+            return new BroccoliQHiveTaskPage(0, Array.Empty<BroccoliQHiveTaskRow>());
+        }
+    }
+
     private async Task PumpMirrorQueueAsync(CancellationToken cancellationToken)
     {
         var batch = new List<JoyEventMirrorDto>(Math.Max(8, _options.MirrorBatchSize));
@@ -393,4 +467,26 @@ public sealed class BroccoliQBridgeClient : IBroccoliQBridge, IHostedService, ID
         string? Service,
         [property: JsonPropertyName("dbPath")] string? DbPath,
         [property: JsonPropertyName("mirrorCount")] int? MirrorCount);
+
+    private sealed record HiveAuditResponseDto(
+        int? Count,
+        List<HiveAuditItemDto>? Items);
+
+    private sealed record HiveAuditItemDto(
+        string? Id,
+        string? Type,
+        string? Message,
+        string? Data,
+        long Timestamp);
+
+    private sealed record HiveTaskResponseDto(
+        int? Count,
+        List<HiveTaskItemDto>? Items);
+
+    private sealed record HiveTaskItemDto(
+        [property: JsonPropertyName("task_id")] string? TaskId,
+        string? Title,
+        string? Status,
+        int Priority,
+        [property: JsonPropertyName("updated_at")] long UpdatedAt);
 }

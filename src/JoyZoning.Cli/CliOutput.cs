@@ -129,6 +129,8 @@ public static class CliOutput
 
             Diagnostics:
               doctor                 SDK, control plane, optional Hermes
+              broccoliq status       BroccoliQ hive + joy-bridge health
+              broccoliq audit        Recent mirrored events from hive
               config explain         Env vars and authority rules
 
             Low-level API (escape hatch): raw <METHOD> <path> [--body @file.json|@stdin]

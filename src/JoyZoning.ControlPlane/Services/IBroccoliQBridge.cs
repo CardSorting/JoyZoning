@@ -28,7 +28,35 @@ public interface IBroccoliQBridge
         string status,
         int priority = 0,
         CancellationToken cancellationToken = default);
+
+    Task<BroccoliQHiveAuditPage> QueryHiveAuditAsync(
+        int limit = 100,
+        string typePrefix = "joy.",
+        CancellationToken cancellationToken = default);
+
+    Task<BroccoliQHiveTaskPage> QueryHiveTasksAsync(
+        int limit = 100,
+        Guid? taskId = null,
+        CancellationToken cancellationToken = default);
 }
+
+public record BroccoliQHiveAuditPage(int Count, IReadOnlyList<BroccoliQHiveAuditRow> Items);
+
+public record BroccoliQHiveAuditRow(
+    string Id,
+    string Type,
+    string Message,
+    string? Data,
+    long Timestamp);
+
+public record BroccoliQHiveTaskPage(int Count, IReadOnlyList<BroccoliQHiveTaskRow> Items);
+
+public record BroccoliQHiveTaskRow(
+    string TaskId,
+    string Title,
+    string Status,
+    int Priority,
+    long UpdatedAt);
 
 public record BroccoliQHealthReport(
     HealthState State,

@@ -241,6 +241,42 @@ const server = createServer(async (req, res) => {
       return json(res, 200, { ok: true, flushed: true });
     }
 
+    if (method === "GET" && url.pathname === "/v1/hive/audit") {
+      const limit = Math.min(
+        Number.parseInt(url.searchParams.get("limit") ?? "100", 10) || 100,
+        500,
+      );
+      const typePrefix = url.searchParams.get("typePrefix") ?? "joy.";
+      await dbPool.flush();
+      const rows = await dbPool.selectWhere("hive_audit", [], undefined, {
+        shardId: "joy",
+        limit: limit * 2,
+        orderBy: { column: "timestamp", direction: "desc" },
+      });
+      const items = rows
+        .filter((r) => !typePrefix || String(r.type ?? "").startsWith(typePrefix))
+        .slice(0, limit);
+      return json(res, 200, { ok: true, count: items.length, items });
+    }
+
+    if (method === "GET" && url.pathname === "/v1/hive/tasks") {
+      const limit = Math.min(
+        Number.parseInt(url.searchParams.get("limit") ?? "100", 10) || 100,
+        500,
+      );
+      const taskId = url.searchParams.get("taskId");
+      await dbPool.flush();
+      const where = taskId
+        ? { column: "task_id", value: String(taskId) }
+        : [];
+      const rows = await dbPool.selectWhere("hive_tasks", where, undefined, {
+        shardId: "joy",
+        limit,
+        orderBy: { column: "updated_at", direction: "desc" },
+      });
+      return json(res, 200, { ok: true, count: rows.length, items: rows });
+    }
+
     json(res, 404, { error: "not_found", path: url.pathname });
   } catch (err) {
     lastError = err instanceof Error ? err.message : String(err);

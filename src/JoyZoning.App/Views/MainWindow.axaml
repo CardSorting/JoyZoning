@@ -75,6 +75,8 @@
               <TextBlock Text="{Binding DashboardStatus, StringFormat=Dashboard: {0}}" />
             </Button>
             <TextBlock Text="{Binding DietCodeStatus, StringFormat=DietCode: {0}}" />
+            <TextBlock Text="{Binding BroccoliQStatus, StringFormat=Hive: {0}}"
+                       ToolTip.Tip="BroccoliQ write-behind mirror (broccoliq.db)" />
           </StackPanel>
           <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="16,0"
                      Text="{Binding StatusLine}" TextWrapping="Wrap" MaxWidth="320" />

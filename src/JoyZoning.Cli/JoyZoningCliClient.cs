@@ -39,6 +39,17 @@ public sealed class JoyZoningCliClient : IDisposable
         return PostEmptyAsync(path);
     }
 
+    public Task<CliHttpResult> BroccoliQAuditAsync(int limit = 50) =>
+        GetAsync($"api/broccoliq/audit?limit={limit}");
+
+    public Task<CliHttpResult> BroccoliQTasksAsync(int limit = 50, Guid? taskId = null)
+    {
+        var path = taskId.HasValue
+            ? $"api/broccoliq/tasks?limit={limit}&taskId={taskId.Value}"
+            : $"api/broccoliq/tasks?limit={limit}";
+        return GetAsync(path);
+    }
+
     public Task<CliHttpResult> ListSessionsAsync() => GetAsync("api/sessions");
 
     public Task<CliHttpResult> GetSessionAsync(Guid id) => GetAsync($"api/sessions/{id}");

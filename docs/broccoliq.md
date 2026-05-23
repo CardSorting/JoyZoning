@@ -98,7 +98,25 @@ jz broccoliq status      # alias: health
 jz broccoliq backfill    # replay events + tasks
 jz broccoliq backfill --max 1000
 jz broccoliq flush       # force dbPool flush
+jz broccoliq audit 50    # read last N hive_audit rows (joy.*)
+jz broccoliq tasks 20    # read hive_tasks mirror
+jz broccoliq tasks --task <guid>
 ```
+
+## Read API (hive queries)
+
+Proxied through the control plane (requires healthy joy-bridge):
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/broccoliq/audit?limit=100&typePrefix=joy.` | Mirrored timeline from `hive_audit` |
+| `GET /api/broccoliq/tasks?limit=100` | Kanban task mirror in `hive_tasks` |
+| `GET /api/health` | Includes `broccoliq` summary when enabled |
+
+Bridge worker direct (localhost only):
+
+- `GET /v1/hive/audit`
+- `GET /v1/hive/tasks`
 
 ## Manual bridge (debug)
 

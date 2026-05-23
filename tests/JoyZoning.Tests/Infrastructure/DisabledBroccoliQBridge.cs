@@ -35,4 +35,16 @@ internal sealed class DisabledBroccoliQBridge : IBroccoliQBridge
         int priority = 0,
         CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
+
+    public Task<BroccoliQHiveAuditPage> QueryHiveAuditAsync(
+        int limit = 100,
+        string typePrefix = "joy.",
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(new BroccoliQHiveAuditPage(0, Array.Empty<BroccoliQHiveAuditRow>()));
+
+    public Task<BroccoliQHiveTaskPage> QueryHiveTasksAsync(
+        int limit = 100,
+        Guid? taskId = null,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(new BroccoliQHiveTaskPage(0, Array.Empty<BroccoliQHiveTaskRow>()));
 }

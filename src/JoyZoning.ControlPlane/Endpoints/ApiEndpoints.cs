@@ -16,7 +16,32 @@ public static class ApiEndpoints
 {
     public static void MapJoyZoningApi(this WebApplication app)
     {
-        app.MapGet("/api/health", () => Results.Ok(new { status = "ok", service = "joyzoning-control-plane" }));
+        app.MapGet("/api/health", async (
+            IBroccoliQBridge bridge,
+            BroccoliQRuntimeMetrics metrics) =>
+        {
+            object? broccoliq = null;
+            if (bridge.IsEnabled)
+            {
+                var report = await bridge.GetHealthAsync();
+                var mirror = metrics.Snapshot();
+                broccoliq = new
+                {
+                    status = report.State == HealthState.Healthy ? "ok" : "unavailable",
+                    enabled = true,
+                    bridgeReady = report.State == HealthState.Healthy,
+                    queueDepth = mirror.QueueDepth,
+                    dropped = mirror.Dropped,
+                };
+            }
+
+            return Results.Ok(new
+            {
+                status = "ok",
+                service = "joyzoning-control-plane",
+                broccoliq,
+            });
+        });
 
         app.MapGet("/api/broccoliq/health", async (
             IBroccoliQBridge bridge,
@@ -59,6 +84,26 @@ public static class ApiEndpoints
         {
             await bridge.FlushBridgeAsync();
             return Results.Ok(new { flushed = true });
+        });
+
+        app.MapGet("/api/broccoliq/audit", async (
+            IBroccoliQBridge bridge,
+            int? limit,
+            string? typePrefix) =>
+        {
+            var page = await bridge.QueryHiveAuditAsync(
+                limit ?? 100,
+                typePrefix ?? "joy.");
+            return Results.Ok(page);
+        });
+
+        app.MapGet("/api/broccoliq/tasks", async (
+            IBroccoliQBridge bridge,
+            int? limit,
+            Guid? taskId) =>
+        {
+            var page = await bridge.QueryHiveTasksAsync(limit ?? 100, taskId);
+            return Results.Ok(page);
         });
 
         app.MapGet("/api/sessions", async (IOperatorSessionRepository repo) =>
