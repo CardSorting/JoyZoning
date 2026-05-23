@@ -4,7 +4,15 @@ namespace JoyZoning.ControlPlane.Services;
 
 internal static class LeaseApiResults
 {
-    public static IResult FromException(Exception ex) =>
+    public static IResult FromException(Exception ex)
+    {
+        if (ex is ArgumentException { InnerException: LeaseOrchestrationException inner })
+            return FromException(inner);
+
+        return Map(ex);
+    }
+
+    private static IResult Map(Exception ex) =>
         ex switch
         {
             LeaseOrchestrationException lease => Results.Json(

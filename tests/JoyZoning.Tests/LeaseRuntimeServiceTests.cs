@@ -6,6 +6,7 @@ using JoyZoning.ControlPlane.Hubs;
 using JoyZoning.ControlPlane.Services;
 using JoyZoning.Persistence;
 using JoyZoning.Persistence.Repositories;
+using JoyZoning.Tests.Infrastructure;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,7 @@ using Xunit;
 
 namespace JoyZoning.Tests;
 
+[Trait(TestCategories.Key, TestCategories.Unit)]
 public class LeaseRuntimeServiceTests : IDisposable
 {
     private readonly SqliteConnection _connection;
@@ -27,6 +29,7 @@ public class LeaseRuntimeServiceTests : IDisposable
         _connection.Open();
 
         var services = new ServiceCollection();
+        services.AddUnitTestHost();
         services.AddDbContext<JoyZoningDbContext>(o => o.UseSqlite(_connection));
         services.AddScoped<IWorkTaskRepository, WorkTaskRepository>();
         services.AddScoped<IOperatorSessionRepository, OperatorSessionRepository>();

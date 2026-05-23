@@ -53,17 +53,33 @@ public static class WorktreePlanner
         }
 
         branchName = $"joyzoning/card-{shortId}";
-        var worktreesRoot = Path.GetFullPath(Path.Combine(workspaceFull, ".joyzoning", "worktrees"));
-        worktreePath = Path.GetFullPath(Path.Combine(worktreesRoot, shortId));
+        var worktreesRoot = NormalizeComparablePath(
+            Path.GetFullPath(Path.Combine(workspaceFull, ".joyzoning", "worktrees")));
+        worktreePath = NormalizeComparablePath(
+            Path.GetFullPath(Path.Combine(worktreesRoot, shortId)));
 
-        if (!worktreePath.StartsWith(worktreesRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-            && !worktreePath.Equals(worktreesRoot, StringComparison.Ordinal))
+        if (!worktreePath.StartsWith(worktreesRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            && !worktreePath.Equals(worktreesRoot, StringComparison.OrdinalIgnoreCase))
         {
             error = "Worktree path would escape the workspace sandbox.";
             return false;
         }
 
         return true;
+    }
+
+    /// <summary>macOS resolves /var and /tmp through /private; align before sandbox checks.</summary>
+    private static string NormalizeComparablePath(string fullPath)
+    {
+        var trimmed = fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (!OperatingSystem.IsMacOS())
+            return trimmed;
+
+        if (trimmed.StartsWith("/private/var/", StringComparison.Ordinal))
+            return "/var/" + trimmed["/private/var/".Length..];
+        if (trimmed.StartsWith("/private/tmp/", StringComparison.Ordinal))
+            return "/tmp/" + trimmed["/private/tmp/".Length..];
+        return trimmed;
     }
 
     public static (string WorktreePath, string BranchName) Plan(string workspaceRoot, Guid cardId)

@@ -5,7 +5,13 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <RootNamespace>JoyZoning.Tests</RootNamespace>
+    <!-- Bare `dotnet test` on this project runs unit tier only; use scripts/run-tests.sh for more. -->
+    <VSTestTestCaseFilter Condition="'$(VSTestTestCaseFilter)' == ''">Category=Unit</VSTestTestCaseFilter>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\xunit.runner.json" Link="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />

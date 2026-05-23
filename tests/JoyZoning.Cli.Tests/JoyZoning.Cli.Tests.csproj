@@ -1,8 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <RootNamespace>JoyZoning.Cli.Tests</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\xunit.runner.json" Link="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\JoyZoning.Cli\JoyZoning.Cli.csproj" />
   </ItemGroup>

@@ -6,6 +6,7 @@ using JoyZoning.Domain.Events;
 using JoyZoning.Domain.Mapping;
 using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Orchestration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using JoyZoning.Agents;
 using JoyZoning.Agents.Hermes;
@@ -27,6 +28,11 @@ public class OrchestrationService
     private readonly KanbanSyncService _kanbanSync;
     private readonly KanbanSyncState _kanbanSyncState;
     private readonly KanbanExecutionOrchestrator _executionOrchestrator;
+    private readonly HermesConnectivityService _hermesConnectivity;
+    private readonly HermesRunEventConsumer _runConsumer;
+    private readonly ConfigService _config;
+    private readonly IHostEnvironment _environment;
+    private readonly ILogger<OrchestrationService> _logger;
     private readonly string _controlPlaneUrl;
 
     public OrchestrationService(
@@ -39,6 +45,11 @@ public class OrchestrationService
         KanbanSyncService kanbanSync,
         KanbanSyncState kanbanSyncState,
         KanbanExecutionOrchestrator executionOrchestrator,
+        HermesConnectivityService hermesConnectivity,
+        HermesRunEventConsumer runConsumer,
+        ConfigService config,
+        IHostEnvironment environment,
+        ILogger<OrchestrationService> logger,
         IOptions<ControlPlaneOptions> controlPlaneOptions)
     {
         _sessions = sessions;
@@ -50,7 +61,49 @@ public class OrchestrationService
         _kanbanSync = kanbanSync;
         _kanbanSyncState = kanbanSyncState;
         _executionOrchestrator = executionOrchestrator;
+        _hermesConnectivity = hermesConnectivity;
+        _runConsumer = runConsumer;
+        _config = config;
+        _environment = environment;
+        _logger = logger;
         _controlPlaneUrl = controlPlaneOptions.Value.ListenUrl;
+    }
+
+    private async Task<T> DispatchStepAsync<T>(
+        string step,
+        Func<Task<T>> action,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await action();
+        }
+        catch (LeaseOrchestrationException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new ArgumentException($"Dispatch step '{step}' failed: {ex.Message}", ex);
+        }
+    }
+
+    private async Task BroadcastSafeAsync(
+        string method,
+        object? payload,
+        CancellationToken cancellationToken)
+    {
+        if (_environment.IsEnvironment("Testing"))
+            return;
+
+        try
+        {
+            await _hub.Clients.All.SendAsync(method, payload, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "SignalR {Method} broadcast skipped", method);
+        }
     }
 
     public async Task<OperatorSession> CreateSessionAsync(
@@ -60,12 +113,14 @@ public class OrchestrationService
         CancellationToken cancellationToken = default)
     {
         var now = DateTimeOffset.UtcNow;
+        var sessionId = Guid.NewGuid();
         var session = new OperatorSession
         {
-            Id = Guid.NewGuid(),
+            Id = sessionId,
             Name = name,
             WorkspaceRoot = workspaceRoot,
             HermesProfile = hermesProfile,
+            HermesSessionId = sessionId.ToString(),
             Status = SessionStatus.Idle,
             CreatedAt = now,
             UpdatedAt = now,
@@ -114,7 +169,7 @@ public class OrchestrationService
 
         await _events.IngestAsync(task.Id, EventSource.JoyZoning, EventTypes.TaskCreated,
             new { task.Id, task.Title, task.Status }, cancellationToken);
-        await _hub.Clients.All.SendAsync("OnTaskChanged", TaskDto.From(task), cancellationToken);
+        await BroadcastSafeAsync("OnTaskChanged", TaskDto.From(task), cancellationToken);
         return task;
     }
 
@@ -133,7 +188,7 @@ public class OrchestrationService
 
         await _events.IngestAsync(taskId, EventSource.JoyZoning, EventTypes.TaskStatusChanged,
             new { taskId, status }, cancellationToken);
-        await _hub.Clients.All.SendAsync("OnTaskChanged", TaskDto.From(task), cancellationToken);
+        await BroadcastSafeAsync("OnTaskChanged", TaskDto.From(task), cancellationToken);
         return task;
     }
 
@@ -150,6 +205,27 @@ public class OrchestrationService
 
     public async Task MarkExecutionCancelledAsync(Guid executionId, CancellationToken cancellationToken = default)
     {
+        var execution = await _executions.GetByIdAsync(executionId, cancellationToken);
+        if (execution is null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(execution.HermesRunId))
+        {
+            _runConsumer.StopTracking(execution.HermesRunId);
+            var task = await _tasks.GetByIdAsync(execution.WorkTaskId, cancellationToken);
+            if (task is not null)
+            {
+                try
+                {
+                    await _agents.Get(task.AssignedAgent).StopRunAsync(execution.HermesRunId, cancellationToken);
+                }
+                catch
+                {
+                    // Best-effort stop — phase still moves to Cancelled.
+                }
+            }
+        }
+
         await _executions.UpdatePhaseAsync(executionId, ExecutionPhase.Cancelled, cancellationToken);
     }
 
@@ -165,21 +241,52 @@ public class OrchestrationService
             ?? throw new InvalidOperationException("Operator session not found");
 
         var op = new LeaseOperationContext(session.Id, StatusChangeActor.System);
-        var (_, handoff) = await _executionOrchestrator.BeginLeaseAsync(
-            taskId, humanApprovedCritical, op, cancellationToken);
+        var (_, handoff) = await DispatchStepAsync(
+            "BeginLease",
+            () => _executionOrchestrator.BeginLeaseAsync(taskId, humanApprovedCritical, op, cancellationToken),
+            cancellationToken);
 
-        await _executionOrchestrator.RecordDispatchAttemptAsync(taskId, op, cancellationToken);
+        await DispatchStepAsync(
+            "RecordDispatchAttempt",
+            () => _executionOrchestrator.RecordDispatchAttemptAsync(taskId, op, cancellationToken),
+            cancellationToken);
+
+        await DispatchStepAsync(
+            "ApplyHermesProfile",
+            async () =>
+            {
+                await _config.ApplyForOperatorSessionAsync(session, cancellationToken);
+                return (object?)null;
+            },
+            cancellationToken);
+
+        await DispatchStepAsync(
+            "EnsureHermesReady",
+            async () =>
+            {
+                await _hermesConnectivity.EnsureReadyForAgentCallsAsync(cancellationToken);
+                return (object?)null;
+            },
+            cancellationToken);
 
         string runId;
         try
         {
-            var adapter = _agents.Get(task.AssignedAgent);
-            runId = await adapter.StartRunAsync(new AgentRunRequest
-            {
-                Prompt = HandoffPacketBuilder.ToExecutorPrompt(handoff),
-                SessionId = session.HermesSessionId,
-                WorkspaceRoot = handoff.WorktreePath,
-            }, cancellationToken);
+            runId = await DispatchStepAsync(
+                "StartAgentRun",
+                async () =>
+                {
+                    var adapter = _agents.Get(task.AssignedAgent);
+                    var started = await adapter.StartRunDetailedAsync(new AgentRunRequest
+                    {
+                        Prompt = HandoffPacketBuilder.ToExecutorPrompt(handoff),
+                        SessionId = ResolveHermesSessionId(session),
+                        WorkspaceRoot = handoff.WorktreePath,
+                    }, cancellationToken);
+                    await PersistHermesSessionIdAsync(session, started.SessionId, cancellationToken);
+                    return started.RunId;
+                },
+                cancellationToken);
         }
         catch (Exception ex)
         {
@@ -192,9 +299,24 @@ public class OrchestrationService
                 $"Dispatch failed after lease creation: {ex.Message}");
         }
 
-        await _tasks.UpdateDispatchAsync(taskId, runId, WorkTaskStatus.InProgress, cancellationToken);
+        await DispatchStepAsync(
+            "UpdateDispatch",
+            async () =>
+            {
+                await _tasks.UpdateDispatchAsync(taskId, runId, WorkTaskStatus.InProgress, cancellationToken);
+                return (object?)null;
+            },
+            cancellationToken);
+
         task = await _tasks.GetByIdAsync(taskId, cancellationToken) ?? task;
-        await _kanbanSync.SyncUpdateStatusAsync(task, cancellationToken);
+        await DispatchStepAsync(
+            "KanbanSync",
+            async () =>
+            {
+                await _kanbanSync.SyncUpdateStatusAsync(task, cancellationToken);
+                return (object?)null;
+            },
+            cancellationToken);
 
         var execution = new ExecutionSession
         {
@@ -206,8 +328,20 @@ public class OrchestrationService
             StartedAt = DateTimeOffset.UtcNow,
         };
 
-        await _executions.CreateAsync(execution, cancellationToken);
-        var runningLease = await _executionOrchestrator.MarkLeaseRunningAsync(taskId, execution.Id, cancellationToken);
+        await DispatchStepAsync(
+            "CreateExecution",
+            async () =>
+            {
+                await _executions.CreateAsync(execution, cancellationToken);
+                return (object?)null;
+            },
+            cancellationToken);
+
+        var runningLease = await DispatchStepAsync(
+            "MarkLeaseRunning",
+            () => _executionOrchestrator.MarkLeaseRunningAsync(taskId, execution.Id, cancellationToken),
+            cancellationToken);
+
         try
         {
             JoyZoningRuntimeContext.Write(runningLease, _controlPlaneUrl);
@@ -217,11 +351,17 @@ public class OrchestrationService
             // Worktree may be on a volume the server cannot write; CLI agent start can refresh.
         }
 
-        await _events.IngestAsync(taskId, EventSource.DietCode, EventTypes.DietCodeExecutionStarted,
-            new { execution.Id, runId, task.Title }, cancellationToken);
+        await DispatchStepAsync(
+            "IngestExecutionStarted",
+            async () =>
+            {
+                await _events.IngestAsync(taskId, EventSource.DietCode, EventTypes.DietCodeExecutionStarted,
+                    new { execution.Id, runId, task.Title }, cancellationToken);
+                return (object?)null;
+            },
+            cancellationToken);
 
-        await _hub.Clients.All.SendAsync("OnExecutionUpdated",
-            ExecutionDto.From(execution), cancellationToken);
+        await BroadcastSafeAsync("OnExecutionUpdated", ExecutionDto.From(execution), cancellationToken);
 
         return execution;
     }
@@ -238,19 +378,24 @@ public class OrchestrationService
         session.UpdatedAt = DateTimeOffset.UtcNow;
         await _sessions.UpdateAsync(session, cancellationToken);
 
+        await _config.ApplyForOperatorSessionAsync(session, cancellationToken);
+        await _hermesConnectivity.EnsureReadyForAgentCallsAsync(cancellationToken);
+
         var hermes = _agents.Get(AgentKind.Hermes);
         var preamble =
             "You are Hermes, the project lead and orchestration coordinator. " +
             "Decompose goals into tasks, manage kanban flow, and coordinate DietCode execution. " +
             "Do not write code directly.\n\n";
 
-        var runId = await hermes.StartRunAsync(new AgentRunRequest
+        var started = await hermes.StartRunDetailedAsync(new AgentRunRequest
         {
             Prompt = preamble + message,
-            SessionId = session.HermesSessionId,
+            SessionId = ResolveHermesSessionId(session),
             WorkspaceRoot = session.WorkspaceRoot,
             Role = AgentRole.Manager,
         }, cancellationToken);
+        await PersistHermesSessionIdAsync(session, started.SessionId, cancellationToken);
+        var runId = started.RunId;
 
         await _events.IngestAsync(sessionId, EventSource.Hermes, EventTypes.HermesRunStarted,
             new { runId, message }, cancellationToken);
@@ -273,26 +418,38 @@ public class OrchestrationService
         var pull = await PullKanbanFromHermesAsync(session, cancellationToken);
         var push = await PushLocalKanbanToHermesAsync(session, cancellationToken);
 
-        var message = pull.RemoteCount == 0
-            ? $"Pushed {push.Linked} new + {push.StatusPushed} status(es) to Hermes (pull skipped — no board data)."
-            : $"Pull: +{pull.Imported} / ~{pull.Updated} (skipped {pull.Skipped}). Push: {push.Linked} linked, {push.StatusPushed} status(es).";
+        var message = pull.AuthFailure
+            ? $"Kanban pull failed (auth): {pull.Detail}. Push: {push.Linked} linked, {push.StatusPushed} status(es). Reconnect dashboard token."
+            : pull.RemoteCount == 0
+                ? $"Pushed {push.Linked} new + {push.StatusPushed} status(es) to Hermes (pull — empty board or no token)."
+                : $"Pull: +{pull.Imported} / ~{pull.Updated} (skipped {pull.Skipped}). Push: {push.Linked} linked, {push.StatusPushed} status(es).";
 
         await _events.IngestAsync(sessionId, EventSource.JoyZoning, EventTypes.KanbanSynced,
-            new { pull.Imported, pull.Updated, push.Linked, push.StatusPushed }, cancellationToken);
+            new { pull.Imported, pull.Updated, push.Linked, push.StatusPushed, pull.Outcome }, cancellationToken);
 
         _kanbanSyncState.LastSyncAt = DateTimeOffset.UtcNow;
         _kanbanSyncState.LastMessage = message;
+        _kanbanSyncState.LastOutcome = pull.Outcome;
+        if (pull.AuthFailure)
+            _kanbanSyncState.LastAuthFailureAt = DateTimeOffset.UtcNow;
 
         return new KanbanImportResult(pull.Imported, pull.Updated, pull.Skipped, push.Linked + push.StatusPushed, message);
     }
 
-    private async Task<(int Imported, int Updated, int Skipped, int RemoteCount)> PullKanbanFromHermesAsync(
+    private async Task<(int Imported, int Updated, int Skipped, int RemoteCount, bool AuthFailure, KanbanSyncOutcome Outcome, string? Detail)> PullKanbanFromHermesAsync(
         OperatorSession session,
         CancellationToken cancellationToken)
     {
-        var remote = await _kanbanSync.FetchBoardTasksAsync(cancellationToken);
+        var fetch = await _kanbanSync.FetchBoardTasksAsync(cancellationToken);
+        if (fetch.IsAuthFailure)
+            return (0, 0, 0, 0, true, fetch.Outcome, fetch.Detail);
+
+        if (fetch.Outcome != KanbanSyncOutcome.Success)
+            return (0, 0, 0, 0, false, fetch.Outcome, fetch.Detail);
+
+        var remote = fetch.Tasks;
         if (remote.Count == 0)
-            return (0, 0, 0, 0);
+            return (0, 0, 0, 0, false, KanbanSyncOutcome.Success, null);
 
         var sessionId = session.Id;
         var workspaceNorm = Path.GetFullPath(session.WorkspaceRoot).TrimEnd(Path.DirectorySeparatorChar);
@@ -349,7 +506,7 @@ public class OrchestrationService
                     task.CompletedAt = now;
 
                 await _tasks.CreateAsync(task, cancellationToken);
-                await _hub.Clients.All.SendAsync("OnTaskChanged", TaskDto.From(task), cancellationToken);
+                await BroadcastSafeAsync("OnTaskChanged", TaskDto.From(task), cancellationToken);
                 imported++;
             }
             else
@@ -367,12 +524,12 @@ public class OrchestrationService
 
                 existing.UpdatedAt = DateTimeOffset.UtcNow;
                 await _tasks.UpdateAsync(existing, cancellationToken);
-                await _hub.Clients.All.SendAsync("OnTaskChanged", TaskDto.From(existing), cancellationToken);
+                await BroadcastSafeAsync("OnTaskChanged", TaskDto.From(existing), cancellationToken);
                 updated++;
             }
         }
 
-        return (imported, updated, skipped, remote.Count);
+        return (imported, updated, skipped, remote.Count, false, KanbanSyncOutcome.Success, null);
     }
 
     private async Task<(int Linked, int StatusPushed)> PushLocalKanbanToHermesAsync(
@@ -403,6 +560,25 @@ public class OrchestrationService
         }
 
         return (linked, statusPushed);
+    }
+
+    private static string ResolveHermesSessionId(OperatorSession session) =>
+        string.IsNullOrWhiteSpace(session.HermesSessionId)
+            ? session.Id.ToString()
+            : session.HermesSessionId;
+
+    private async Task PersistHermesSessionIdAsync(
+        OperatorSession session,
+        string? returnedSessionId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(returnedSessionId)
+            || string.Equals(returnedSessionId, session.HermesSessionId, StringComparison.Ordinal))
+            return;
+
+        session.HermesSessionId = returnedSessionId;
+        session.UpdatedAt = DateTimeOffset.UtcNow;
+        await _sessions.UpdateAsync(session, cancellationToken);
     }
 }
 

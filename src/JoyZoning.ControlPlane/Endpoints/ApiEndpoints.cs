@@ -466,7 +466,7 @@ public static class ApiEndpoints
             {
                 state = report.State.ToString(),
                 message = report.Message,
-                apiUrl = runtime.ApiBaseUrl,
+                apiUrl = runtime.GetSnapshot().ApiBaseUrl,
             });
         });
 
@@ -526,6 +526,16 @@ public static class ApiEndpoints
             });
         });
 
+        app.MapGet("/api/hermes/connector-status", async (HermesConnectorDiagnostics diagnostics) =>
+        {
+            var report = await diagnostics.EvaluateAsync();
+            return Results.Ok(new
+            {
+                overall = report.Overall.ToString(),
+                checks = report.Checks.Select(c => new { id = c.Id, state = c.State.ToString(), detail = c.Detail }),
+            });
+        });
+
         app.MapGet("/api/config", async (ConfigService config) =>
             Results.Ok(await config.GetSettingsAsync()));
 
@@ -540,6 +550,8 @@ public static class ApiEndpoints
             {
                 lastSyncAt = state.LastSyncAt,
                 message = state.LastMessage,
+                outcome = state.LastOutcome?.ToString(),
+                lastAuthFailureAt = state.LastAuthFailureAt,
             }));
 
         app.MapGet("/api/executions/interrupted", async (IExecutionRepository repo) =>
@@ -561,10 +573,14 @@ public static class ApiEndpoints
 
         app.MapPost("/api/executions/{id:guid}/cancel", async (
             Guid id,
-            OrchestrationService orch) =>
+            OrchestrationService orch,
+            IExecutionRepository executions) =>
         {
+            var execution = await executions.GetByIdAsync(id);
+            if (execution is null)
+                return Results.NotFound();
             await orch.MarkExecutionCancelledAsync(id);
-            return Results.Ok();
+            return Results.Ok(execution);
         });
     }
 }

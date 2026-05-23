@@ -10,8 +10,12 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         string databasePath)
     {
+        var connectionString = databasePath.Contains(';', StringComparison.Ordinal)
+            ? databasePath
+            : $"Data Source={databasePath};Default Timeout=30;Pooling=True";
+
         services.AddDbContext<JoyZoningDbContext>(options =>
-            options.UseSqlite($"Data Source={databasePath}"));
+            options.UseSqlite(connectionString));
 
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IOperatorSessionRepository, OperatorSessionRepository>();

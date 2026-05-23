@@ -3,6 +3,7 @@ using JoyZoning.Domain.Entities;
 using JoyZoning.Domain.Enums;
 using JoyZoning.Domain.Events;
 using JoyZoning.Persistence.Repositories;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
 using JoyZoning.ControlPlane.Hubs;
 
@@ -12,11 +13,19 @@ public class EventIngestor
 {
     private readonly IEventRepository _events;
     private readonly IHubContext<OperatorHub> _hub;
+    private readonly IHostEnvironment _environment;
+    private readonly ILogger<EventIngestor> _logger;
 
-    public EventIngestor(IEventRepository events, IHubContext<OperatorHub> hub)
+    public EventIngestor(
+        IEventRepository events,
+        IHubContext<OperatorHub> hub,
+        IHostEnvironment environment,
+        ILogger<EventIngestor> logger)
     {
         _events = events;
         _hub = hub;
+        _environment = environment;
+        _logger = logger;
     }
 
     public async Task<JoyEvent> IngestAsync(
@@ -29,10 +38,20 @@ public class EventIngestor
         var json = payload is null ? "{}" : JsonSerializer.Serialize(payload);
         var evt = await _events.AppendAsync(correlationId, source, type, json, cancellationToken);
 
-        await _hub.Clients.All.SendAsync(
-            "OnJoyEvent",
-            new JoyEventDto(evt.Id, evt.CorrelationId, evt.Source.ToString(), evt.Type, evt.PayloadJson, evt.OccurredAt),
-            cancellationToken);
+        if (!_environment.IsEnvironment("Testing"))
+        {
+            try
+            {
+                await _hub.Clients.All.SendAsync(
+                    "OnJoyEvent",
+                    new JoyEventDto(evt.Id, evt.CorrelationId, evt.Source.ToString(), evt.Type, evt.PayloadJson, evt.OccurredAt),
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "SignalR OnJoyEvent broadcast skipped");
+            }
+        }
 
         return evt;
     }

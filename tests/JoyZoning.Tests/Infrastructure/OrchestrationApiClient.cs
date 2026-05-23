@@ -22,8 +22,13 @@ internal sealed class OrchestrationApiClient
     public Task<HttpResponseMessage> GetLeaseAsync(Guid taskId) =>
         _http.GetAsync($"api/tasks/{taskId}/lease");
 
-    public Task<HttpResponseMessage> DispatchAsync(Guid taskId, bool humanApprovedCritical = false) =>
-        PostJsonAsync($"api/tasks/{taskId}/dispatch", new { humanApprovedCritical });
+    public Task<HttpResponseMessage> DispatchAsync(Guid taskId, bool humanApprovedCritical = false)
+    {
+        if (!humanApprovedCritical)
+            return _http.PostAsync($"api/tasks/{taskId}/dispatch", null);
+
+        return PostJsonAsync($"api/tasks/{taskId}/dispatch", new { humanApprovedCritical = true });
+    }
 
     public Task<HttpResponseMessage> AgentStatusAsync(
         Guid taskId,

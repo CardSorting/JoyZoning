@@ -23,15 +23,23 @@ public class LeaseReconciliationHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+        await ReconcileOnceAsync(stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var runtime = scope.ServiceProvider.GetRequiredService<LeaseRuntimeService>();
-                var report = await runtime.ReconcileAsync(stoppingToken);
+            var interval = Math.Max(15, _options.Value.ReconciliationIntervalSeconds);
+            await Task.Delay(TimeSpan.FromSeconds(interval), stoppingToken);
+            await ReconcileOnceAsync(stoppingToken);
+        }
+    }
+
+    private async Task ReconcileOnceAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var runtime = scope.ServiceProvider.GetRequiredService<LeaseRuntimeService>();
+            var report = await runtime.ReconcileAsync(stoppingToken);
                 if (report.StaleExpired + report.MissingWorktree + report.OrphanedRunning
                     + report.MergedTaskActiveLease + report.InvalidReadyForReview > 0)
                 {
@@ -43,14 +51,10 @@ public class LeaseReconciliationHostedService : BackgroundService
                         report.MergedTaskActiveLease,
                         report.InvalidReadyForReview);
                 }
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                _logger.LogDebug(ex, "Lease reconciliation tick failed");
-            }
-
-            var interval = Math.Max(15, _options.Value.ReconciliationIntervalSeconds);
-            await Task.Delay(TimeSpan.FromSeconds(interval), stoppingToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogDebug(ex, "Lease reconciliation tick failed");
         }
     }
 }

@@ -13,11 +13,13 @@ public class ApprovalRepository : IApprovalRepository
     public Task<ApprovalRequest?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         _db.ApprovalRequests.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 
-    public async Task<IReadOnlyList<ApprovalRequest>> ListPendingAsync(CancellationToken cancellationToken = default) =>
-        await _db.ApprovalRequests.AsNoTracking()
+    public async Task<IReadOnlyList<ApprovalRequest>> ListPendingAsync(CancellationToken cancellationToken = default)
+    {
+        var rows = await _db.ApprovalRequests.AsNoTracking()
             .Where(a => a.Status == ApprovalStatus.Pending)
-            .OrderBy(a => a.RequestedAt)
             .ToListAsync(cancellationToken);
+        return rows.OrderBy(a => a.RequestedAt).ToList();
+    }
 
     public async Task<ApprovalRequest> CreateAsync(ApprovalRequest request, CancellationToken cancellationToken = default)
     {

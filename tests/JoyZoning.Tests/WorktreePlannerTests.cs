@@ -3,6 +3,7 @@ using Xunit;
 
 namespace JoyZoning.Tests;
 
+[Trait(TestCategories.Key, TestCategories.Unit)]
 public class WorktreePlannerTests
 {
     [Fact]
@@ -15,6 +16,19 @@ public class WorktreePlannerTests
         Assert.StartsWith("joyzoning/card-", branch);
         Assert.Contains(".joyzoning", wt);
         Assert.Contains("worktrees", wt);
+    }
+
+    [Fact]
+    public void Sandbox_check_tolerates_macos_private_var_alias()
+    {
+        if (!OperatingSystem.IsMacOS())
+            return;
+
+        var root = Path.Combine(Path.GetTempPath(), "jz-wt-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var privateRoot = "/private" + root;
+
+        Assert.True(WorktreePlanner.TryPlan(privateRoot, Guid.NewGuid(), out _, out _, out var error), error);
     }
 
     [Fact]

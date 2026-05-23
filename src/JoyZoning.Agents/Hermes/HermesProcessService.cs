@@ -1,80 +1,129 @@
 using System.Diagnostics;
-using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Enums;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace JoyZoning.Agents.Hermes;
 
-public class HermesProcessService
+public class HermesProcessService : IDisposable
 {
     private readonly HermesRuntimeSettings _settings;
     private readonly HermesHttpClient _client;
     private readonly ILogger<HermesProcessService> _logger;
+    private readonly object _processLock = new();
     private Process? _gatewayProcess;
 
     public HermesProcessService(
         HermesRuntimeSettings settings,
         HermesHttpClient client,
-        ILogger<HermesProcessService> logger)
+        ILogger<HermesProcessService> logger,
+        IHostApplicationLifetime? lifetime = null)
     {
         _settings = settings;
         _client = client;
         _logger = logger;
+        lifetime?.ApplicationStopping.Register(StopGatewayProcess);
     }
 
-    public async Task EnsureGatewayRunningAsync(CancellationToken cancellationToken = default)
-    {
-        var health = await _client.GetHealthAsync(cancellationToken);
-        if (health.State == HealthState.Healthy)
-            return;
+    public void Dispose() => StopGatewayProcess();
 
-        if (!_settings.AutoStartGateway)
+    private void StopGatewayProcess()
+    {
+        lock (_processLock)
+        {
+            if (_gatewayProcess is not { HasExited: false })
+                return;
+            try
+            {
+                _gatewayProcess.Kill(entireProcessTree: true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to stop Hermes gateway process on shutdown");
+            }
+            finally
+            {
+                _gatewayProcess.Dispose();
+                _gatewayProcess = null;
+            }
+        }
+    }
+
+    public async Task<bool> EnsureGatewayRunningAsync(CancellationToken cancellationToken = default)
+    {
+        if ((await _client.GetHealthAsync(cancellationToken)).State == HealthState.Healthy)
+            return true;
+
+        var snapshot = _settings.GetSnapshot();
+        if (!snapshot.AutoStartGateway)
         {
             _logger.LogWarning("Hermes gateway not reachable and AutoStartGateway is disabled");
-            return;
+            return false;
         }
 
         await StartGatewayAsync(cancellationToken);
-        await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
-
-        health = await _client.GetHealthAsync(cancellationToken);
-        if (health.State != HealthState.Healthy)
-            _logger.LogWarning("Hermes gateway may not be ready: {Message}", health.Message);
+        return await WaitForHealthyAsync(maxWait: TimeSpan.FromSeconds(45), cancellationToken);
     }
 
     public Task StartGatewayAsync(CancellationToken cancellationToken = default)
     {
-        if (_gatewayProcess is { HasExited: false })
-            return Task.CompletedTask;
-
-        var hermesCmd = HermesCliLocator.FindHermesExecutable(_settings.InstallRoot);
-        if (hermesCmd is null)
+        lock (_processLock)
         {
-            _logger.LogWarning("Could not find hermes executable in PATH or install root");
-            return Task.CompletedTask;
+            if (_gatewayProcess is { HasExited: false })
+                return Task.CompletedTask;
+
+            if (_gatewayProcess is { HasExited: true })
+            {
+                try { _gatewayProcess.Dispose(); } catch { /* ignore */ }
+                _gatewayProcess = null;
+            }
+
+            var snapshot = _settings.GetSnapshot();
+            var hermesCmd = HermesCliLocator.FindHermesExecutable(snapshot.InstallRoot);
+            if (hermesCmd is null)
+            {
+                _logger.LogWarning("Could not find hermes executable in PATH or install root {Root}", snapshot.InstallRoot);
+                return Task.CompletedTask;
+            }
+
+            var args = string.IsNullOrEmpty(snapshot.Profile)
+                ? "gateway"
+                : $"-p {snapshot.Profile} gateway";
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = hermesCmd,
+                Arguments = args,
+                WorkingDirectory = snapshot.InstallRoot,
+            };
+            psi.Environment["API_SERVER_ENABLED"] = "1";
+
+            _gatewayProcess = HermesChildProcessHost.Start(psi, _logger, "hermes-gateway");
+            if (_gatewayProcess is null)
+            {
+                _logger.LogWarning("Failed to start Hermes gateway process");
+                return Task.CompletedTask;
+            }
+
+            _logger.LogInformation("Started Hermes gateway: {File} {Args}", hermesCmd, args);
         }
 
-        var args = string.IsNullOrEmpty(_settings.Profile)
-            ? "gateway"
-            : $"-p {_settings.Profile} gateway";
-
-        var psi = new ProcessStartInfo
-        {
-            FileName = hermesCmd,
-            Arguments = args,
-            WorkingDirectory = _settings.InstallRoot,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-
-        psi.Environment["API_SERVER_ENABLED"] = "1";
-
-        _gatewayProcess = Process.Start(psi);
-        _logger.LogInformation("Started Hermes gateway: {File} {Args}", hermesCmd, args);
         return Task.CompletedTask;
     }
 
+    private async Task<bool> WaitForHealthyAsync(TimeSpan maxWait, CancellationToken cancellationToken)
+    {
+        var deadline = DateTimeOffset.UtcNow + maxWait;
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if ((await _client.GetHealthAsync(cancellationToken)).State == HealthState.Healthy)
+                return true;
+            await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+        }
+
+        var health = await _client.GetHealthAsync(cancellationToken);
+        _logger.LogWarning("Hermes gateway not ready after {Seconds}s: {Message}", maxWait.TotalSeconds, health.Message);
+        return health.State == HealthState.Healthy;
+    }
 }

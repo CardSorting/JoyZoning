@@ -51,7 +51,17 @@ public class ApprovalService
             await _grants.HasActiveGrantAsync(workTaskId.Value, category, cancellationToken))
         {
             var agentAdapter = _agents.Get(agent);
-            await agentAdapter.ResolveApprovalAsync(runId, new ApprovalResolution(ApprovalScope.Once), cancellationToken);
+            try
+            {
+                await agentAdapter.ResolveApprovalAsync(
+                    runId, new ApprovalResolution(ApprovalScope.Once), cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"Auto-approve failed for run {runId}: {ex.Message}", ex);
+            }
+
             await _events.IngestAsync(
                 workTaskId.Value,
                 EventSource.JoyZoning,
@@ -102,6 +112,25 @@ public class ApprovalService
             ?? throw new InvalidOperationException($"Approval {approvalId} not found");
 
         var status = scope == ApprovalScope.Deny ? ApprovalStatus.Denied : ApprovalStatus.Approved;
+
+        if (!string.IsNullOrEmpty(request.HermesRunId))
+        {
+            var agent = _agents.Get(request.RequestingAgent);
+            var hermesScope = scope == ApprovalScope.Task ? ApprovalScope.Once : scope;
+            try
+            {
+                await agent.ResolveApprovalAsync(
+                    request.HermesRunId,
+                    new ApprovalResolution(hermesScope),
+                    cancellationToken);
+            }
+            catch (Exception ex) when (status == ApprovalStatus.Approved)
+            {
+                throw new InvalidOperationException(
+                    $"Hermes rejected approval resolution for run {request.HermesRunId}: {ex.Message}", ex);
+            }
+        }
+
         await _approvals.ResolveAsync(approvalId, status, scope, cancellationToken);
 
         if (status == ApprovalStatus.Approved &&
@@ -116,16 +145,6 @@ public class ApprovalService
                 Scope = ApprovalScope.Task,
                 GrantedAt = DateTimeOffset.UtcNow,
             }, cancellationToken);
-        }
-
-        if (!string.IsNullOrEmpty(request.HermesRunId))
-        {
-            var agent = _agents.Get(request.RequestingAgent);
-            var hermesScope = scope == ApprovalScope.Task ? ApprovalScope.Once : scope;
-            await agent.ResolveApprovalAsync(
-                request.HermesRunId,
-                new ApprovalResolution(hermesScope),
-                cancellationToken);
         }
 
         var eventType = status == ApprovalStatus.Approved

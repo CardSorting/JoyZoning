@@ -181,6 +181,12 @@ public sealed class JoyZoningCliClient : IDisposable
     public Task<CliHttpResult> HermesEnsureDashboardAsync(bool alsoEnsureGateway) =>
         PostJsonAsync("api/hermes/ensure-dashboard", new { alsoEnsureGateway });
 
+    public Task<CliHttpResult> HermesRefreshDashboardTokenAsync() =>
+        PostEmptyAsync("api/hermes/refresh-dashboard-token");
+
+    public Task<CliHttpResult> HermesConnectorStatusAsync() =>
+        GetAsync("api/hermes/connector-status");
+
     public Task<CliHttpResult> GetConfigAsync() => GetAsync("api/config");
 
     public Task<CliHttpResult> KanbanSyncStatusAsync() => GetAsync("api/kanban/sync-status");
@@ -270,6 +276,9 @@ public sealed record CliHttpResult(
                 if (body.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String)
                     message = m.GetString();
             }
+
+            if (error is null && (int)status is 401 or 403)
+                error = "unauthorized";
 
             return new(status, text, body, error, message, false);
         }

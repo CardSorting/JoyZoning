@@ -82,15 +82,24 @@ dotnet run --project src/JoyZoning.App
 ```bash
 source scripts/dotnet-env.sh
 
-# CLI tests (in solution)
-dotnet test tests/JoyZoning.Cli.Tests/JoyZoning.Cli.Tests.csproj
+# Default — fast tier only (unit tests, no API host, no dogfood)
+./scripts/run-tests.sh
+# or: ./scripts/run-tests.sh fast
 
-# Control plane + orchestration + dogfood
-dotnet test tests/JoyZoning.Tests/JoyZoning.Tests.csproj
-
-# Dogfood only (subprocess server + real jz binary)
-./scripts/dogfood-validate.sh
+# Heavier tiers (opt-in)
+./scripts/run-tests.sh integration   # WebApplicationFactory API tests
+./scripts/run-tests.sh medium        # unit + integration
+./scripts/run-tests.sh dogfood       # subprocess server + real jz binary
+./scripts/run-tests.sh all           # everything (slow)
 ```
+
+Bare `dotnet test tests/JoyZoning.Tests/...` also defaults to **Category=Unit** only (see `VSTestTestCaseFilter` in the test csproj). CLI tests are always lightweight.
+
+| Tier | Trait | What runs |
+|------|--------|-----------|
+| **fast** (default) | `Unit` | Domain/orchestrator rules, in-memory SQLite, CLI parsers |
+| **integration** | `Integration` | Shared `WebApplicationFactory` host (`OrchestrationApi` collection, sequential) |
+| **dogfood** | `Dogfood` | Real Kestrel port + `jz` subprocess |
 
 Key test areas:
 
@@ -103,6 +112,13 @@ Key test areas:
 | `JoyZoning.Cli.Tests` | Args, safety, JSON output, agent guard |
 
 Dogfood uses `JoyZoningDogfoodServerProcess` (real Kestrel port) + shared temp SQLite — see [dogfood-report.md](dogfood-report.md).
+
+**Orchestration API integration tests** (`OrchestrationApi` xUnit collection):
+
+- Shared `WebApplicationFactory` + **in-memory SQLite** (`Mode=Memory;Cache=Shared`) — avoids disk I/O errors from `EnsureDeletedAsync` while the host holds connections open.
+- `TestDatabaseReset.ClearAllAsync` deletes rows instead of dropping the database file between tests.
+- `HermesRunEventConsumer.TrackRun` is a **no-op** in `Testing` so stub SSE reconciliation does not race lease assertions across test methods.
+- Filtered run: `dotnet test tests/JoyZoning.Tests/JoyZoning.Tests.csproj --filter "FullyQualifiedName~OrchestrationApi"`.
 
 ## Scripts
 
@@ -127,7 +143,7 @@ Dogfood uses `JoyZoningDogfoodServerProcess` (real Kestrel port) + shared temp S
 | Background reconcile | `ControlPlane/Background/LeaseReconciliationHostedService.cs` |
 | Kanban auto-sync | `ControlPlane/Background/KanbanAutoSyncHostedService.cs` |
 | SignalR | `ControlPlane/Hubs/OperatorHub.cs` |
-| Hermes SSE consumer | `ControlPlane/Services/HermesRunEventConsumer.cs` |
+| Hermes SSE consumer | `ControlPlane/Background/HermesRunEventConsumer.cs` |
 | Testing stubs | `ControlPlane/Testing/TestAgentHostSetup.cs` |
 
 ## Domain rules (do not bypass in UI/CLI)

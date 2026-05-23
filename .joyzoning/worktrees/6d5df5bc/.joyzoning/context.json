@@ -1,0 +1,32 @@
+{
+  "schemaVersionValue": "1",
+  "taskId": "6d5df5bc-d819-4d43-b911-e7ae5a3cdaa5",
+  "leaseId": "0e2c2659-127c-4dbc-b139-12ea728f210c",
+  "sessionId": "78129542-d719-41d9-92a0-56cd7fb31455",
+  "worktreePath": "/Users/bozoegg/Desktop/JoyZoning/.joyzoning/worktrees/6d5df5bc",
+  "controlPlaneUrl": "http://127.0.0.1:9470",
+  "leaseStatus": "Running",
+  "allowedCommands": [
+    "jz agent heartbeat",
+    "jz agent verify --cmd \u0022...\u0022",
+    "jz agent blocked --reason \u0022...\u0022",
+    "jz agent done"
+  ],
+  "verificationCommands": [],
+  "authorityRules": [
+    "Agents cannot merge, revoke, or mark tasks Complete.",
+    "agent done means ready_for_human_review, not Complete.",
+    "Critical dispatch requires human --approve-critical.",
+    "Work must stay inside the assigned worktree when context is present."
+  ],
+  "forbiddenActions": [
+    "task complete",
+    "task merge",
+    "task revoke",
+    "lease merge",
+    "lease revoke",
+    "UpdateTaskStatus to Complete"
+  ],
+  "lastVerification": null,
+  "absolutePath": "/Users/bozoegg/Desktop/JoyZoning/.joyzoning/worktrees/6d5df5bc/.joyzoning/context.json"
+}

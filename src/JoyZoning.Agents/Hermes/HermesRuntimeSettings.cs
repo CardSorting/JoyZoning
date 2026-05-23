@@ -2,26 +2,21 @@ using JoyZoning.Domain.Configuration;
 
 namespace JoyZoning.Agents.Hermes;
 
-/// <summary>Mutable Hermes connection settings — updated when user saves Settings without restart.</summary>
+/// <summary>Mutable Hermes connection settings — thread-safe snapshot reads.</summary>
 public class HermesRuntimeSettings
 {
     private readonly object _lock = new();
-
-    public string InstallRoot { get; private set; }
-    public string ApiBaseUrl { get; private set; }
-    public string DashboardBaseUrl { get; private set; }
-    public string Profile { get; private set; }
-    public string? ApiKey { get; private set; }
-    public bool AutoStartGateway { get; private set; }
+    private HermesConnectionSnapshot _snapshot;
 
     public HermesRuntimeSettings(HermesOptions defaults)
     {
-        InstallRoot = defaults.InstallRoot;
-        ApiBaseUrl = defaults.ApiBaseUrl;
-        DashboardBaseUrl = defaults.DashboardBaseUrl;
-        Profile = defaults.Profile;
-        ApiKey = defaults.ApiKey;
-        AutoStartGateway = defaults.AutoStartGateway;
+        _snapshot = HermesConnectionSnapshot.FromOptions(defaults);
+    }
+
+    public HermesConnectionSnapshot GetSnapshot()
+    {
+        lock (_lock)
+            return _snapshot;
     }
 
     public void Apply(
@@ -33,13 +28,51 @@ public class HermesRuntimeSettings
     {
         lock (_lock)
         {
-            if (!string.IsNullOrWhiteSpace(installRoot)) InstallRoot = installRoot;
-            if (!string.IsNullOrWhiteSpace(apiBaseUrl)) ApiBaseUrl = apiBaseUrl.TrimEnd('/');
-            if (!string.IsNullOrWhiteSpace(dashboardBaseUrl)) DashboardBaseUrl = dashboardBaseUrl.TrimEnd('/');
-            if (!string.IsNullOrWhiteSpace(profile)) Profile = profile;
-            if (apiKey is not null) ApiKey = apiKey;
+            var next = _snapshot with
+            {
+                InstallRoot = string.IsNullOrWhiteSpace(installRoot) ? _snapshot.InstallRoot : installRoot,
+                ApiBaseUrl = string.IsNullOrWhiteSpace(apiBaseUrl) ? _snapshot.ApiBaseUrl : apiBaseUrl.TrimEnd('/'),
+                DashboardBaseUrl = string.IsNullOrWhiteSpace(dashboardBaseUrl)
+                    ? _snapshot.DashboardBaseUrl
+                    : dashboardBaseUrl.TrimEnd('/'),
+                Profile = string.IsNullOrWhiteSpace(profile) ? _snapshot.Profile : profile,
+            };
+            if (apiKey is not null)
+                next = next with { ApiKey = apiKey };
+            _snapshot = next;
         }
     }
 
+    /// <summary>Re-read API_SERVER_KEY from the active profile .env.</summary>
+    public bool ReloadApiKeyFromProfile()
+    {
+        lock (_lock)
+        {
+            var key = HermesProfileEnv.TryReadApiServerKey(_snapshot.Profile);
+            if (string.IsNullOrWhiteSpace(key))
+                return false;
+            _snapshot = _snapshot with { ApiKey = key };
+            return true;
+        }
+    }
+}
+
+public sealed record HermesConnectionSnapshot(
+    string InstallRoot,
+    string ApiBaseUrl,
+    string DashboardBaseUrl,
+    string Profile,
+    string? ApiKey,
+    bool AutoStartGateway)
+{
     public Uri ApiUri => new($"{ApiBaseUrl.TrimEnd('/')}/");
+
+    public static HermesConnectionSnapshot FromOptions(HermesOptions opts) =>
+        new(
+            opts.InstallRoot,
+            opts.ApiBaseUrl,
+            opts.DashboardBaseUrl,
+            opts.Profile,
+            opts.ApiKey,
+            opts.AutoStartGateway);
 }

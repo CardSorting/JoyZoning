@@ -8,6 +8,7 @@ using JoyZoning.ControlPlane.Hubs;
 using JoyZoning.ControlPlane.Services;
 using JoyZoning.Persistence.Repositories;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Hosting;
 
 namespace JoyZoning.ControlPlane.Background;
 
@@ -15,90 +16,40 @@ public class HermesRunEventConsumer
 {
     private readonly AgentAdapterRegistry _agents;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IHostEnvironment _environment;
     private readonly ILogger<HermesRunEventConsumer> _logger;
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _activeRuns = new();
 
     public HermesRunEventConsumer(
         AgentAdapterRegistry agents,
         IServiceScopeFactory scopeFactory,
+        IHostEnvironment environment,
         ILogger<HermesRunEventConsumer> logger)
     {
         _agents = agents;
         _scopeFactory = scopeFactory;
+        _environment = environment;
         _logger = logger;
     }
 
     public void TrackRun(string runId, AgentKind agentKind, Guid? correlationId)
     {
-        if (_activeRuns.ContainsKey(runId)) return;
+        if (string.IsNullOrWhiteSpace(runId))
+            return;
+
+        // Integration tests use stub adapters with empty SSE; background reconciliation
+        // races DB reset and lease assertions between test methods.
+        if (_environment.IsEnvironment("Testing"))
+            return;
 
         var cts = new CancellationTokenSource();
-        _activeRuns[runId] = cts;
-
-        _ = Task.Run(async () =>
+        if (!_activeRuns.TryAdd(runId, cts))
         {
-            try
-            {
-                var adapter = _agents.Get(agentKind);
-                await foreach (var evt in adapter.StreamEventsAsync(runId, cts.Token))
-                {
-                    using var scope = _scopeFactory.CreateScope();
-                    var events = scope.ServiceProvider.GetRequiredService<EventIngestor>();
-                    var approvals = scope.ServiceProvider.GetRequiredService<ApprovalService>();
-                    var executions = scope.ServiceProvider.GetRequiredService<IExecutionRepository>();
+            cts.Dispose();
+            return;
+        }
 
-                    var source = agentKind == AgentKind.Hermes ? EventSource.Hermes : EventSource.DietCode;
-                    var correlation = correlationId ?? Guid.Empty;
-
-                    await events.IngestAsync(correlation, source, evt.EventType,
-                        JsonSerializer.Deserialize<object>(evt.PayloadJson) ?? evt.PayloadJson,
-                        cts.Token);
-
-                    var hub = scope.ServiceProvider.GetRequiredService<IHubContext<OperatorHub>>();
-                    await PushUiEventsAsync(hub, agentKind, correlationId, evt, cts.Token);
-                    await PushTerminalOutputAsync(events, hub, correlationId, evt, cts.Token);
-
-                    if (evt.EventType.Contains("approval.request", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var (command, description) = ParseApprovalPayload(evt.PayloadJson);
-                        await approvals.CreateFromHermesEventAsync(
-                            runId, command, description, agentKind,
-                            correlationId != Guid.Empty ? correlationId : null,
-                            cts.Token);
-                    }
-
-                    if (evt.EventType.Contains("run.completed", StringComparison.OrdinalIgnoreCase) ||
-                        evt.EventType.Contains("message.complete", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var execution = await executions.GetByRunIdAsync(runId, cts.Token);
-                        if (execution is not null)
-                        {
-                            await executions.UpdatePhaseAsync(
-                                execution.Id, ExecutionPhase.Completed, cts.Token);
-                            await events.IngestAsync(
-                                execution.WorkTaskId,
-                                EventSource.DietCode,
-                                EventTypes.DietCodeExecutionCompleted,
-                                new { execution.Id, runId },
-                                cts.Token);
-                        }
-                        break;
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // expected on stop
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Event stream ended for run {RunId}", runId);
-            }
-            finally
-            {
-                _activeRuns.TryRemove(runId, out _);
-            }
-        });
+        _ = Task.Run(() => ConsumeRunAsync(runId, agentKind, correlationId, cts.Token));
     }
 
     public void StopTracking(string runId)
@@ -107,14 +58,298 @@ public class HermesRunEventConsumer
             cts.Cancel();
     }
 
-    private static async Task PushUiEventsAsync(
-        IHubContext<OperatorHub> hub,
+    private async Task ConsumeRunAsync(
+        string runId,
         AgentKind agentKind,
-        Guid? sessionId,
+        Guid? correlationId,
+        CancellationToken cancellationToken)
+    {
+        var sawTerminal = false;
+        try
+        {
+            var adapter = _agents.Get(agentKind);
+            await foreach (var evt in adapter.StreamEventsAsync(runId, cancellationToken))
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    break;
+
+                using var scope = _scopeFactory.CreateScope();
+                var events = scope.ServiceProvider.GetRequiredService<EventIngestor>();
+                var approvals = scope.ServiceProvider.GetRequiredService<ApprovalService>();
+                var executions = scope.ServiceProvider.GetRequiredService<IExecutionRepository>();
+                var orchestrator = scope.ServiceProvider.GetRequiredService<KanbanExecutionOrchestrator>();
+                var hub = scope.ServiceProvider.GetRequiredService<IHubContext<OperatorHub>>();
+
+                var source = agentKind == AgentKind.Hermes ? EventSource.Hermes : EventSource.DietCode;
+                if (correlationId is { } cid && cid != Guid.Empty)
+                {
+                    await IngestSafeAsync(events, cid, source, evt, cancellationToken);
+                    await PushUiEventsAsync(hub, agentKind, cid, evt, cancellationToken);
+                    await PushTerminalOutputAsync(events, hub, cid, evt, cancellationToken);
+                }
+
+                if (IsApprovalRequest(evt.EventType))
+                {
+                    var (command, description) = ParseApprovalPayload(evt.PayloadJson);
+                    await approvals.CreateFromHermesEventAsync(
+                        runId, command, description, agentKind,
+                        correlationId is { } c && c != Guid.Empty ? c : null,
+                        cancellationToken);
+                }
+
+                if (IsTerminalEvent(evt.EventType))
+                {
+                    sawTerminal = true;
+                    await HandleTerminalEventAsync(
+                        runId,
+                        agentKind,
+                        correlationId,
+                        evt,
+                        executions,
+                        orchestrator,
+                        events,
+                        hub,
+                        cancellationToken);
+                    break;
+                }
+            }
+
+            if (!sawTerminal && !cancellationToken.IsCancellationRequested)
+            {
+                using var scope = _scopeFactory.CreateScope();
+                await HandleStreamEndedWithoutTerminalAsync(
+                    runId,
+                    agentKind,
+                    _agents,
+                    scope.ServiceProvider.GetRequiredService<IExecutionRepository>(),
+                    scope.ServiceProvider.GetRequiredService<KanbanExecutionOrchestrator>(),
+                    cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // expected on stop
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Event stream ended for run {RunId}", runId);
+            if (!sawTerminal)
+            {
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    await HandleStreamEndedWithoutTerminalAsync(
+                        runId,
+                        agentKind,
+                        _agents,
+                        scope.ServiceProvider.GetRequiredService<IExecutionRepository>(),
+                        scope.ServiceProvider.GetRequiredService<KanbanExecutionOrchestrator>(),
+                        CancellationToken.None);
+                }
+                catch (Exception reconcileEx)
+                {
+                    _logger.LogDebug(reconcileEx, "Stream-death reconciliation failed for {RunId}", runId);
+                }
+            }
+        }
+        finally
+        {
+            if (_activeRuns.TryRemove(runId, out var cts))
+                cts.Dispose();
+        }
+    }
+
+    private static bool IsTerminalEvent(string eventType) =>
+        eventType.Contains("run.completed", StringComparison.OrdinalIgnoreCase) ||
+        eventType.Contains("run.failed", StringComparison.OrdinalIgnoreCase) ||
+        eventType.Contains("run.cancelled", StringComparison.OrdinalIgnoreCase) ||
+        eventType.Contains("run.stopping", StringComparison.OrdinalIgnoreCase) ||
+        eventType.Contains("message.complete", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsApprovalRequest(string eventType) =>
+        eventType.Contains("approval.request", StringComparison.OrdinalIgnoreCase);
+
+    private async Task HandleStreamEndedWithoutTerminalAsync(
+        string runId,
+        AgentKind agentKind,
+        AgentAdapterRegistry agents,
+        IExecutionRepository executions,
+        KanbanExecutionOrchestrator orchestrator,
+        CancellationToken cancellationToken)
+    {
+        if (agentKind != AgentKind.DietCode)
+            return;
+
+        var execution = await executions.GetByRunIdAsync(runId, cancellationToken);
+        if (execution is null || execution.Phase != ExecutionPhase.Running)
+            return;
+
+        var polled = await agents.Get(agentKind).PollRunStatusAsync(runId, cancellationToken);
+        if (polled is { IsTerminal: true } terminal)
+        {
+            if (terminal.Status is "completed")
+            {
+                await executions.UpdatePhaseAsync(execution.Id, ExecutionPhase.Completed, cancellationToken);
+                try
+                {
+                    await orchestrator.AgentTransitionLeaseAsync(
+                        execution.WorkTaskId,
+                        ExecutionLeaseStatus.Verifying,
+                        reason: "Hermes run completed (polled after SSE closed)",
+                        cancellationToken: cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Lease transition to verifying skipped for task {TaskId}", execution.WorkTaskId);
+                }
+
+                _logger.LogInformation(
+                    "SSE ended early for run {RunId}; Hermes status=completed — execution completed, lease verifying",
+                    runId);
+                return;
+            }
+
+            var reason = $"Hermes run ended with status '{terminal.Status}' (SSE closed early)";
+            await executions.UpdatePhaseAsync(execution.Id, ExecutionPhase.Interrupted, cancellationToken);
+            try
+            {
+                await orchestrator.RecordExecutionFailureAsync(execution.WorkTaskId, reason, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Lease failure after polled terminal for task {TaskId}", execution.WorkTaskId);
+            }
+
+            return;
+        }
+
+        const string streamReason = "Hermes event stream closed without a terminal run event";
+        await executions.UpdatePhaseAsync(execution.Id, ExecutionPhase.Interrupted, cancellationToken);
+        try
+        {
+            await orchestrator.RecordExecutionFailureAsync(execution.WorkTaskId, streamReason, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Lease failure after stream death for task {TaskId}", execution.WorkTaskId);
+        }
+    }
+
+    private async Task HandleTerminalEventAsync(
+        string runId,
+        AgentKind agentKind,
+        Guid? correlationId,
+        NormalizedAgentEvent evt,
+        IExecutionRepository executions,
+        KanbanExecutionOrchestrator orchestrator,
+        EventIngestor events,
+        IHubContext<OperatorHub> hub,
+        CancellationToken cancellationToken)
+    {
+        var execution = await executions.GetByRunIdAsync(runId, cancellationToken);
+        if (execution is null)
+        {
+            if (agentKind == AgentKind.Hermes && correlationId is { } sid && sid != Guid.Empty)
+                await PushManagerCompleteAsync(hub, sid, cancellationToken);
+            return;
+        }
+
+        var failed = evt.EventType.Contains("run.failed", StringComparison.OrdinalIgnoreCase);
+        var cancelled = evt.EventType.Contains("run.cancelled", StringComparison.OrdinalIgnoreCase)
+            || evt.EventType.Contains("run.stopping", StringComparison.OrdinalIgnoreCase);
+
+        if (failed || cancelled)
+        {
+            var reason = ExtractError(evt.PayloadJson)
+                ?? (cancelled ? "Hermes run cancelled" : "Hermes run failed");
+            await executions.UpdatePhaseAsync(
+                execution.Id,
+                cancelled ? ExecutionPhase.Cancelled : ExecutionPhase.Failed,
+                cancellationToken);
+
+            try
+            {
+                await orchestrator.RecordExecutionFailureAsync(execution.WorkTaskId, reason, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Could not record execution failure for task {TaskId}", execution.WorkTaskId);
+            }
+
+            await events.IngestAsync(
+                execution.WorkTaskId,
+                EventSource.DietCode,
+                EventTypes.DietCodeExecutionCompleted,
+                new { execution.Id, runId, failed, cancelled, reason },
+                cancellationToken);
+            return;
+        }
+
+        await executions.UpdatePhaseAsync(execution.Id, ExecutionPhase.Completed, cancellationToken);
+        await events.IngestAsync(
+            execution.WorkTaskId,
+            EventSource.DietCode,
+            EventTypes.DietCodeExecutionCompleted,
+            new { execution.Id, runId },
+            cancellationToken);
+
+        if (agentKind == AgentKind.DietCode)
+        {
+            try
+            {
+                await orchestrator.AgentTransitionLeaseAsync(
+                    execution.WorkTaskId,
+                    ExecutionLeaseStatus.Verifying,
+                    reason: "Hermes run completed",
+                    cancellationToken: cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Lease transition to verifying skipped for task {TaskId}", execution.WorkTaskId);
+            }
+        }
+
+        if (agentKind == AgentKind.Hermes && correlationId is { } sessionId && sessionId != Guid.Empty)
+            await PushManagerCompleteAsync(hub, sessionId, cancellationToken);
+    }
+
+    private static async Task IngestSafeAsync(
+        EventIngestor events,
+        Guid correlationId,
+        EventSource source,
         NormalizedAgentEvent evt,
         CancellationToken cancellationToken)
     {
-        if (agentKind != AgentKind.Hermes || sessionId is null || sessionId == Guid.Empty)
+        object payload;
+        try
+        {
+            payload = JsonSerializer.Deserialize<object>(evt.PayloadJson) ?? evt.PayloadJson;
+        }
+        catch
+        {
+            payload = evt.PayloadJson;
+        }
+
+        await events.IngestAsync(correlationId, source, evt.EventType, payload, cancellationToken);
+    }
+
+    private static async Task PushManagerCompleteAsync(
+        IHubContext<OperatorHub> hub,
+        Guid sessionId,
+        CancellationToken cancellationToken) =>
+        await hub.Clients.All.SendAsync(
+            "OnManagerChatComplete",
+            new ManagerChatCompleteDto(sessionId),
+            cancellationToken);
+
+    private static async Task PushUiEventsAsync(
+        IHubContext<OperatorHub> hub,
+        AgentKind agentKind,
+        Guid sessionId,
+        NormalizedAgentEvent evt,
+        CancellationToken cancellationToken)
+    {
+        if (agentKind != AgentKind.Hermes)
             return;
 
         if (evt.EventType.Contains("message.delta", StringComparison.OrdinalIgnoreCase))
@@ -124,15 +359,16 @@ public class HermesRunEventConsumer
             {
                 await hub.Clients.All.SendAsync(
                     "OnManagerChatDelta",
-                    new ManagerChatDeltaDto(sessionId.Value, delta), // sessionId validated above
+                    new ManagerChatDeltaDto(sessionId, delta),
                     cancellationToken);
             }
         }
-        else if (evt.EventType.Contains("message.complete", StringComparison.OrdinalIgnoreCase))
+        else if (evt.EventType.Contains("message.complete", StringComparison.OrdinalIgnoreCase) ||
+                 evt.EventType.Contains("run.completed", StringComparison.OrdinalIgnoreCase))
         {
             await hub.Clients.All.SendAsync(
                 "OnManagerChatComplete",
-                new ManagerChatCompleteDto(sessionId.Value),
+                new ManagerChatCompleteDto(sessionId),
                 cancellationToken);
         }
     }
@@ -140,13 +376,10 @@ public class HermesRunEventConsumer
     private static async Task PushTerminalOutputAsync(
         EventIngestor events,
         IHubContext<OperatorHub> hub,
-        Guid? correlationId,
+        Guid correlationId,
         NormalizedAgentEvent evt,
         CancellationToken cancellationToken)
     {
-        if (correlationId is null || correlationId == Guid.Empty)
-            return;
-
         if (!evt.EventType.Contains("tool", StringComparison.OrdinalIgnoreCase) &&
             !evt.EventType.Contains("terminal", StringComparison.OrdinalIgnoreCase))
             return;
@@ -157,15 +390,31 @@ public class HermesRunEventConsumer
 
         await hub.Clients.All.SendAsync(
             "OnTerminalOutput",
-            new TerminalOutputDto(correlationId.Value, text),
+            new TerminalOutputDto(correlationId, text),
             cancellationToken);
 
         await events.IngestAsync(
-            correlationId.Value,
+            correlationId,
             EventSource.Terminal,
             EventTypes.TerminalOutput,
             new { preview = text, agentEventType = evt.EventType },
             cancellationToken);
+    }
+
+    private static string? ExtractError(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("error", out var e))
+                return e.GetString();
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return null;
     }
 
     private static string ExtractTerminalText(string json)

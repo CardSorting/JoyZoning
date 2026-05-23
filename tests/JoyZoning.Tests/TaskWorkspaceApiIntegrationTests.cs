@@ -6,14 +6,15 @@ using Xunit;
 
 namespace JoyZoning.Tests;
 
+[Trait(TestCategories.Key, TestCategories.Integration)]
 [Collection("OrchestrationApi")]
-public class TaskWorkspaceApiIntegrationTests : IClassFixture<JoyZoningApiFixture>, IAsyncLifetime
+public class TaskWorkspaceApiIntegrationTests : IAsyncLifetime
 {
-    private readonly JoyZoningApiFixture _fixture;
+    private readonly JoyZoningApiCollectionFixture _fixture;
     private readonly OrchestrationApiClient _api;
     private readonly HttpClient _http;
 
-    public TaskWorkspaceApiIntegrationTests(JoyZoningApiFixture fixture)
+    public TaskWorkspaceApiIntegrationTests(JoyZoningApiCollectionFixture fixture)
     {
         _fixture = fixture;
         _http = fixture.Client;

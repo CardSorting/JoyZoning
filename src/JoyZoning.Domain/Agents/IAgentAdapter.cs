@@ -10,7 +10,13 @@ public interface IAgentAdapter
 
     Task<string> StartRunAsync(AgentRunRequest request, CancellationToken cancellationToken = default);
 
+    Task<AgentRunStartResult> StartRunDetailedAsync(
+        AgentRunRequest request,
+        CancellationToken cancellationToken = default);
+
     Task StopRunAsync(string runId, CancellationToken cancellationToken = default);
+
+    Task<AgentRunPollResult?> PollRunStatusAsync(string runId, CancellationToken cancellationToken = default);
 
     IAsyncEnumerable<NormalizedAgentEvent> StreamEventsAsync(
         string runId,

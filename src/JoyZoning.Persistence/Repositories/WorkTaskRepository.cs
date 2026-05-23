@@ -23,12 +23,16 @@ public class WorkTaskRepository : IWorkTaskRepository
 
     public async Task<IReadOnlyList<WorkTask>> ListBySessionAsync(
         Guid sessionId,
-        CancellationToken cancellationToken = default) =>
-        await _db.WorkTasks.AsNoTracking()
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await _db.WorkTasks.AsNoTracking()
             .Where(t => t.OperatorSessionId == sessionId)
+            .ToListAsync(cancellationToken);
+        return rows
             .OrderBy(t => t.Status)
             .ThenByDescending(t => t.UpdatedAt)
-            .ToListAsync(cancellationToken);
+            .ToList();
+    }
 
     public async Task<WorkTask> CreateAsync(WorkTask task, CancellationToken cancellationToken = default)
     {

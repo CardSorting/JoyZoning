@@ -28,6 +28,7 @@ builder.Services.Configure<ControlPlaneOptions>(builder.Configuration.GetSection
 builder.Services.Configure<LeaseRuntimeOptions>(builder.Configuration.GetSection(LeaseRuntimeOptions.SectionName));
 
 builder.Services.AddJoyZoningPersistence(dbPath);
+builder.Services.AddSingleton<JoyZoning.Agents.Hermes.IDashboardTokenRefresher, DashboardTokenRefresher>();
 builder.Services.AddJoyZoningAgents();
 if (builder.Environment.IsEnvironment("Testing"))
     JoyZoning.ControlPlane.Testing.TestAgentHostSetup.ReplaceAgents(builder.Services);
@@ -42,6 +43,7 @@ builder.Services.AddScoped<OrchestrationService>();
 builder.Services.AddScoped<ApprovalService>();
 builder.Services.AddScoped<ConfigService>();
 builder.Services.AddSingleton<HermesConnectivityService>();
+builder.Services.AddSingleton<HermesConnectorDiagnostics>();
 builder.Services.AddScoped<HermesDashboardConnectivityService>();
 builder.Services.AddSingleton<HermesRunEventConsumer>();
 builder.Services.AddSingleton<KanbanSyncState>();

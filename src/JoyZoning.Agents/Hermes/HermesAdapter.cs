@@ -14,7 +14,15 @@ public class HermesAdapter : IAgentAdapter
     public Task<HealthStatus> GetHealthAsync(CancellationToken cancellationToken = default) =>
         _client.GetHealthAsync(cancellationToken);
 
-    public Task<string> StartRunAsync(AgentRunRequest request, CancellationToken cancellationToken = default)
+    public async Task<string> StartRunAsync(AgentRunRequest request, CancellationToken cancellationToken = default)
+    {
+        var started = await StartRunDetailedAsync(request, cancellationToken);
+        return started.RunId;
+    }
+
+    public Task<AgentRunStartResult> StartRunDetailedAsync(
+        AgentRunRequest request,
+        CancellationToken cancellationToken = default)
     {
         var managerRequest = request with
         {
@@ -24,11 +32,14 @@ public class HermesAdapter : IAgentAdapter
                 "kanban", "delegation", "clarify", "todo", "session_search",
             },
         };
-        return _client.StartRunAsync(managerRequest, cancellationToken);
+        return _client.StartRunDetailedAsync(managerRequest, cancellationToken);
     }
 
     public Task StopRunAsync(string runId, CancellationToken cancellationToken = default) =>
         _client.StopRunAsync(runId, cancellationToken);
+
+    public Task<AgentRunPollResult?> PollRunStatusAsync(string runId, CancellationToken cancellationToken = default) =>
+        _client.PollRunStatusAsync(runId, cancellationToken);
 
     public IAsyncEnumerable<NormalizedAgentEvent> StreamEventsAsync(
         string runId,

@@ -12,10 +12,12 @@ public class OperatorSessionRepository : IOperatorSessionRepository
     public Task<OperatorSession?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         _db.OperatorSessions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
-    public async Task<IReadOnlyList<OperatorSession>> ListAsync(CancellationToken cancellationToken = default) =>
-        await _db.OperatorSessions.AsNoTracking()
-            .OrderByDescending(s => s.UpdatedAt)
-            .ToListAsync(cancellationToken);
+    public async Task<IReadOnlyList<OperatorSession>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        // SQLite cannot ORDER BY DateTimeOffset — sort client-side after load.
+        var rows = await _db.OperatorSessions.AsNoTracking().ToListAsync(cancellationToken);
+        return rows.OrderByDescending(s => s.UpdatedAt).ToList();
+    }
 
     public async Task<OperatorSession> CreateAsync(OperatorSession session, CancellationToken cancellationToken = default)
     {

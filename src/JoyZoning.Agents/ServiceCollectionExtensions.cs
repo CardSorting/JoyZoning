@@ -14,7 +14,18 @@ public static class ServiceCollectionExtensions
             var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<HermesOptions>>().Value;
             return new HermesRuntimeSettings(opts);
         });
-        services.AddHttpClient<HermesHttpClient>();
+        services.AddHttpClient<HermesHttpClient>(client =>
+        {
+            client.Timeout = TimeSpan.FromMinutes(2);
+        });
+        services.AddHttpClient(KanbanSyncService.HttpClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(12);
+        });
+        services.AddHttpClient(HermesDashboardService.HttpClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(12);
+        });
         services.AddSingleton<HermesAdapter>();
         services.AddSingleton<DietCodeAdapter>();
         services.AddSingleton<IAgentAdapter>(sp => sp.GetRequiredService<HermesAdapter>());

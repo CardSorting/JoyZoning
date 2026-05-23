@@ -73,6 +73,9 @@ Kanban sync and the embedded Hermes TUI require the **dashboard session token**.
 | `GET /api/hermes/dashboard` | Reachability + token validity |
 | `POST /api/hermes/ensure-dashboard` | Start `hermes dashboard --no-open --tui`, scrape token from HTML |
 | `POST /api/hermes/refresh-dashboard-token` | Re-scrape without full ensure |
+| `GET /api/hermes/connector-status` | Deep check: API key, health, dashboard, kanban, gateway |
+
+CLI: `jz hermes connector-status` (alias `connectors`).
 
 Flow:
 

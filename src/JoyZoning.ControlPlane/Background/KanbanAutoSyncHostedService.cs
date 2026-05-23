@@ -1,3 +1,4 @@
+using JoyZoning.Agents.Hermes;
 using JoyZoning.ControlPlane.Hubs;
 using JoyZoning.ControlPlane.Services;
 using JoyZoning.Persistence.Repositories;
@@ -33,8 +34,9 @@ public class KanbanAutoSyncHostedService : BackgroundService
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogDebug(ex, "Kanban auto-sync tick failed");
+                _logger.LogWarning(ex, "Kanban auto-sync tick failed");
                 _state.LastMessage = ex.Message;
+                _state.LastOutcome = KanbanSyncOutcome.Error;
             }
 
             var delay = await GetIntervalAsync(stoppingToken);
@@ -48,13 +50,21 @@ public class KanbanAutoSyncHostedService : BackgroundService
         var config = scope.ServiceProvider.GetRequiredService<ConfigService>();
         var settings = await config.GetSettingsAsync(cancellationToken);
 
-        if (!settings.AutoSyncEnabled
-            || string.IsNullOrWhiteSpace(settings.DashboardSessionToken)
-            || !settings.DashboardReachable)
+        if (!settings.AutoSyncEnabled)
         {
-            _state.LastMessage = settings.AutoSyncEnabled
-                ? "Auto-sync waiting for dashboard token / reachability"
-                : "Auto-sync disabled";
+            _state.LastMessage = "Auto-sync disabled";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.DashboardSessionToken))
+        {
+            _state.LastMessage = "Auto-sync waiting for dashboard token — run hermes ensure-dashboard";
+            return;
+        }
+
+        if (!settings.DashboardReachable)
+        {
+            _state.LastMessage = "Auto-sync waiting for dashboard reachability";
             return;
         }
 
@@ -63,17 +73,34 @@ public class KanbanAutoSyncHostedService : BackgroundService
         var hub = scope.ServiceProvider.GetRequiredService<IHubContext<OperatorHub>>();
 
         var all = await sessions.ListAsync(cancellationToken);
-        foreach (var session in all)
+        if (all.Count == 0)
         {
-            var result = await orch.SyncKanbanTwoWayAsync(session.Id, cancellationToken);
-            await hub.Clients.All.SendAsync(
-                "OnKanbanSynced",
-                new { sessionId = session.Id, message = result.Message },
-                cancellationToken);
+            _state.LastMessage = "No sessions to sync";
+            return;
         }
 
-        if (all.Count == 0)
-            _state.LastMessage = "No sessions to sync";
+        var failures = 0;
+        foreach (var session in all)
+        {
+            try
+            {
+                var result = await orch.SyncKanbanTwoWayAsync(session.Id, cancellationToken);
+                await hub.Clients.All.SendAsync(
+                    "OnKanbanSynced",
+                    new { sessionId = session.Id, message = result.Message },
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                failures++;
+                _logger.LogWarning(ex, "Kanban sync failed for session {SessionId}", session.Id);
+            }
+        }
+
+        _state.LastSyncAt = DateTimeOffset.UtcNow;
+        _state.LastMessage = failures == 0
+            ? $"Auto-sync OK ({all.Count} session(s))"
+            : $"Auto-sync partial: {failures}/{all.Count} session(s) failed — see logs";
     }
 
     private async Task<TimeSpan> GetIntervalAsync(CancellationToken cancellationToken)
@@ -84,10 +111,4 @@ public class KanbanAutoSyncHostedService : BackgroundService
         var seconds = Math.Clamp(settings.AutoSyncIntervalSeconds, 30, 3600);
         return TimeSpan.FromSeconds(seconds);
     }
-}
-
-public class KanbanSyncState
-{
-    public DateTimeOffset? LastSyncAt { get; set; }
-    public string LastMessage { get; set; } = "Not synced yet";
 }

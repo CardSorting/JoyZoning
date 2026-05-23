@@ -36,7 +36,12 @@ internal sealed class StubDietCodeAgentAdapter : IAgentAdapter
     public Task<HealthStatus> GetHealthAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(new HealthStatus(HealthState.Healthy, "test"));
 
-    public Task<string> StartRunAsync(AgentRunRequest request, CancellationToken cancellationToken = default)
+    public Task<string> StartRunAsync(AgentRunRequest request, CancellationToken cancellationToken = default) =>
+        StartRunDetailedAsync(request, cancellationToken).ContinueWith(t => t.Result.RunId, cancellationToken);
+
+    public Task<AgentRunStartResult> StartRunDetailedAsync(
+        AgentRunRequest request,
+        CancellationToken cancellationToken = default)
     {
         if (FailNextDispatch)
         {
@@ -44,8 +49,12 @@ internal sealed class StubDietCodeAgentAdapter : IAgentAdapter
             throw new InvalidOperationException("Simulated dispatch failure");
         }
 
-        return Task.FromResult($"test-run-{Guid.NewGuid():N}");
+        var runId = $"test-run-{Guid.NewGuid():N}";
+        return Task.FromResult(new AgentRunStartResult(runId, request.SessionId));
     }
+
+    public Task<AgentRunPollResult?> PollRunStatusAsync(string runId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<AgentRunPollResult?>(new AgentRunPollResult(runId, "completed", true));
 
     public Task StopRunAsync(string runId, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
@@ -73,7 +82,18 @@ internal sealed class StubHermesAgentAdapter : IAgentAdapter
         Task.FromResult(new HealthStatus(HealthState.Healthy, "test"));
 
     public Task<string> StartRunAsync(AgentRunRequest request, CancellationToken cancellationToken = default) =>
-        Task.FromResult($"manager-run-{Guid.NewGuid():N}");
+        StartRunDetailedAsync(request, cancellationToken).ContinueWith(t => t.Result.RunId, cancellationToken);
+
+    public Task<AgentRunStartResult> StartRunDetailedAsync(
+        AgentRunRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var runId = $"manager-run-{Guid.NewGuid():N}";
+        return Task.FromResult(new AgentRunStartResult(runId, request.SessionId));
+    }
+
+    public Task<AgentRunPollResult?> PollRunStatusAsync(string runId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<AgentRunPollResult?>(new AgentRunPollResult(runId, "completed", true));
 
     public Task StopRunAsync(string runId, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;

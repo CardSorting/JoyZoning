@@ -5,6 +5,7 @@ using Xunit;
 
 namespace JoyZoning.Tests;
 
+[Trait(TestCategories.Key, TestCategories.Unit)]
 public class KanbanExecutionRulesTests
 {
     private static WorkTask Task(RiskLevel risk = RiskLevel.Low) => new()

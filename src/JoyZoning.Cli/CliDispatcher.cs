@@ -365,7 +365,9 @@ public static class CliDispatcher
             "ensure" => await client.HermesEnsureAsync(),
             "dashboard" => await client.HermesDashboardAsync(),
             "ensure-dashboard" => await client.HermesEnsureDashboardAsync(!ctx.Args.Has("--no-gateway")),
-            _ => throw Usage("hermes health | ensure | dashboard | ensure-dashboard | tui"),
+            "refresh-dashboard" or "refresh-token" => await client.HermesRefreshDashboardTokenAsync(),
+            "connector-status" or "connectors" => await client.HermesConnectorStatusAsync(),
+            _ => throw Usage("hermes health | ensure | dashboard | ensure-dashboard | refresh-dashboard | connector-status | tui"),
         };
     }
 

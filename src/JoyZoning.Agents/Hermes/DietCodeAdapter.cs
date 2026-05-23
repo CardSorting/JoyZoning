@@ -22,7 +22,15 @@ public class DietCodeAdapter : IAgentAdapter
     public Task<HealthStatus> GetHealthAsync(CancellationToken cancellationToken = default) =>
         _client.GetHealthAsync(cancellationToken);
 
-    public Task<string> StartRunAsync(AgentRunRequest request, CancellationToken cancellationToken = default)
+    public async Task<string> StartRunAsync(AgentRunRequest request, CancellationToken cancellationToken = default)
+    {
+        var started = await StartRunDetailedAsync(request, cancellationToken);
+        return started.RunId;
+    }
+
+    public Task<AgentRunStartResult> StartRunDetailedAsync(
+        AgentRunRequest request,
+        CancellationToken cancellationToken = default)
     {
         var preamble =
             "You are DietCode, a bounded software execution agent. " +
@@ -42,11 +50,14 @@ public class DietCodeAdapter : IAgentAdapter
             },
         };
 
-        return _client.StartRunAsync(executorRequest, cancellationToken);
+        return _client.StartRunDetailedAsync(executorRequest, cancellationToken);
     }
 
     public Task StopRunAsync(string runId, CancellationToken cancellationToken = default) =>
         _client.StopRunAsync(runId, cancellationToken);
+
+    public Task<AgentRunPollResult?> PollRunStatusAsync(string runId, CancellationToken cancellationToken = default) =>
+        _client.PollRunStatusAsync(runId, cancellationToken);
 
     public IAsyncEnumerable<NormalizedAgentEvent> StreamEventsAsync(
         string runId,

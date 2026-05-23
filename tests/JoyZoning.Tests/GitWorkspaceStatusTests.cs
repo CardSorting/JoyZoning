@@ -3,6 +3,7 @@ using Xunit;
 
 namespace JoyZoning.Tests;
 
+[Trait(TestCategories.Key, TestCategories.Unit)]
 public class GitWorkspaceStatusTests
 {
     [Fact]

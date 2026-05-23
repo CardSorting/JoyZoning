@@ -5,12 +5,13 @@ using Xunit;
 
 namespace JoyZoning.Tests;
 
+[Trait(TestCategories.Key, TestCategories.Integration)]
 [Collection("OrchestrationApi")]
-public class LeaseWorktreeMonitorTests : IClassFixture<JoyZoningApiFixture>, IAsyncLifetime
+public class LeaseWorktreeMonitorTests : IAsyncLifetime
 {
-    private readonly JoyZoningApiFixture _fixture;
+    private readonly JoyZoningApiCollectionFixture _fixture;
 
-    public LeaseWorktreeMonitorTests(JoyZoningApiFixture fixture) => _fixture = fixture;
+    public LeaseWorktreeMonitorTests(JoyZoningApiCollectionFixture fixture) => _fixture = fixture;
 
     public Task InitializeAsync() => _fixture.ResetAsync();
 

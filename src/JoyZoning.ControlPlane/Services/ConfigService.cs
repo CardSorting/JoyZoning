@@ -1,6 +1,7 @@
 using System.Text.Json;
 using JoyZoning.Agents.Hermes;
 using JoyZoning.Domain.Configuration;
+using JoyZoning.Domain.Entities;
 using JoyZoning.Persistence.Repositories;
 using Microsoft.Extensions.Options;
 
@@ -65,26 +66,59 @@ public class ConfigService
         _kanbanSync.SetDashboardToken(
             string.IsNullOrWhiteSpace(settings.DashboardSessionToken) ? null : settings.DashboardSessionToken);
 
-        _runtime.Apply(
+        ReloadHermesCredentials(
             settings.InstallRoot,
             settings.ApiBaseUrl,
             settings.DashboardBaseUrl,
             settings.Profile);
-        _hermesClient.RefreshConnection();
     }
 
     public async Task BootstrapRuntimeAsync(CancellationToken cancellationToken = default)
     {
         var stored = await _config.GetAllAsync(cancellationToken);
         var opts = _hermesOptions.Value;
-
-        _runtime.Apply(
+        ReloadHermesCredentials(
             ReadJsonString(stored, KeyHermesInstallRoot) ?? opts.InstallRoot,
             ReadJsonString(stored, KeyHermesApiUrl) ?? opts.ApiBaseUrl,
             ReadJsonString(stored, KeyHermesDashboardUrl) ?? opts.DashboardBaseUrl,
-            ReadJsonString(stored, KeyHermesProfile) ?? opts.Profile);
+            ReadJsonString(stored, KeyHermesProfile) ?? opts.Profile,
+            opts.ApiKey);
 
         await BootstrapKanbanSyncAsync(cancellationToken);
+    }
+
+    /// <summary>Apply Hermes runtime for a specific operator session (profile override).</summary>
+    public async Task ApplyForOperatorSessionAsync(
+        OperatorSession session,
+        CancellationToken cancellationToken = default)
+    {
+        var stored = await _config.GetAllAsync(cancellationToken);
+        var opts = _hermesOptions.Value;
+        var profile = !string.IsNullOrWhiteSpace(session.HermesProfile)
+            ? session.HermesProfile
+            : ReadJsonString(stored, KeyHermesProfile) ?? opts.Profile;
+
+        ReloadHermesCredentials(
+            ReadJsonString(stored, KeyHermesInstallRoot) ?? opts.InstallRoot,
+            ReadJsonString(stored, KeyHermesApiUrl) ?? opts.ApiBaseUrl,
+            ReadJsonString(stored, KeyHermesDashboardUrl) ?? opts.DashboardBaseUrl,
+            profile);
+    }
+
+    /// <summary>Apply runtime URLs/profile and load API key from profile .env when not overridden.</summary>
+    public void ReloadHermesCredentials(
+        string installRoot,
+        string apiBaseUrl,
+        string dashboardBaseUrl,
+        string profile,
+        string? configuredApiKey = null)
+    {
+        var apiKey = string.IsNullOrWhiteSpace(configuredApiKey)
+            ? HermesProfileEnv.TryReadApiServerKey(profile)
+            : configuredApiKey;
+
+        _runtime.Apply(installRoot, apiBaseUrl, dashboardBaseUrl, profile, apiKey);
+        _hermesClient.RefreshConnection();
     }
 
     private static string? ReadJsonString(IReadOnlyDictionary<string, string> stored, string key)

@@ -6,13 +6,14 @@ using Xunit;
 
 namespace JoyZoning.Tests;
 
+[Trait(TestCategories.Key, TestCategories.Integration)]
 [Collection("OrchestrationApi")]
-public class OrchestrationApiIntegrationTests : IClassFixture<JoyZoningApiFixture>, IAsyncLifetime
+public class OrchestrationApiIntegrationTests : IAsyncLifetime
 {
-    private readonly JoyZoningApiFixture _fixture;
+    private readonly JoyZoningApiCollectionFixture _fixture;
     private readonly OrchestrationApiClient _api;
 
-    public OrchestrationApiIntegrationTests(JoyZoningApiFixture fixture)
+    public OrchestrationApiIntegrationTests(JoyZoningApiCollectionFixture fixture)
     {
         _fixture = fixture;
         _api = new OrchestrationApiClient(fixture.Client);
@@ -58,8 +59,11 @@ public class OrchestrationApiIntegrationTests : IClassFixture<JoyZoningApiFixtur
     public async Task Dispatch_creates_lease_and_returns_202()
     {
         var (_, taskId) = await _api.SeedTaskAsync(WorkspaceRoot());
-        var (status, body, _, _) = await OrchestrationApiClient.ReadAsync(await _api.DispatchAsync(taskId));
-        Assert.Equal(HttpStatusCode.Accepted, status);
+        var (status, body, error, message) = await OrchestrationApiClient.ReadAsync(await _api.DispatchAsync(taskId));
+        var detail = body?.TryGetProperty("detail", out var d) == true ? d.GetString() : null;
+        Assert.True(
+            status == HttpStatusCode.Accepted,
+            $"dispatch failed: status={status} error={error} message={message} detail={detail}");
         Assert.NotNull(body);
 
         var leaseResp = await _api.GetLeaseAsync(taskId);
@@ -233,7 +237,9 @@ public class OrchestrationApiIntegrationTests : IClassFixture<JoyZoningApiFixtur
         var (status, _, error, message) = await OrchestrationApiClient.ReadAsync(
             await _api.DispatchAsync(taskId, humanApprovedCritical: true));
 
-        Assert.Equal(HttpStatusCode.Accepted, status);
+        Assert.True(
+            status == HttpStatusCode.Accepted,
+            $"critical dispatch failed: status={status} error={error} message={message}");
     }
 
     [Fact]

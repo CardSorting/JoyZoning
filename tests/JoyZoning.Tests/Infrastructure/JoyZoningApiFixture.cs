@@ -1,10 +1,10 @@
 using JoyZoning.Persistence;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace JoyZoning.Tests.Infrastructure;
 
-public sealed class JoyZoningApiFixture : IDisposable
+/// <summary>Shared API host for the OrchestrationApi xUnit collection (one factory, many test classes).</summary>
+public sealed class JoyZoningApiCollectionFixture : IDisposable
 {
     public JoyZoningApiFactory Factory { get; } = new();
 
@@ -16,8 +16,7 @@ public sealed class JoyZoningApiFixture : IDisposable
 
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<JoyZoningDbContext>();
-        await db.Database.EnsureDeletedAsync();
-        scope.ServiceProvider.EnsureDatabaseCreated();
+        await TestDatabaseReset.ClearAllAsync(db);
     }
 
     public void Dispose() => Factory.Dispose();

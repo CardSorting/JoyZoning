@@ -1,32 +1,41 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using JoyZoning.Persistence;
 
 namespace JoyZoning.Tests.Infrastructure;
 
-/// <summary>One factory instance per test class instance — isolated SQLite file per test method.</summary>
-public sealed class JoyZoningApiFactory : WebApplicationFactory<Program>, IDisposable
+/// <summary>Shared in-memory SQLite for the OrchestrationApi collection (no disk I/O, safe with an open host).</summary>
+public sealed class JoyZoningApiFactory : WebApplicationFactory<Program>
 {
-    private readonly string _dbPath;
+    private readonly SqliteConnection _sqlite;
     private readonly TestDietCodeAdapter _dietCode = new();
 
     public TestDietCodeAdapter DietCode => _dietCode;
 
-    internal string DatabasePath => _dbPath;
+    internal string DatabasePath => _sqlite.DataSource;
 
     public JoyZoningApiFactory()
     {
-        _dbPath = Path.Combine(Path.GetTempPath(), "jz-api-test-" + Guid.NewGuid().ToString("N") + ".db");
+        var name = "jz-api-" + Guid.NewGuid().ToString("N");
+        _sqlite = new SqliteConnection($"Data Source={name};Mode=Memory;Cache=Shared");
+        _sqlite.Open();
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder) =>
-        JoyZoningTestHostConfigurer.Configure(builder, _dbPath, _dietCode);
+        JoyZoningTestHostConfigurer.Configure(builder, _sqlite, _dietCode);
 
     protected override void Dispose(bool disposing)
     {
-        base.Dispose(disposing);
-        if (disposing && File.Exists(_dbPath))
+        if (disposing)
         {
-            try { File.Delete(_dbPath); } catch { /* best effort */ }
+            try { _sqlite.Close(); } catch { /* ignore */ }
+            try { _sqlite.Dispose(); } catch { /* ignore */ }
         }
+
+        base.Dispose(disposing);
     }
 }

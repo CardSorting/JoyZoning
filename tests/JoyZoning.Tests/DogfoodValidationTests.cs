@@ -11,6 +11,7 @@ using Xunit;
 namespace JoyZoning.Tests;
 
 /// <summary>Phase 27 end-to-end dogfood paths (API + jz CLI against test control plane).</summary>
+[Trait(TestCategories.Key, TestCategories.Dogfood)]
 [Collection("DogfoodApi")]
 public class DogfoodValidationTests : IClassFixture<JoyZoningDogfoodApiFixture>, IAsyncLifetime
 {

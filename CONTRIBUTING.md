@@ -17,11 +17,11 @@ cp src/JoyZoning.ControlPlane/appsettings.example.json src/JoyZoning.ControlPlan
 # Edit Hermes:InstallRoot to your diet-hermes checkout
 
 dotnet build JoyZoning.sln
-dotnet test tests/JoyZoning.Cli.Tests/JoyZoning.Cli.Tests.csproj
-dotnet test tests/JoyZoning.Tests/JoyZoning.Tests.csproj
+./scripts/run-tests.sh          # fast: unit tests only
+./scripts/run-tests.sh medium   # + API integration tests
 ```
 
-Optional: `./scripts/dogfood-validate.sh` for end-to-end lease + CLI paths.
+Optional: `./scripts/run-tests.sh dogfood` for end-to-end lease + CLI paths.
 
 ## Pull requests
 
