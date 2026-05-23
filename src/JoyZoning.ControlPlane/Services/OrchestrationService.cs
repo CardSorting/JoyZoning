@@ -36,7 +36,10 @@ public class OrchestrationService
     private readonly ILogger<OrchestrationService> _logger;
     private readonly string _controlPlaneUrl;
     private readonly WorkspaceSessionConsolidator _sessionConsolidator;
-    private readonly KanbanSyncCoordinator _kanbanSyncCoordinator;
+    private readonly WorkspaceIdentityCoordinator _workspaceIdentity;
+    private readonly KanbanStatusOutbox _kanbanOutbox;
+    private readonly IExecutionLeaseRepository _leases;
+    private readonly WorkspaceParallelismOptions _parallelism;
 
     public OrchestrationService(
         IOperatorSessionRepository sessions,
@@ -56,7 +59,10 @@ public class OrchestrationService
         ILogger<OrchestrationService> logger,
         IOptions<ControlPlaneOptions> controlPlaneOptions,
         WorkspaceSessionConsolidator sessionConsolidator,
-        KanbanSyncCoordinator kanbanSyncCoordinator)
+        WorkspaceIdentityCoordinator workspaceIdentity,
+        KanbanStatusOutbox kanbanOutbox,
+        IExecutionLeaseRepository leases,
+        IOptions<WorkspaceParallelismOptions> parallelism)
     {
         _sessions = sessions;
         _tasks = tasks;
@@ -75,7 +81,10 @@ public class OrchestrationService
         _logger = logger;
         _controlPlaneUrl = controlPlaneOptions.Value.ListenUrl;
         _sessionConsolidator = sessionConsolidator;
-        _kanbanSyncCoordinator = kanbanSyncCoordinator;
+        _workspaceIdentity = workspaceIdentity;
+        _kanbanOutbox = kanbanOutbox;
+        _leases = leases;
+        _parallelism = parallelism.Value;
     }
 
     private void MirrorWorkTaskToBroccoliQ(WorkTask task)
@@ -148,6 +157,18 @@ public class OrchestrationService
             ? norm
             : workspaceRoot;
 
+        return await _workspaceIdentity.RunExclusiveAsync(
+            normalizedRoot,
+            ct => CreateSessionCoreAsync(name, normalizedRoot, hermesProfile, ct),
+            cancellationToken);
+    }
+
+    private async Task<OperatorSession> CreateSessionCoreAsync(
+        string name,
+        string normalizedRoot,
+        string? hermesProfile,
+        CancellationToken cancellationToken)
+    {
         var existing = await _sessions.FindByWorkspaceRootAsync(normalizedRoot, cancellationToken);
         if (existing is not null)
         {
@@ -155,6 +176,7 @@ public class OrchestrationService
             if (!string.IsNullOrWhiteSpace(hermesProfile))
                 existing.HermesProfile = hermesProfile;
             existing.WorkspaceRoot = normalizedRoot;
+            existing.WorkspaceKey = normalizedRoot;
             existing.UpdatedAt = DateTimeOffset.UtcNow;
             await _sessions.UpdateAsync(existing, cancellationToken);
             _logger.LogInformation(
@@ -171,6 +193,7 @@ public class OrchestrationService
             Id = sessionId,
             Name = name,
             WorkspaceRoot = normalizedRoot,
+            WorkspaceKey = normalizedRoot,
             HermesProfile = hermesProfile,
             HermesSessionId = sessionId.ToString(),
             Status = SessionStatus.Idle,
@@ -184,69 +207,108 @@ public class OrchestrationService
         return await _sessionConsolidator.EnsureCanonicalAsync(session, cancellationToken);
     }
 
-    public async Task<WorkTask> CreateTaskAsync(
+    public async Task<OperatorSession> ResolveCanonicalSessionAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var session = await _sessions.GetByIdAsync(sessionId, cancellationToken)
+            ?? throw new InvalidOperationException($"Session {sessionId} not found");
+        return await _sessionConsolidator.EnsureCanonicalAsync(session, cancellationToken);
+    }
+
+    public Task<WorkTask> CreateTaskAsync(
         Guid sessionId,
         string title,
         string description,
         AgentKind assignedAgent,
         RiskLevel risk,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        CreateTaskCoreAsync(sessionId, title, description, assignedAgent, risk, cancellationToken);
+
+    private async Task<WorkTask> CreateTaskCoreAsync(
+        Guid sessionId,
+        string title,
+        string description,
+        AgentKind assignedAgent,
+        RiskLevel risk,
+        CancellationToken cancellationToken)
     {
         var opSession = await _sessions.GetByIdAsync(sessionId, cancellationToken)
             ?? throw new InvalidOperationException($"Session {sessionId} not found");
-        var canonicalSession = await _sessionConsolidator.EnsureCanonicalAsync(opSession, cancellationToken);
 
-        var existingByTitle = await _tasks.FindByTitleForWorkspaceAsync(
-            canonicalSession.WorkspaceRoot, title, cancellationToken);
-        if (existingByTitle is not null)
-        {
-            _logger.LogInformation(
-                "Reusing existing task {TaskId} with title {Title} in workspace {WorkspaceRoot}",
-                existingByTitle.Id,
-                title,
-                canonicalSession.WorkspaceRoot);
-            return existingByTitle;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        var task = new WorkTask
-        {
-            Id = Guid.NewGuid(),
-            OperatorSessionId = canonicalSession.Id,
-            Title = title,
-            Description = description,
-            AssignedAgent = assignedAgent,
-            Status = WorkTaskStatus.Backlog,
-            Risk = risk,
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
-
-        var kanbanId = await _kanbanSync.SyncCreateTaskAsync(task, canonicalSession.WorkspaceRoot, cancellationToken);
-        if (!string.IsNullOrEmpty(kanbanId))
-        {
-            var existing = await FindTaskByHermesKanbanIdForWorkspaceAsync(
-                canonicalSession.WorkspaceRoot, kanbanId, cancellationToken);
-            if (existing is not null)
+        return await _workspaceIdentity.RunExclusiveAsync(
+            opSession.WorkspaceRoot,
+            async ct =>
             {
-                _logger.LogInformation(
-                    "Reusing existing task {TaskId} for kanban card {KanbanId} in workspace {WorkspaceRoot}",
-                    existing.Id,
-                    kanbanId,
-                    canonicalSession.WorkspaceRoot);
-                return existing;
-            }
+                var canonicalSession = await _sessionConsolidator.EnsureCanonicalAsync(opSession, ct);
 
-            task.HermesKanbanTaskId = kanbanId;
-        }
+                var existingByTitle = await _tasks.FindByTitleForWorkspaceAsync(
+                    canonicalSession.WorkspaceRoot, title, ct);
+                if (existingByTitle is not null)
+                {
+                    _logger.LogInformation(
+                        "Reusing existing task {TaskId} with title {Title} in workspace {WorkspaceRoot}",
+                        existingByTitle.Id,
+                        title,
+                        canonicalSession.WorkspaceRoot);
+                    return existingByTitle;
+                }
 
-        await _tasks.CreateAsync(task, cancellationToken);
+                var board = await _kanbanSync.FetchBoardTasksAsync(ct);
+                if (board.Outcome == KanbanSyncOutcome.Success)
+                {
+                    var linkedKanbanId = KanbanTaskMatcher.FindExistingKanbanId(
+                        title, canonicalSession.WorkspaceRoot, board.Tasks);
+                    if (!string.IsNullOrEmpty(linkedKanbanId))
+                    {
+                        var linked = await _tasks.GetByHermesKanbanIdForWorkspaceAsync(
+                            canonicalSession.WorkspaceRoot, linkedKanbanId, ct);
+                        if (linked is not null)
+                            return linked;
+                    }
+                }
 
-        await _events.IngestAsync(task.Id, EventSource.JoyZoning, EventTypes.TaskCreated,
-            new { task.Id, task.Title, task.Status }, cancellationToken);
-        await BroadcastSafeAsync("OnTaskChanged", TaskDto.From(task), cancellationToken);
-        MirrorWorkTaskToBroccoliQ(task);
-        return task;
+                var now = DateTimeOffset.UtcNow;
+                var task = new WorkTask
+                {
+                    Id = Guid.NewGuid(),
+                    OperatorSessionId = canonicalSession.Id,
+                    Title = title,
+                    Description = description,
+                    AssignedAgent = assignedAgent,
+                    Status = WorkTaskStatus.Backlog,
+                    Risk = risk,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                };
+
+                var kanbanId = await _kanbanSync.SyncCreateTaskAsync(task, canonicalSession.WorkspaceRoot, ct);
+                if (!string.IsNullOrEmpty(kanbanId))
+                {
+                    var existing = await _tasks.GetByHermesKanbanIdForWorkspaceAsync(
+                        canonicalSession.WorkspaceRoot, kanbanId, ct);
+                    if (existing is not null)
+                    {
+                        _logger.LogInformation(
+                            "Reusing existing task {TaskId} for kanban card {KanbanId} in workspace {WorkspaceRoot}",
+                            existing.Id,
+                            kanbanId,
+                            canonicalSession.WorkspaceRoot);
+                        return existing;
+                    }
+
+                    task.HermesKanbanTaskId = kanbanId;
+                }
+
+                await _tasks.CreateAsync(task, ct);
+
+                await _events.IngestAsync(task.Id, EventSource.JoyZoning, EventTypes.TaskCreated,
+                    new { task.Id, task.Title, task.Status }, ct);
+                await BroadcastSafeAsync("OnTaskChanged", TaskDto.From(task), ct);
+                MirrorWorkTaskToBroccoliQ(task);
+                return task;
+            },
+            cancellationToken);
     }
 
     public async Task<WorkTask> UpdateTaskStatusAsync(
@@ -260,7 +322,7 @@ public class OrchestrationService
         var task = await _tasks.GetByIdAsync(taskId, cancellationToken)
             ?? throw new InvalidOperationException($"Task {taskId} not found");
 
-        await _kanbanSync.SyncUpdateStatusAsync(task, cancellationToken);
+        await EnqueueKanbanStatusPushAsync(task.Id, cancellationToken);
 
         await _events.IngestAsync(taskId, EventSource.JoyZoning, EventTypes.TaskStatusChanged,
             new { taskId, status }, cancellationToken);
@@ -314,8 +376,17 @@ public class OrchestrationService
         var task = await _tasks.GetByIdAsync(taskId, cancellationToken)
             ?? throw new InvalidOperationException($"Task {taskId} not found");
 
-        var session = await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken)
-            ?? throw new InvalidOperationException("Operator session not found");
+        var session = await _sessionConsolidator.EnsureCanonicalAsync(
+            await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken)
+                ?? throw new InvalidOperationException("Operator session not found"),
+            cancellationToken);
+
+        if (task.OperatorSessionId != session.Id)
+        {
+            task.OperatorSessionId = session.Id;
+            task.UpdatedAt = DateTimeOffset.UtcNow;
+            await _tasks.UpdateAsync(task, cancellationToken);
+        }
 
         var op = new LeaseOperationContext(session.Id, StatusChangeActor.System);
         HandoffPacket handoff;
@@ -368,24 +439,28 @@ public class OrchestrationService
             },
             cancellationToken);
 
+        var executionId = Guid.NewGuid();
         string runId;
+        string hermesSessionForRun;
         try
         {
-            runId = await DispatchStepAsync(
+            var started = await DispatchStepAsync(
                 "StartAgentRun",
                 async () =>
                 {
                     var adapter = _agents.Get(task.AssignedAgent);
-                    var started = await adapter.StartRunDetailedAsync(new AgentRunRequest
+                    return await adapter.StartRunDetailedAsync(new AgentRunRequest
                     {
                         Prompt = HandoffPacketBuilder.ToExecutorPrompt(handoff),
-                        SessionId = ResolveHermesSessionId(session),
+                        SessionId = executionId.ToString(),
                         WorkspaceRoot = handoff.WorktreePath,
                     }, cancellationToken);
-                    await PersistHermesSessionIdAsync(session, started.SessionId, cancellationToken);
-                    return started.RunId;
                 },
                 cancellationToken);
+            runId = started.RunId;
+            hermesSessionForRun = string.IsNullOrWhiteSpace(started.SessionId)
+                ? executionId.ToString()
+                : started.SessionId;
         }
         catch (Exception ex)
         {
@@ -409,20 +484,14 @@ public class OrchestrationService
 
         task = await _tasks.GetByIdAsync(taskId, cancellationToken) ?? task;
         MirrorWorkTaskToBroccoliQ(task);
-        await DispatchStepAsync(
-            "KanbanSync",
-            async () =>
-            {
-                await _kanbanSync.SyncUpdateStatusAsync(task, cancellationToken);
-                return (object?)null;
-            },
-            cancellationToken);
+        await EnqueueKanbanStatusPushAsync(taskId, cancellationToken);
 
         var execution = new ExecutionSession
         {
-            Id = Guid.NewGuid(),
+            Id = executionId,
             WorkTaskId = taskId,
             HermesRunId = runId,
+            HermesSessionId = hermesSessionForRun,
             Objective = task.Title,
             Phase = ExecutionPhase.Running,
             StartedAt = DateTimeOffset.UtcNow,
@@ -471,8 +540,7 @@ public class OrchestrationService
         string message,
         CancellationToken cancellationToken = default)
     {
-        var session = await _sessions.GetByIdAsync(sessionId, cancellationToken)
-            ?? throw new InvalidOperationException($"Session {sessionId} not found");
+        var session = await ResolveCanonicalSessionAsync(sessionId, cancellationToken);
 
         session.Status = SessionStatus.ManagerActive;
         session.UpdatedAt = DateTimeOffset.UtcNow;
@@ -494,10 +562,10 @@ public class OrchestrationService
             WorkspaceRoot = session.WorkspaceRoot,
             Role = AgentRole.Manager,
         }, cancellationToken);
-        await PersistHermesSessionIdAsync(session, started.SessionId, cancellationToken);
+        await PersistManagerHermesSessionIdAsync(session, started.SessionId, cancellationToken);
         var runId = started.RunId;
 
-        await _events.IngestAsync(sessionId, EventSource.Hermes, EventTypes.HermesRunStarted,
+        await _events.IngestAsync(session.Id, EventSource.Hermes, EventTypes.HermesRunStarted,
             new { runId, message }, cancellationToken);
 
         return runId;
@@ -515,11 +583,18 @@ public class OrchestrationService
         var session = await _sessions.GetByIdAsync(sessionId, cancellationToken)
             ?? throw new InvalidOperationException($"Session {sessionId} not found");
 
-        return await _kanbanSyncCoordinator.RunExclusiveAsync(
+        return await _workspaceIdentity.RunExclusiveAsync(
             session.WorkspaceRoot,
             async ct =>
             {
                 var canonical = await _sessionConsolidator.EnsureCanonicalAsync(session, ct);
+                if (await ShouldDeferFullKanbanSyncAsync(canonical.WorkspaceRoot, ct))
+                {
+                    var deferred = "Kanban sync deferred — multiple active leases on workspace";
+                    _kanbanSyncState.LastMessage = deferred;
+                    return new KanbanImportResult(0, 0, 0, 0, deferred);
+                }
+
                 var pull = await PullKanbanFromHermesAsync(canonical, ct);
                 var push = await PushLocalKanbanToHermesAsync(canonical, ct);
 
@@ -595,6 +670,37 @@ public class OrchestrationService
 
             if (existing is null)
             {
+                existing = await _tasks.FindByTitleForWorkspaceAsync(
+                    canonicalSession.WorkspaceRoot, snap.Title, cancellationToken);
+                if (existing is not null && string.IsNullOrEmpty(existing.HermesKanbanTaskId))
+                {
+                    var titleLinkLocalWins = KanbanMergeRules.LocalStatusWins(
+                        lastSync.HasValue && existing.UpdatedAt > lastSync.Value,
+                        existing.KanbanRevision,
+                        existing.KanbanPushedRevision);
+                    existing.HermesKanbanTaskId = snap.Id;
+                    existing.Title = snap.Title;
+                    existing.Description = snap.Body;
+                    existing.AssignedAgent = agent;
+                    if (!titleLinkLocalWins)
+                    {
+                        existing.Status = status;
+                        if (status == WorkTaskStatus.Complete && existing.CompletedAt is null)
+                            existing.CompletedAt = DateTimeOffset.UtcNow;
+                        existing.KanbanPushedRevision = existing.KanbanRevision;
+                    }
+
+                    if (existing.OperatorSessionId != sessionId)
+                        existing.OperatorSessionId = sessionId;
+
+                    existing.UpdatedAt = DateTimeOffset.UtcNow;
+                    await _tasks.UpdateAsync(existing, cancellationToken);
+                    await BroadcastSafeAsync("OnTaskChanged", TaskDto.From(existing), cancellationToken);
+                    MirrorWorkTaskToBroccoliQ(existing);
+                    updated++;
+                    continue;
+                }
+
                 var now = DateTimeOffset.UtcNow;
                 var task = new WorkTask
                 {
@@ -624,7 +730,10 @@ public class OrchestrationService
                     existing.OperatorSessionId = sessionId;
                 }
 
-                var localWins = lastSync.HasValue && existing.UpdatedAt > lastSync.Value;
+                var localWins = KanbanMergeRules.LocalStatusWins(
+                    lastSync.HasValue && existing.UpdatedAt > lastSync.Value,
+                    existing.KanbanRevision,
+                    existing.KanbanPushedRevision);
                 existing.Title = snap.Title;
                 existing.Description = snap.Body;
                 existing.AssignedAgent = agent;
@@ -633,6 +742,7 @@ public class OrchestrationService
                     existing.Status = status;
                     if (status == WorkTaskStatus.Complete && existing.CompletedAt is null)
                         existing.CompletedAt = DateTimeOffset.UtcNow;
+                    existing.KanbanPushedRevision = existing.KanbanRevision;
                 }
 
                 existing.UpdatedAt = DateTimeOffset.UtcNow;
@@ -676,7 +786,7 @@ public class OrchestrationService
             }
             else
             {
-                await _kanbanSync.SyncUpdateStatusAsync(task, cancellationToken);
+                await EnqueueKanbanStatusPushAsync(task.Id, cancellationToken);
                 statusPushed++;
             }
         }
@@ -689,7 +799,19 @@ public class OrchestrationService
             ? session.Id.ToString()
             : session.HermesSessionId;
 
-    private async Task PersistHermesSessionIdAsync(
+    private Task EnqueueKanbanStatusPushAsync(Guid taskId, CancellationToken cancellationToken) =>
+        _kanbanOutbox.EnqueueAsync(taskId, cancellationToken).AsTask();
+
+    private async Task<bool> ShouldDeferFullKanbanSyncAsync(
+        string workspaceRoot,
+        CancellationToken cancellationToken)
+    {
+        var threshold = Math.Max(1, _parallelism.DeferFullKanbanSyncWhenActiveLeasesAtLeast);
+        var active = await _leases.CountActiveForWorkspaceAsync(workspaceRoot, cancellationToken);
+        return active >= threshold;
+    }
+
+    private async Task PersistManagerHermesSessionIdAsync(
         OperatorSession session,
         string? returnedSessionId,
         CancellationToken cancellationToken)
@@ -703,27 +825,11 @@ public class OrchestrationService
         await _sessions.UpdateAsync(session, cancellationToken);
     }
 
-    private async Task<WorkTask?> FindTaskByHermesKanbanIdForWorkspaceAsync(
+    private Task<WorkTask?> FindTaskByHermesKanbanIdForWorkspaceAsync(
         string workspaceRoot,
         string hermesKanbanTaskId,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(hermesKanbanTaskId))
-            return null;
-
-        var sessions = await _sessions.ListAsync(cancellationToken);
-        foreach (var session in sessions)
-        {
-            if (!WorkspacePaths.EqualsNormalized(session.WorkspaceRoot, workspaceRoot))
-                continue;
-
-            var task = await _tasks.GetByHermesKanbanIdAsync(session.Id, hermesKanbanTaskId, cancellationToken);
-            if (task is not null)
-                return task;
-        }
-
-        return null;
-    }
+        CancellationToken cancellationToken) =>
+        _tasks.GetByHermesKanbanIdForWorkspaceAsync(workspaceRoot, hermesKanbanTaskId, cancellationToken);
 }
 
 public record KanbanImportResult(int Imported, int Updated, int Skipped, int Pushed, string Message);

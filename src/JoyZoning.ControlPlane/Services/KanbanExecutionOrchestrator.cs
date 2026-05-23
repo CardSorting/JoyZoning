@@ -7,6 +7,9 @@ using JoyZoning.Persistence.Repositories;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 
+// Planning → Execution → Review mode flow: kanban card (intent) → lease/worker (runtime) → merge queue (human PR).
+// See docs/operational-modes.md — do not collapse these metaphors in UI or read models.
+
 namespace JoyZoning.ControlPlane.Services;
 
 /// <summary>
@@ -21,6 +24,7 @@ public class KanbanExecutionOrchestrator
     private readonly EventIngestor _events;
     private readonly LeaseRuntimeService _runtime;
     private readonly LeaseRuntimeOptions _options;
+    private readonly WorkspaceLiveMirrorService _liveMirror;
 
     public KanbanExecutionOrchestrator(
         IWorkTaskRepository tasks,
@@ -28,7 +32,8 @@ public class KanbanExecutionOrchestrator
         IExecutionLeaseRepository leases,
         EventIngestor events,
         LeaseRuntimeService runtime,
-        IOptions<LeaseRuntimeOptions> options)
+        IOptions<LeaseRuntimeOptions> options,
+        WorkspaceLiveMirrorService liveMirror)
     {
         _tasks = tasks;
         _sessions = sessions;
@@ -36,6 +41,7 @@ public class KanbanExecutionOrchestrator
         _events = events;
         _runtime = runtime;
         _options = options.Value;
+        _liveMirror = liveMirror;
     }
 
     public async Task<(ExecutionLease Lease, HandoffPacket Handoff)> BeginLeaseAsync(
@@ -62,7 +68,13 @@ public class KanbanExecutionOrchestrator
         if (schedulingError is not null)
             throw LeaseOrchestrationException.Conflict(schedulingError);
 
-        if (!WorktreePlanner.TryPlan(session.WorkspaceRoot, cardId, out var worktreePath, out var branchName, out var pathError))
+        if (!WorktreePlanner.TryPlan(
+                session.WorkspaceRoot,
+                cardId,
+                task.HermesKanbanTaskId,
+                out var worktreePath,
+                out var branchName,
+                out var pathError))
             throw LeaseOrchestrationException.BadRequest(pathError!);
 
         Directory.CreateDirectory(worktreePath);
@@ -434,6 +446,10 @@ public class KanbanExecutionOrchestrator
         await _events.IngestAsync(cardId, EventSource.JoyZoning, EventTypes.ExecutionLeaseRevoked,
             new { lease.Id, reason }, cancellationToken);
 
+        await _liveMirror.CompleteMirrorForLeaseAsync(
+            lease,
+            WorkerMergeState.Revoked,
+            cancellationToken);
         return lease;
     }
 
@@ -465,6 +481,10 @@ public class KanbanExecutionOrchestrator
         await _events.IngestAsync(cardId, EventSource.JoyZoning, EventTypes.ExecutionLeaseMerged,
             new { lease.Id }, cancellationToken);
 
+        await _liveMirror.CompleteMirrorForLeaseAsync(
+            lease,
+            WorkerMergeState.Merged,
+            cancellationToken);
         return task;
     }
 
@@ -566,9 +586,9 @@ public class KanbanExecutionOrchestrator
         var worktreePath = prior?.WorktreePath ?? "";
         var branchName = prior?.BranchName ?? "";
         if (string.IsNullOrEmpty(worktreePath)
-            || !WorktreePlanner.TryPlan(session.WorkspaceRoot, task.Id, out worktreePath, out branchName, out _))
+            || !WorktreePlanner.TryPlan(session.WorkspaceRoot, task.Id, task.HermesKanbanTaskId, out worktreePath, out branchName, out _))
         {
-            if (!WorktreePlanner.TryPlan(session.WorkspaceRoot, task.Id, out worktreePath, out branchName, out var pathError))
+            if (!WorktreePlanner.TryPlan(session.WorkspaceRoot, task.Id, task.HermesKanbanTaskId, out worktreePath, out branchName, out var pathError))
                 throw LeaseOrchestrationException.BadRequest(pathError!);
         }
 

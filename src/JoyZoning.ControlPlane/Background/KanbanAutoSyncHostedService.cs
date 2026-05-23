@@ -1,9 +1,11 @@
 using JoyZoning.Agents.Hermes;
 using JoyZoning.ControlPlane.Hubs;
 using JoyZoning.ControlPlane.Services;
+using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Orchestration;
 using JoyZoning.Persistence.Repositories;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 
 namespace JoyZoning.ControlPlane.Background;
 
@@ -70,8 +72,12 @@ public class KanbanAutoSyncHostedService : BackgroundService
         }
 
         var sessions = scope.ServiceProvider.GetRequiredService<IOperatorSessionRepository>();
+        var leases = scope.ServiceProvider.GetRequiredService<IExecutionLeaseRepository>();
         var orch = scope.ServiceProvider.GetRequiredService<OrchestrationService>();
         var hub = scope.ServiceProvider.GetRequiredService<IHubContext<OperatorHub>>();
+        var parallelism = scope.ServiceProvider
+            .GetRequiredService<IOptions<WorkspaceParallelismOptions>>().Value;
+        var deferThreshold = Math.Max(1, parallelism.DeferFullKanbanSyncWhenActiveLeasesAtLeast);
 
         var all = await sessions.ListAsync(cancellationToken);
         if (all.Count == 0)
@@ -93,6 +99,14 @@ public class KanbanAutoSyncHostedService : BackgroundService
 
             try
             {
+                var activeLeases = await leases.CountActiveForWorkspaceAsync(session.WorkspaceRoot, cancellationToken);
+                if (activeLeases >= deferThreshold)
+                {
+                    _state.LastMessage =
+                        $"Auto-sync deferred for workspace ({activeLeases} active lease(s))";
+                    continue;
+                }
+
                 syncedCount++;
                 var result = await orch.SyncKanbanTwoWayAsync(session.Id, cancellationToken);
                 await hub.Clients.All.SendAsync(

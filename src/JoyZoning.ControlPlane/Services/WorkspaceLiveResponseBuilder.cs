@@ -16,7 +16,13 @@ public static class WorkspaceLiveResponseBuilder
             blockedReason = snapshot.BlockedReason,
             worktreePath = snapshot.WorktreePath,
             sessionWorkspaceRoot = snapshot.SessionWorkspaceRoot,
+            liveMirrorRoot = snapshot.LiveMirrorRoot,
+            mirrorMode = snapshot.MirrorMode,
+            mirrorKeyId = snapshot.MirrorKeyId,
+            leaseId = snapshot.LeaseId,
+            isSharedSessionRootMirror = snapshot.IsSharedSessionRootMirror,
             liveFile = snapshot.LiveFilePath,
+            liveIndexJson = Path.Combine(snapshot.SessionWorkspaceRoot, ".joyzoning", "live", "index.json"),
             recommendedPollSeconds = display.RecommendedPollSeconds,
             progress = new
             {
@@ -59,11 +65,12 @@ public static class WorkspaceLiveResponseBuilder
             },
             recentEvidence = snapshot.RecentEvidence,
             updatedAt = snapshot.UpdatedAt,
+            modeNavigation = MapModeNavigation(snapshot.LeaseStatus, blocked: !string.IsNullOrWhiteSpace(snapshot.BlockedReason)),
             watch = new
             {
                 command = $"jz task watch {snapshot.TaskId}",
                 statusMarkdown = snapshot.LiveFilePath,
-                statusJson = Path.Combine(snapshot.SessionWorkspaceRoot, ".joyzoning/live.json"),
+                statusJson = Path.Combine(snapshot.LiveMirrorRoot, ".joyzoning/live.json"),
             },
         };
     }
@@ -89,5 +96,22 @@ public static class WorkspaceLiveResponseBuilder
             worktreeFileCount: 0,
             worktreeLastWriteUtc: null,
             filesCopiedThisTick: 0),
+        modeNavigation = MapModeNavigation(null, blocked: false),
     };
+
+    private static object MapModeNavigation(string? leaseStatus, bool blocked)
+    {
+        var hints = OperationalModeNavigation.ForLiveTask(leaseStatus, mergeState: null, blocked);
+        return new
+        {
+            recommendedMode = hints.RecommendedModeSlug,
+            availableTransitions = hints.AvailableTransitions.Select(t => new
+            {
+                targetMode = t.TargetModeSlug,
+                t.Label,
+                t.Reason,
+                handoffKind = t.HandoffKind,
+            }),
+        };
+    }
 }

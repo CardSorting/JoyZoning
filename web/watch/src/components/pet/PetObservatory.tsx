@@ -90,10 +90,20 @@ export function PetObservatory({
               <dd className="text-pet-cream">{d?.headline ?? "—"}</dd>
             </div>
             <div className="sm:col-span-2">
-              <dt className="text-xs text-pet-muted">Worktree</dt>
+              <dt className="text-xs text-pet-muted">
+                {snapshot.liveMirrorRoot ? "Live mirror" : "Worktree"}
+              </dt>
               <dd className="break-all font-mono text-[11px] text-pet-muted">
-                {snapshot.worktreePath ?? "—"}
+                {snapshot.liveMirrorRoot ?? snapshot.worktreePath ?? "—"}
               </dd>
+              {snapshot.liveMirrorRoot && snapshot.mirrorMode ? (
+                <dd className="mt-0.5 text-[10px] text-pet-muted/80">
+                  {snapshot.mirrorMode}
+                  {snapshot.isSharedSessionRootMirror
+                    ? " · session root (single worker)"
+                    : " · isolated under .joyzoning/live/"}
+                </dd>
+              ) : null}
             </div>
           </dl>
 

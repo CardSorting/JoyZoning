@@ -371,6 +371,21 @@ public class HermesRunEventConsumer
             new { execution.Id, runId },
             cancellationToken);
 
+        try
+        {
+            var lease = await orchestrator.GetActiveLeaseAsync(execution.WorkTaskId, cancellationToken);
+            if (lease is not null)
+            {
+                using var mirrorScope = _scopeFactory.CreateScope();
+                var mirror = mirrorScope.ServiceProvider.GetRequiredService<WorkspaceLiveMirrorService>();
+                await mirror.MarkMirrorStaleForExecutionEndAsync(lease, cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Live mirror stale mark failed for task {TaskId}", execution.WorkTaskId);
+        }
+
         if (agentKind == AgentKind.DietCode)
         {
             try

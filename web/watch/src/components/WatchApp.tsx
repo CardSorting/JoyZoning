@@ -7,7 +7,10 @@ import type { IntentKind } from "@/lib/pet";
 import { loadIntent } from "@/lib/session-prefs";
 import type { WatchBootstrap } from "@/lib/types";
 import { useLiveTask } from "@/hooks/useLiveTask";
-import { PetShell } from "./pet/PetShell";
+import { clearWatchSessionOnDepart } from "@/hooks/useWatchMode";
+import { tryCreateWatchLiveBinding } from "@/lib/watch-live-binding";
+import { WatchOperatorDisconnected } from "./WatchOperatorDisconnected";
+import { OperatorModeShell } from "./OperatorModeShell";
 import { PetEntryFlow } from "./pet/PetEntryFlow";
 
 export function WatchApp({
@@ -126,8 +129,10 @@ export function WatchApp({
     onWatchingChange(false);
     setTaskId("");
     setResting(false);
+    clearWatchSessionOnDepart();
     const url = new URL(window.location.href);
     url.searchParams.delete("taskId");
+    url.searchParams.delete("mode");
     window.history.replaceState(null, "", url.toString());
   };
 
@@ -175,31 +180,47 @@ export function WatchApp({
         />
       )}
 
-      {watching && live.snapshot && (
-        <PetShell
-          snapshot={live.snapshot}
-          boardTasks={taskOptions}
-          events={live.events}
-          stream={live.stream}
-          files={live.files}
-          pulseTicks={pulseTicks}
-          connLabel={live.connLabel}
-          resting={resting}
-          onRestingChange={setResting}
-          onNudge={() => {
-            void live.forceRefresh();
-            if (sessionId) void loadTasks(sessionId);
-            setPulseTicks((n) => n + 1);
-          }}
-          onDepart={handleDepart}
-          onSelectTask={(id) => {
-            setTaskId(id);
-            const url = new URL(window.location.href);
-            url.searchParams.set("taskId", id);
-            window.history.replaceState(null, "", url.toString());
-          }}
-        />
-      )}
+      {watching &&
+        live.snapshot &&
+        (() => {
+          const bindingResult = tryCreateWatchLiveBinding({
+            sessionId,
+            snapshot: live.snapshot!,
+            boardTasks: taskOptions,
+            events: live.events,
+            stream: live.stream,
+            files: live.files,
+            pulseTicks,
+            connLabel: live.connLabel,
+            resting,
+            onRestingChange: setResting,
+            onNudge: () => {
+              void live.forceRefresh();
+              if (sessionId) void loadTasks(sessionId);
+              setPulseTicks((n) => n + 1);
+            },
+            onDepart: handleDepart,
+            onSelectTask: (id) => {
+              setTaskId(id);
+              const url = new URL(window.location.href);
+              url.searchParams.set("taskId", id);
+              window.history.replaceState(null, "", url.toString());
+            },
+          });
+
+          if (!bindingResult.ok) {
+            return (
+              <WatchOperatorDisconnected
+                theme="pet"
+                reason={bindingResult.error}
+                hint="Fix the connection or pick another task."
+                onRetry={() => void live.forceRefresh()}
+              />
+            );
+          }
+
+          return <OperatorModeShell {...bindingResult.binding} />;
+        })()}
 
       {watching && !live.snapshot && !live.error && (
         <PetEmpty

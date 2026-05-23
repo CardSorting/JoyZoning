@@ -1,0 +1,329 @@
+"use client";
+
+/**
+ * Execution Mode — live worker orchestration (leases, mirrors, parallel Hermes sessions).
+ * @see docs/operational-modes.md
+ */
+
+import { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, Copy, ExternalLink, Layers, Shield } from "lucide-react";
+import { api } from "@/lib/api";
+import { copyPath, openPathInShell } from "@/lib/path-actions";
+import {
+  healthLabel,
+  healthTone,
+  type ParallelWorkersSnapshot,
+  type ParallelWorkerEntry,
+} from "@/lib/parallel-workers";
+import { PathActionNotice } from "./PathActionNotice";
+
+function shortId(id: string) {
+  return id.length > 12 ? `${id.slice(0, 8)}…` : id;
+}
+
+function WorkerCard({
+  worker,
+  isSelected,
+  onSelect,
+  inspectOnly,
+  onGoToReview,
+  onPathNotice,
+}: {
+  worker: ParallelWorkerEntry;
+  isSelected: boolean;
+  onSelect?: () => void;
+  inspectOnly?: boolean;
+  onGoToReview?: () => void;
+  onPathNotice: (message: string | null, variant?: "info" | "error") => void;
+}) {
+  const showReviewHandoff =
+    inspectOnly &&
+    onGoToReview &&
+    (worker.recommendedMode === "review" ||
+      worker.mergeState === "ready_to_merge" ||
+      worker.mergeState === "merge_conflict");
+
+  const shellClass = `rounded-xl border p-3 transition-colors ${
+    isSelected
+      ? "border-campfire-accent/60 bg-campfire-accent/10"
+      : "border-campfire-border bg-campfire-elevated/50"
+  }`;
+
+  const summary = (
+    <>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-campfire-text">{worker.taskTitle}</p>
+          <p className="mt-0.5 text-[11px] text-campfire-muted">
+            Kanban: {worker.kanbanStatus} · rev {worker.kanbanPushedRevision}/
+            {worker.kanbanRevision}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${healthTone(worker.healthState)}`}
+        >
+          {healthLabel(worker.healthState)}
+        </span>
+      </div>
+
+      <dl className="mt-3 grid gap-1.5 text-[11px] text-campfire-muted">
+        <div className="flex justify-between gap-2">
+          <dt>Execution</dt>
+          <dd className="font-mono text-campfire-text">
+            {worker.executionSessionId ? shortId(worker.executionSessionId) : "—"}
+          </dd>
+        </div>
+        <div className="flex justify-between gap-2">
+          <dt>Hermes session</dt>
+          <dd className="truncate font-mono text-campfire-text">
+            {worker.hermesSessionId ? shortId(worker.hermesSessionId) : "—"}
+          </dd>
+        </div>
+        <div className="flex justify-between gap-2">
+          <dt>Lease</dt>
+          <dd className="font-mono">{shortId(worker.leaseId)}</dd>
+        </div>
+        {worker.lastMirroredAt && (
+          <div className="flex justify-between gap-2">
+            <dt>Last mirrored</dt>
+            <dd>{new Date(worker.lastMirroredAt).toLocaleString()}</dd>
+          </div>
+        )}
+      </dl>
+
+      {worker.registryCollision && (
+        <p className="mt-2 text-[10px] text-orange-300">
+          Collision with lease {shortId(worker.registryCollision.occupyingLeaseId)}
+        </p>
+      )}
+
+      {worker.liveMirrorPath && (
+        <p className="mt-2 break-all font-mono text-[10px] text-campfire-muted/90">
+          {worker.liveMirrorPath}
+        </p>
+      )}
+    </>
+  );
+
+  return (
+    <div className={shellClass} data-selected={isSelected || undefined}>
+      {onSelect ? (
+        <button type="button" onClick={onSelect} className="w-full text-left">
+          {summary}
+        </button>
+      ) : (
+        <div>{summary}</div>
+      )}
+
+      {worker.liveMirrorPath && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              void copyPath(worker.liveMirrorPath!).then((res) =>
+                onPathNotice(res.ok ? "Mirror path copied" : res.error, res.ok ? "info" : "error"),
+              );
+            }}
+            className="inline-flex items-center gap-1 rounded-lg border border-campfire-border px-2 py-1 text-[10px] text-campfire-muted hover:text-campfire-text"
+          >
+            <Copy className="h-3 w-3" />
+            Copy path
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void openPathInShell(worker.liveMirrorPath!).then((res) =>
+                onPathNotice(res.ok ? "Opened mirror in shell" : res.error, res.ok ? "info" : "error"),
+              );
+            }}
+            className="inline-flex items-center gap-1 rounded-lg border border-campfire-border px-2 py-1 text-[10px] text-campfire-muted hover:text-campfire-text"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Open folder
+          </button>
+        </div>
+      )}
+
+      {showReviewHandoff && (
+        <button
+          type="button"
+          onClick={() => onGoToReview?.()}
+          className="mt-2 text-[10px] font-semibold text-campfire-accent hover:underline"
+        >
+          → Review output in Review mode
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function ParallelWorkersPanel({
+  sessionId,
+  selectedTaskId,
+  onSelectTask,
+  theme = "campfire",
+  inspectOnly = false,
+  onGoToReview,
+}: {
+  sessionId: string | null;
+  selectedTaskId?: string | null;
+  onSelectTask?: (taskId: string) => void;
+  theme?: "campfire" | "pet";
+  /** Execution mode: no merge actions; offer handoff to Review. */
+  inspectOnly?: boolean;
+  onGoToReview?: () => void;
+}) {
+  const [data, setData] = useState<ParallelWorkersSnapshot | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [pathNotice, setPathNotice] = useState<{
+    message: string;
+    variant: "info" | "error";
+  } | null>(null);
+
+  const reportPathNotice = useCallback(
+    (message: string | null, variant: "info" | "error" = "info") => {
+      if (!message) {
+        setPathNotice(null);
+        return;
+      }
+      setPathNotice({ message, variant });
+      window.setTimeout(() => setPathNotice(null), 3500);
+    },
+    [],
+  );
+
+  const load = useCallback(async () => {
+    if (!sessionId) {
+      setData(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const snap = await api.parallelWorkers(sessionId);
+      setData(snap);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load parallel workers");
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    void load();
+    const t = setInterval(() => void load(), 8000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const border = theme === "pet" ? "border-pet-elevated" : "border-campfire-border";
+  const surface = theme === "pet" ? "bg-pet-deep/80" : "bg-campfire-surface/80";
+  const muted = theme === "pet" ? "text-pet-muted" : "text-campfire-muted";
+  const text = theme === "pet" ? "text-pet-cream" : "text-campfire-text";
+
+  if (!sessionId) return null;
+
+  const perExecution =
+    data?.liveMirrorMode === "PerExecution" || data?.liveMirrorMode === "2";
+  const legacyShared =
+    data?.workers.some((w) => w.isSharedSessionRootMirror) ?? false;
+
+  return (
+    <section
+      data-joyzoning-mode="execution"
+      data-canonical-surface="true"
+      className={`rounded-2xl border ${border} ${surface} p-4`}
+    >
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Layers className={`h-4 w-4 ${muted}`} />
+          <h3 className={`text-sm font-bold uppercase tracking-wide ${text}`}>
+            Parallel workers
+          </h3>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {perExecution && (
+            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+              Parallel isolated
+            </span>
+          )}
+          {legacyShared && (
+            <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-200">
+              Legacy session root
+            </span>
+          )}
+          {data?.sharedSessionRootMirroringSuppressed && (
+            <span className="rounded-full border border-orange-500/40 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-200">
+              Shared root guard
+            </span>
+          )}
+        </div>
+      </div>
+
+      {data && !data.sessionRootIsCanonicalLiveState && (
+        <p className={`mb-3 flex gap-2 text-xs ${muted}`}>
+          <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          {data.canonicalLiveStateHint}
+        </p>
+      )}
+
+      {inspectOnly && (
+        <p className={`mb-3 text-xs ${muted}`}>
+          Inspect runtime only — merge and revoke live in Review mode.
+        </p>
+      )}
+
+      {error && (
+        <p className="mb-2 text-xs text-red-400" role="alert">
+          {error}
+        </p>
+      )}
+
+      <PathActionNotice
+        message={pathNotice?.message ?? null}
+        variant={pathNotice?.variant ?? "info"}
+      />
+
+      {loading && !data && <p className={`text-xs ${muted}`}>Loading workers…</p>}
+
+      {data && data.warnings.length > 0 && (
+        <ul className="mb-3 space-y-1">
+          {data.warnings.map((w, i) => (
+            <li
+              key={`${w.code}-${i}`}
+              className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-2 py-1.5 text-[11px] text-amber-100"
+            >
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              {w.message}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {data && data.workers.length === 0 && (
+        <p className={`text-xs ${muted}`}>No active workers with live mirrors on this workspace.</p>
+      )}
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        {data?.workers.map((w) => (
+          <WorkerCard
+            key={`${w.leaseId}-${w.liveMirrorPath}`}
+            worker={w}
+            isSelected={selectedTaskId === w.taskId}
+            onSelect={onSelectTask ? () => onSelectTask(w.taskId) : undefined}
+            inspectOnly={inspectOnly}
+            onGoToReview={onGoToReview}
+            onPathNotice={reportPathNotice}
+          />
+        ))}
+      </div>
+
+      {data?.indexJsonPath && (
+        <p className={`mt-3 text-[10px] ${muted}`}>
+          Index: <span className="font-mono">{data.indexJsonPath}</span>
+        </p>
+      )}
+    </section>
+  );
+}

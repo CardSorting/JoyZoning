@@ -77,7 +77,9 @@ export function useLiveTask(
       if ((live.progress?.filesCopiedThisTick ?? 0) > 0) {
         pushStream(
           "sync",
-          `Synced ${live.progress!.filesCopiedThisTick} file(s) to your project folder`,
+          live.liveMirrorRoot
+            ? `Synced ${live.progress!.filesCopiedThisTick} file(s) to live mirror`
+            : `Synced ${live.progress!.filesCopiedThisTick} file(s) to your project folder`,
         );
       }
       setSnapshot(live);

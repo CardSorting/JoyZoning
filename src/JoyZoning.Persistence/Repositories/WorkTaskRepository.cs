@@ -22,6 +22,29 @@ public class WorkTaskRepository : IWorkTaskRepository
             t => t.OperatorSessionId == sessionId && t.HermesKanbanTaskId == hermesKanbanTaskId,
             cancellationToken);
 
+    public async Task<WorkTask?> GetByHermesKanbanIdForWorkspaceAsync(
+        string workspaceRoot,
+        string hermesKanbanTaskId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(hermesKanbanTaskId))
+            return null;
+
+        var sessions = await _db.OperatorSessions.AsNoTracking().ToListAsync(cancellationToken);
+        var sessionIds = sessions
+            .Where(s => WorkspacePaths.EqualsNormalized(s.WorkspaceRoot, workspaceRoot))
+            .Select(s => s.Id)
+            .ToList();
+
+        if (sessionIds.Count == 0)
+            return null;
+
+        return await _db.WorkTasks.AsNoTracking()
+            .Where(t => sessionIds.Contains(t.OperatorSessionId) && t.HermesKanbanTaskId == hermesKanbanTaskId)
+            .OrderByDescending(t => t.UpdatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<WorkTask>> ListBySessionAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default)
@@ -71,6 +94,17 @@ public class WorkTaskRepository : IWorkTaskRepository
 
     public async Task<WorkTask> CreateAsync(WorkTask task, CancellationToken cancellationToken = default)
     {
+        if (!string.IsNullOrEmpty(task.HermesKanbanTaskId))
+        {
+            var existing = await _db.WorkTasks.AsNoTracking()
+                .FirstOrDefaultAsync(
+                    t => t.OperatorSessionId == task.OperatorSessionId
+                         && t.HermesKanbanTaskId == task.HermesKanbanTaskId,
+                    cancellationToken);
+            if (existing is not null)
+                return existing;
+        }
+
         _db.WorkTasks.Add(task);
         await _db.SaveChangesAsync(cancellationToken);
         return task;
@@ -83,8 +117,24 @@ public class WorkTaskRepository : IWorkTaskRepository
 
         task.Status = status;
         task.UpdatedAt = DateTimeOffset.UtcNow;
+        task.KanbanRevision++;
         if (status == WorkTaskStatus.Complete)
             task.CompletedAt = DateTimeOffset.UtcNow;
+
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task MarkKanbanPushedAsync(
+        Guid id,
+        long revision,
+        CancellationToken cancellationToken = default)
+    {
+        var task = await _db.WorkTasks.FindAsync(new object[] { id }, cancellationToken);
+        if (task is null)
+            return;
+
+        if (revision > task.KanbanPushedRevision)
+            task.KanbanPushedRevision = revision;
 
         await _db.SaveChangesAsync(cancellationToken);
     }
@@ -101,6 +151,7 @@ public class WorkTaskRepository : IWorkTaskRepository
         task.LinkedRunId = linkedRunId;
         task.Status = status;
         task.UpdatedAt = DateTimeOffset.UtcNow;
+        task.KanbanRevision++;
         await _db.SaveChangesAsync(cancellationToken);
     }
 

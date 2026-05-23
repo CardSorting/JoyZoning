@@ -19,6 +19,10 @@ public class WorkTask
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
+    /// <summary>Monotonic local revision; incremented on status changes.</summary>
+    public long KanbanRevision { get; set; }
+    /// <summary>Last revision successfully pushed to Hermes kanban.</summary>
+    public long KanbanPushedRevision { get; set; }
 
     public OperatorSession? OperatorSession { get; set; }
     public ICollection<ExecutionSession> Executions { get; set; } = new List<ExecutionSession>();

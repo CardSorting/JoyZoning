@@ -32,11 +32,21 @@ dotnet test tests/JoyZoning.Tests/JoyZoning.Tests.csproj
 
 ## .NET SDK (required: 8.x)
 
-`global.json` pins **8.0.421**. On macOS, `/usr/local/share/dotnet` is often **.NET 6 only** while **.NET 8** is installed under `~/.dotnet`.
+`global.json` requires **8.0.x** (rollForward: latestFeature). On macOS, `/usr/local/share/dotnet` is often **.NET 6 only** while **.NET 8** is installed under `~/.dotnet` — `dotnet` in PATH then fails even though 8 is installed.
+
+**Permanent fixes (pick one):**
+
+| Approach | What it does |
+|----------|----------------|
+| **Shell profile** | Add to `~/.zshrc`: `export DOTNET_ROOT="$HOME/.dotnet"` and `export PATH="$DOTNET_ROOT:$PATH"` |
+| **Repo shim** | `./scripts/dotnet test ...` — always uses `~/.dotnet` when 8.x is there |
+| **Cursor / VS Code** | `.vscode/settings.json` sets `DOTNET_ROOT` for integrated terminals (reload window) |
+| **direnv** | `direnv allow` in repo root (`.envrc`) |
 
 ```bash
-source scripts/dotnet-env.sh   # sets DOTNET_ROOT + PATH
-dotnet --list-sdks             # should show 8.0.421
+./scripts/ensure-dotnet-sdk.sh   # verify or install 8.x to ~/.dotnet
+source scripts/dotnet-env.sh     # same PATH fix for bare `dotnet`
+dotnet --list-sdks               # should show 8.0.x
 ```
 
 If no 8.x SDK is listed:
@@ -44,13 +54,6 @@ If no 8.x SDK is listed:
 ```bash
 curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 8.0
 source scripts/dotnet-env.sh
-```
-
-Add to your shell profile (optional):
-
-```bash
-export DOTNET_ROOT="$HOME/.dotnet"
-export PATH="$DOTNET_ROOT:$PATH"
 ```
 
 ## Build
@@ -75,7 +78,8 @@ JoyZoning builds in `.joyzoning/worktrees/<task-id>/`, not the session folder ro
 
 | Mechanism | What you get |
 |-----------|----------------|
-| **`JOYZONING_LIVE.md`** | Auto-written at the session workspace root every ~10s while a lease is active (`Workspace:MirrorToSessionRoot`) |
+| **`JOYZONING_LIVE.md`** | Per-execution live mirror under `.joyzoning/live/<task-id>/<execution-id>/` (default `WorkspaceParallelism:LiveMirrorMode=PerExecution`) |
+| **`.joyzoning/live/index.json`** | Index of active mirrors when multiple workers run on one workspace |
 | **`GET /api/tasks/{id}/live`** | JSON snapshot + triggers mirror; includes `recommendedPollSeconds` |
 | **`POST /api/tasks/{id}/live/refresh`** | Force mirror + status file update |
 | **`jz task watch <id> [--workspace path]`** | Same as workspace-live.sh — step tracker + adaptive poll |
@@ -162,6 +166,10 @@ See [web/watch/README.md](../web/watch/README.md).
 **Throughput tuning** (`appsettings.Development.json`): mirror tick 3s, stale lease 120m, stream poll 1s.
 
 Bootstrap API: `GET /api/watch/bootstrap`.
+
+**Operational modes:** see [operational-modes.md](operational-modes.md) — keep Planning (kanban), Execution (workers/mirrors), Review (merge queue), and Habitat (ambient watch) as separate metaphors in new UI/read models. Registry: `GET /api/operational-modes`.
+
+Parallel live mirrors: `GET /api/sessions/{sessionId}/parallel-workers` (read model from `.joyzoning/live/index.json`, registry, and disk meta). Merge/reconciliation queue: `GET /api/sessions/{sessionId}/merge-queue` (buckets: ready to merge, conflicts, completed, revoked/abandoned; includes `mergeState`, `mergeReadiness`, `mergeConflict`, `decisionSummary`, `approveGuardrails`, `revokeGuardrails`). Operator preflight: `GET /api/sessions/{sessionId}/workers/{executionSessionId}/decision-preflight?action=approve|revoke|inspect`. Human actions: `POST /api/tasks/{taskId}/lease/merge`, `POST /api/tasks/{taskId}/lease/revoke`. Open mirror folder (macOS/Linux): `POST /api/sessions/open-path` with `{ "path": "..." }`.
 
 ## Run (development)
 

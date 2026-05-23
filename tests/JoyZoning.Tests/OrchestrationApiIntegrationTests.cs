@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using JoyZoning.Domain.Enums;
 using JoyZoning.Domain.Orchestration;
 using JoyZoning.Tests.Infrastructure;
@@ -62,6 +63,24 @@ public class OrchestrationApiIntegrationTests : IAsyncLifetime
         var (sessionId, taskId1) = await _api.SeedTaskAsync(root);
         var taskId2 = await _api.CreateTaskAsync(sessionId, "API test card", "duplicate title");
         Assert.Equal(taskId1, taskId2);
+    }
+
+    [Fact]
+    public async Task Get_tasks_lists_workspace_tasks_for_stale_session_id()
+    {
+        var root = WorkspaceRoot();
+        var sessionId1 = await _api.CreateSessionAsync(root, "first");
+        var taskId = await _api.CreateTaskAsync(sessionId1, "Shared card");
+
+        var sessionId2 = await _api.CreateSessionAsync(root, "second");
+        Assert.Equal(sessionId1, sessionId2);
+
+        var tasksResp = await _fixture.Client.GetAsync($"api/tasks?sessionId={sessionId2}");
+        tasksResp.EnsureSuccessStatusCode();
+        var tasksJson = await tasksResp.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(JsonValueKind.Array, tasksJson.ValueKind);
+        Assert.Equal(1, tasksJson.GetArrayLength());
+        Assert.Equal(taskId.ToString(), tasksJson[0].GetProperty("id").GetString());
     }
 
     [Fact]

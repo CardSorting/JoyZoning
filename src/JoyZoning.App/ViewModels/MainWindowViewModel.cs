@@ -538,6 +538,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
     internal async Task ActivateSessionAsync(Guid sessionId, string name, string workspaceRoot)
     {
+        var canonical = await AppServices.ControlPlane.ResolveCanonicalSessionAsync(sessionId);
+        if (canonical is not null)
+        {
+            sessionId = canonical.Id;
+            name = canonical.Name;
+            workspaceRoot = canonical.WorkspaceRoot;
+        }
+
         ActiveSessionId = sessionId;
         WorkspaceRoot = workspaceRoot;
         ProjectName = name;

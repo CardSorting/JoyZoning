@@ -20,17 +20,30 @@ JoyZoning does not replace your IDE, Hermes CLI, or kanban plugin. It **sits abo
 
 ---
 
+## Four operational modes (separate metaphors)
+
+JoyZoning is intentionally **multi-mode**. Users think differently when planning vs executing vs reviewing. **Kanban/Jira workflow is not replaced** — it remains Planning Mode.
+
+| Mode | Metaphor | Canonical state |
+|------|----------|-----------------|
+| **Planning** | Jira / Kanban | `WorkTask`, kanban sync |
+| **Execution** | Worker orchestration | leases, Hermes sessions, mirrors |
+| **Review** | GitHub PR | merge queue, verification, approve/revoke |
+| **Habitat** | Ambient (optional) | pet / atmosphere — not authoritative ops |
+
+Full guide: **[operational-modes.md](operational-modes.md)**.
+
 ## Three pillars
 
 ### 1. Operator cockpit (not an IDE)
 
-You interact through **surfaces** tuned for supervision:
+You interact through **surfaces** tuned for supervision — grouped by mode above:
 
-- **Plan** — Manager Chat with Hermes as project lead  
-- **Track** — Kanban aligned with Hermes board (two-way sync)  
-- **Observe** — Execution viewport, terminal preview, optional Hermes TUI  
-- **Review** — Workspace diffs before merge ([1:1 workspace state](workspace-state.md))  
-- **Govern** — Approvals + Timeline audit trail  
+- **Plan** (Planning) — Manager Chat + Kanban aligned with Hermes board (two-way sync)  
+- **Execute** (Execution) — Execution viewport, parallel workers, live mirrors, terminal preview  
+- **Review** (Review) — Workspace diffs, merge queue, decision preflight before merge ([1:1 workspace state](workspace-state.md))  
+- **Govern** — Approvals + Timeline audit trail (cross-cutting)  
+- **Ambient** (Habitat, optional) — Watch pet / habitat — glanceable, not canonical  
 
 The cockpit is **local-first** (`127.0.0.1` only). Your code stays on disk; the control plane stores **orchestration state**, not source-of-truth repositories.
 

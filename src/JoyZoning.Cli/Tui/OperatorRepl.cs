@@ -214,6 +214,14 @@ public sealed class OperatorRepl
 
         if (parts[0] is "use" && parts.Length > 1 && Guid.TryParse(parts[1], out var sid))
         {
+            var resolved = await _client.GetSessionAsync(sid);
+            if (resolved.IsSuccess && resolved.Body.HasValue &&
+                resolved.Body.Value.TryGetProperty("id", out var idEl) &&
+                Guid.TryParse(idEl.GetString(), out var canonical))
+            {
+                sid = canonical;
+            }
+
             _sessionId = sid;
             Environment.SetEnvironmentVariable(CliContext.SessionEnv, sid.ToString());
             await EnsureHubAsync(cancellationToken);

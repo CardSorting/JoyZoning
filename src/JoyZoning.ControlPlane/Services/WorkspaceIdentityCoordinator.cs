@@ -3,8 +3,11 @@ using JoyZoning.Domain.Orchestration;
 
 namespace JoyZoning.ControlPlane.Services;
 
-/// <summary>Serializes kanban two-way sync per normalized workspace to prevent duplicate imports.</summary>
-public sealed class KanbanSyncCoordinator
+/// <summary>
+/// Serializes workspace-scoped identity mutations (session create, kanban sync, consolidation)
+/// so parallel callers cannot fork duplicate sessions or tasks for the same folder.
+/// </summary>
+public sealed class WorkspaceIdentityCoordinator
 {
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.OrdinalIgnoreCase);
 

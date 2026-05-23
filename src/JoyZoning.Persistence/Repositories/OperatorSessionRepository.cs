@@ -17,6 +17,13 @@ public class OperatorSessionRepository : IOperatorSessionRepository
         string normalizedWorkspaceRoot,
         CancellationToken cancellationToken = default)
     {
+        var byKey = await _db.OperatorSessions.AsNoTracking()
+            .Where(s => s.WorkspaceKey == normalizedWorkspaceRoot)
+            .OrderByDescending(s => s.UpdatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (byKey is not null)
+            return byKey;
+
         var rows = await _db.OperatorSessions.AsNoTracking().ToListAsync(cancellationToken);
         return rows
             .Where(s => WorkspacePaths.EqualsNormalized(s.WorkspaceRoot, normalizedWorkspaceRoot))
@@ -45,6 +52,7 @@ public class OperatorSessionRepository : IOperatorSessionRepository
 
         tracked.Name = session.Name;
         tracked.WorkspaceRoot = session.WorkspaceRoot;
+        tracked.WorkspaceKey = session.WorkspaceKey;
         tracked.HermesProfile = session.HermesProfile;
         tracked.HermesSessionId = session.HermesSessionId;
         tracked.ActiveTaskId = session.ActiveTaskId;

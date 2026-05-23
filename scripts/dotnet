@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Repo-local dotnet shim — always uses ~/.dotnet (SDK 8) when present.
+# Usage from repo root:  ./scripts/dotnet test ...
+# Or:  export PATH="$(pwd)/scripts:$PATH" && dotnet test ...
+
+set -euo pipefail
+_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=dotnet-env.sh
+source "${_ROOT}/scripts/dotnet-env.sh"
+exec "${DOTNET_ROOT}/dotnet" "$@"

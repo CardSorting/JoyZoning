@@ -39,7 +39,7 @@ public static class WorkspacePaths
     }
 
     /// <summary>macOS resolves /var and /tmp through /private; align before comparing.</summary>
-    internal static string NormalizeComparable(string fullPath)
+    public static string NormalizeComparable(string fullPath)
     {
         var trimmed = fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         if (!OperatingSystem.IsMacOS())

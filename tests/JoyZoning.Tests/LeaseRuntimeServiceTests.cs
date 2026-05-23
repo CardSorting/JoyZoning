@@ -69,6 +69,10 @@ public class LeaseRuntimeServiceTests : IDisposable
         services.AddSingleton<HermesRunEventConsumer>();
         services.Configure<ExecutorOptions>(_ => { });
         services.AddScoped<LeaseRuntimeService>();
+        services.AddSingleton<WorkspaceLiveMirrorRegistry>();
+        services.Configure<WorkspaceOptions>(o => o.MirrorToSessionRoot = false);
+        services.Configure<WorkspaceParallelismOptions>(_ => { });
+        services.AddScoped<WorkspaceLiveMirrorService>();
         services.AddScoped<KanbanExecutionOrchestrator>();
 
         _services = services.BuildServiceProvider();

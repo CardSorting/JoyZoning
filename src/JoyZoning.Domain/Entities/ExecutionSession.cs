@@ -7,6 +7,8 @@ public class ExecutionSession
     public Guid Id { get; set; }
     public Guid WorkTaskId { get; set; }
     public string HermesRunId { get; set; } = string.Empty;
+    /// <summary>Hermes conversation id for this worker run (isolated from manager / other workers).</summary>
+    public string? HermesSessionId { get; set; }
     public string Objective { get; set; } = string.Empty;
     public string? ActivePlanJson { get; set; }
     public ExecutionPhase Phase { get; set; } = ExecutionPhase.Starting;

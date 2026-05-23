@@ -25,6 +25,20 @@ public class ExecutionRepository : IExecutionRepository
         return session;
     }
 
+    public async Task UpdateHermesSessionIdAsync(
+        Guid id,
+        string hermesSessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var session = await _db.ExecutionSessions.FindAsync(new object[] { id }, cancellationToken);
+        if (session is null
+            || string.Equals(session.HermesSessionId, hermesSessionId, StringComparison.Ordinal))
+            return;
+
+        session.HermesSessionId = hermesSessionId;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task UpdatePhaseAsync(Guid id, ExecutionPhase phase, CancellationToken cancellationToken = default)
     {
         var session = await _db.ExecutionSessions.FindAsync(new object[] { id }, cancellationToken);

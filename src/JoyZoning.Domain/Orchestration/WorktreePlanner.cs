@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace JoyZoning.Domain.Orchestration;
 
 /// <summary>Plans isolated git worktree/branch metadata for a card lease.</summary>
@@ -8,6 +11,19 @@ public static class WorktreePlanner
     public static bool TryPlan(
         string workspaceRoot,
         Guid cardId,
+        out string worktreePath,
+        out string branchName,
+        out string? error) =>
+        TryPlan(workspaceRoot, cardId, hermesKanbanTaskId: null, out worktreePath, out branchName, out error);
+
+    /// <summary>
+    /// When <paramref name="hermesKanbanTaskId"/> is set, worktree path is stable for the logical Hermes card
+    /// (duplicate local task rows share one sandbox directory).
+    /// </summary>
+    public static bool TryPlan(
+        string workspaceRoot,
+        Guid cardId,
+        string? hermesKanbanTaskId,
         out string worktreePath,
         out string branchName,
         out string? error)
@@ -45,7 +61,7 @@ public static class WorktreePlanner
             return false;
         }
 
-        var shortId = SanitizeCardIdSegment(cardId);
+        var shortId = ResolveWorktreeSegment(cardId, hermesKanbanTaskId);
         if (shortId is null)
         {
             error = "Card id cannot be used for worktree paths.";
@@ -53,9 +69,9 @@ public static class WorktreePlanner
         }
 
         branchName = $"joyzoning/card-{shortId}";
-        var worktreesRoot = NormalizeComparablePath(
+        var worktreesRoot = WorkspacePaths.NormalizeComparable(
             Path.GetFullPath(Path.Combine(workspaceFull, ".joyzoning", "worktrees")));
-        worktreePath = NormalizeComparablePath(
+        worktreePath = WorkspacePaths.NormalizeComparable(
             Path.GetFullPath(Path.Combine(worktreesRoot, shortId)));
 
         if (!worktreePath.StartsWith(worktreesRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
@@ -68,26 +84,23 @@ public static class WorktreePlanner
         return true;
     }
 
-    /// <summary>macOS resolves /var and /tmp through /private; align before sandbox checks.</summary>
-    private static string NormalizeComparablePath(string fullPath)
-    {
-        var trimmed = fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        if (!OperatingSystem.IsMacOS())
-            return trimmed;
-
-        if (trimmed.StartsWith("/private/var/", StringComparison.Ordinal))
-            return "/var/" + trimmed["/private/var/".Length..];
-        if (trimmed.StartsWith("/private/tmp/", StringComparison.Ordinal))
-            return "/tmp/" + trimmed["/private/tmp/".Length..];
-        return trimmed;
-    }
-
     public static (string WorktreePath, string BranchName) Plan(string workspaceRoot, Guid cardId)
     {
         if (!TryPlan(workspaceRoot, cardId, out var worktreePath, out var branchName, out var error))
             throw LeaseOrchestrationException.BadRequest(error!);
 
         return (worktreePath, branchName);
+    }
+
+    private static string? ResolveWorktreeSegment(Guid cardId, string? hermesKanbanTaskId)
+    {
+        if (!string.IsNullOrWhiteSpace(hermesKanbanTaskId))
+        {
+            var hash = SHA256.HashData(Encoding.UTF8.GetBytes(hermesKanbanTaskId.Trim()));
+            return Convert.ToHexString(hash)[..8].ToLowerInvariant();
+        }
+
+        return SanitizeCardIdSegment(cardId);
     }
 
     private static string? SanitizeCardIdSegment(Guid cardId)

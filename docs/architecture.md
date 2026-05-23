@@ -6,6 +6,8 @@ JoyZoning is a **human operator cockpit** for multi-agent software workflows on 
 
 **Product concepts (read first):** [concepts.md](concepts.md) — operator cockpit, execution leases, human merge, one Hermes / two roles.
 
+**Operational modes (do not collapse metaphors):** [operational-modes.md](operational-modes.md) — Planning (kanban), Execution (leases/workers), Review (merge queue), Habitat (ambient watch).
+
 **Terminal strategy:** [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) — **cognition vs authority**: Hermes owns agent chat (`hermes --tui`); JoyZoning owns runtime governance (`jz` / `jz tui`). Chat does not hold final authority on merge or Complete.
 
 **Stack:** .NET 8, Avalonia 12 desktop, ASP.NET Core control plane, SQLite + EF Core, SignalR, optional `jz` CLI.

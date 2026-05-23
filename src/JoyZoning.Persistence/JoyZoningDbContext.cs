@@ -30,6 +30,8 @@ public class JoyZoningDbContext : DbContext
             e.HasKey(x => x.Id);
             e.Property(x => x.Name).HasMaxLength(256).IsRequired();
             e.Property(x => x.WorkspaceRoot).HasMaxLength(2048).IsRequired();
+            e.Property(x => x.WorkspaceKey).HasMaxLength(2048);
+            e.HasIndex(x => x.WorkspaceKey).IsUnique();
             e.Property(x => x.HermesProfile).HasMaxLength(128);
             e.Property(x => x.HermesSessionId).HasMaxLength(128);
             e.HasIndex(x => x.Status);
@@ -54,6 +56,7 @@ public class JoyZoningDbContext : DbContext
             e.ToTable("execution_sessions");
             e.HasKey(x => x.Id);
             e.Property(x => x.HermesRunId).HasMaxLength(128).IsRequired();
+            e.Property(x => x.HermesSessionId).HasMaxLength(128);
             e.HasIndex(x => x.WorkTaskId);
             e.HasOne(x => x.WorkTask)
                 .WithMany(t => t.Executions)

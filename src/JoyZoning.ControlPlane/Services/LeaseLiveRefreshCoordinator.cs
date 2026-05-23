@@ -69,7 +69,9 @@ public sealed class LeaseLiveRefreshCoordinator
                     snapshot.Presentation.Headline,
                     snapshot.Presentation.ProgressPercent,
                     snapshot.FilesCopiedThisTick,
-                    snapshot.UpdatedAt),
+                    snapshot.UpdatedAt,
+                    snapshot.LiveMirrorRoot,
+                    snapshot.MirrorMode),
                 cts.Token);
         }
         catch (OperationCanceledException)

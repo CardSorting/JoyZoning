@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Entities;
+using JoyZoning.Domain.Enums;
 using JoyZoning.Domain.Orchestration;
 using JoyZoning.Persistence.Repositories;
 using Microsoft.Extensions.Options;
@@ -9,7 +10,8 @@ using Microsoft.Extensions.Options;
 namespace JoyZoning.ControlPlane.Services;
 
 /// <summary>
-/// Mirrors lease worktree output to the session workspace root and maintains JOYZONING_LIVE.md.
+/// Mirrors lease worktrees to isolated <c>.joyzoning/live/</c> folders (or session root in legacy mode)
+/// and maintains per-mirror <c>JOYZONING_LIVE.md</c> progress files.
 /// </summary>
 public sealed class WorkspaceLiveMirrorService
 {
@@ -20,18 +22,33 @@ public sealed class WorkspaceLiveMirrorService
 
     private readonly IOperatorSessionRepository _sessions;
     private readonly IWorkTaskRepository _tasks;
-    private readonly WorkspaceOptions _options;
+    private readonly IExecutionLeaseRepository _leases;
+    private readonly WorkspaceOptions _workspace;
+    private readonly WorkspaceParallelismOptions _parallelism;
+    private readonly IExecutionRepository _executions;
+    private readonly WorkspaceLiveMirrorRegistry _registry;
+    private readonly WorkspaceLiveMirrorObservabilityService _observability;
     private readonly ILogger<WorkspaceLiveMirrorService> _logger;
 
     public WorkspaceLiveMirrorService(
         IOperatorSessionRepository sessions,
         IWorkTaskRepository tasks,
-        IOptions<WorkspaceOptions> options,
+        IExecutionLeaseRepository leases,
+        IExecutionRepository executions,
+        IOptions<WorkspaceOptions> workspace,
+        IOptions<WorkspaceParallelismOptions> parallelism,
+        WorkspaceLiveMirrorRegistry registry,
+        WorkspaceLiveMirrorObservabilityService observability,
         ILogger<WorkspaceLiveMirrorService> logger)
     {
         _sessions = sessions;
         _tasks = tasks;
-        _options = options.Value;
+        _leases = leases;
+        _executions = executions;
+        _workspace = workspace.Value;
+        _parallelism = parallelism.Value;
+        _registry = registry;
+        _observability = observability;
         _logger = logger;
     }
 
@@ -39,7 +56,7 @@ public sealed class WorkspaceLiveMirrorService
         ExecutionLease lease,
         CancellationToken cancellationToken = default)
     {
-        if (!_options.MirrorToSessionRoot)
+        if (!_workspace.MirrorToSessionRoot)
             return null;
 
         var task = await _tasks.GetByIdAsync(lease.WorkTaskId, cancellationToken);
@@ -67,11 +84,388 @@ public sealed class WorkspaceLiveMirrorService
             return null;
         }
 
-        var filesCopied = MirrorDirectory(worktree, sessionRoot);
-        var snapshot = BuildSnapshot(task, lease, sessionRoot, worktree, filesCopied);
-        WriteLiveFile(sessionRoot, snapshot);
-        WriteLiveJson(sessionRoot, snapshot);
-        return snapshot;
+        var activeInWorkspace = await _leases.CountActiveForWorkspaceAsync(session.WorkspaceRoot, cancellationToken);
+        if (!TryResolveMirrorTarget(lease, sessionRoot, activeInWorkspace, out var target, out var resolveError))
+        {
+            if (!string.IsNullOrEmpty(resolveError))
+            {
+                _logger.LogWarning("Live mirror skipped for lease {LeaseId}: {Reason}", lease.Id, resolveError);
+                _registry.RecordOutcome(
+                    lease.Id,
+                    LiveMirrorHealthState.SkippedParallelSharedRootGuard,
+                    resolveError);
+            }
+
+            return null;
+        }
+
+        if (_registry.HasCollision(target.MirrorRoot, lease.Id))
+        {
+            var occupant = _registry.GetOccupant(target.MirrorRoot);
+            _logger.LogWarning(
+                "Live mirror collision: lease {LeaseId} cannot write to {MirrorRoot} (another active execution owns it)",
+                lease.Id,
+                target.MirrorRoot);
+            _registry.RecordOutcome(
+                lease.Id,
+                LiveMirrorHealthState.SkippedCollision,
+                $"Mirror path held by lease {occupant?.LeaseId}.",
+                target.MirrorRoot,
+                occupant?.LeaseId);
+            return null;
+        }
+
+        if (!_registry.TryAcquire(target.MirrorRoot, lease.Id, task.Id, target.MirrorKeyId))
+        {
+            var occupant = _registry.GetOccupant(target.MirrorRoot);
+            _logger.LogWarning(
+                "Live mirror refused: lease {LeaseId} could not acquire {MirrorRoot}",
+                lease.Id,
+                target.MirrorRoot);
+            _registry.RecordOutcome(
+                lease.Id,
+                LiveMirrorHealthState.SkippedCollision,
+                "Could not acquire mirror path.",
+                target.MirrorRoot,
+                occupant?.LeaseId);
+            return null;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(target.MirrorRoot);
+            var filesCopied = MirrorDirectory(worktree, target.MirrorRoot);
+            var snapshot = await BuildSnapshotAsync(task, lease, target, worktree, filesCopied, cancellationToken);
+            WriteMirrorMeta(target.MirrorRoot, snapshot, task, status: "active", completedAt: null);
+            WriteLiveFile(target.MirrorRoot, snapshot, target);
+            WriteLiveJson(target.MirrorRoot, snapshot);
+            _registry.RecordOutcome(
+                lease.Id,
+                LiveMirrorHealthState.Active,
+                detail: null,
+                target.MirrorRoot);
+            await _observability.WriteIndexFileAsync(session, activeInWorkspace, cancellationToken);
+            PruneCompletedMirrors(sessionRoot, session);
+            return snapshot;
+        }
+        catch (Exception ex)
+        {
+            _registry.RecordOutcome(
+                lease.Id,
+                LiveMirrorHealthState.FailedCopy,
+                ex.Message,
+                target.MirrorRoot);
+            _registry.Release(target.MirrorRoot, lease.Id);
+            throw;
+        }
+    }
+
+    public async Task MarkMirrorStaleForExecutionEndAsync(
+        ExecutionLease lease,
+        CancellationToken cancellationToken = default)
+    {
+        var task = await _tasks.GetByIdAsync(lease.WorkTaskId, cancellationToken);
+        if (task is null)
+            return;
+
+        var session = await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken);
+        if (session is null || string.IsNullOrWhiteSpace(session.WorkspaceRoot))
+            return;
+
+        var sessionRoot = Path.GetFullPath(session.WorkspaceRoot);
+        var activeInWorkspace = await _leases.CountActiveForWorkspaceAsync(session.WorkspaceRoot, cancellationToken);
+        if (!TryResolveMirrorTarget(lease, sessionRoot, activeInWorkspace, out var target, out _))
+            return;
+
+        if (!Directory.Exists(target.MirrorRoot))
+            return;
+
+        var snapshot = await BuildSnapshotAsync(task, lease, target, lease.WorktreePath, filesCopied: 0, cancellationToken);
+        WriteMirrorMeta(target.MirrorRoot, snapshot, task, status: "stale", completedAt: DateTimeOffset.UtcNow);
+        _registry.RecordOutcome(lease.Id, LiveMirrorHealthState.Stale, mirrorRoot: target.MirrorRoot);
+        await _observability.WriteIndexFileAsync(session, activeInWorkspace, cancellationToken);
+    }
+
+    public async Task CompleteMirrorForLeaseAsync(
+        ExecutionLease lease,
+        WorkerMergeState? terminalMergeState = null,
+        CancellationToken cancellationToken = default)
+    {
+        var task = await _tasks.GetByIdAsync(lease.WorkTaskId, cancellationToken);
+        if (task is null)
+            return;
+
+        var session = await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken);
+        if (session is null || string.IsNullOrWhiteSpace(session.WorkspaceRoot))
+            return;
+
+        var sessionRoot = Path.GetFullPath(session.WorkspaceRoot);
+        var activeInWorkspace = await _leases.CountActiveForWorkspaceAsync(session.WorkspaceRoot, cancellationToken);
+
+        if (!TryResolveMirrorTarget(lease, sessionRoot, activeInWorkspace, out var target, out _))
+        {
+            _registry.ReleaseForLease(lease.Id, sessionRoot);
+            return;
+        }
+
+        _registry.Release(target.MirrorRoot, lease.Id);
+
+        if (Directory.Exists(target.MirrorRoot))
+        {
+            var snapshot = await BuildSnapshotAsync(
+                task,
+                lease,
+                target,
+                lease.WorktreePath,
+                filesCopied: 0,
+                cancellationToken);
+            var mergeState = terminalMergeState ?? lease.Status switch
+            {
+                ExecutionLeaseStatus.Revoked => WorkerMergeState.Revoked,
+                ExecutionLeaseStatus.Merged => WorkerMergeState.Merged,
+                _ => (WorkerMergeState?)null,
+            };
+            WriteMirrorMeta(
+                target.MirrorRoot,
+                snapshot,
+                task,
+                status: "completed",
+                completedAt: DateTimeOffset.UtcNow,
+                mergeState: mergeState);
+            _registry.RecordOutcome(lease.Id, LiveMirrorHealthState.Completed, mirrorRoot: target.MirrorRoot);
+        }
+
+        await _observability.WriteIndexFileAsync(session, activeInWorkspace, cancellationToken);
+        PruneCompletedMirrors(sessionRoot, session);
+    }
+
+    public async Task RecordMergeConflictForLeaseAsync(
+        ExecutionLease lease,
+        string category,
+        string reason,
+        IReadOnlyList<string>? conflictFiles = null,
+        CancellationToken cancellationToken = default)
+    {
+        var task = await _tasks.GetByIdAsync(lease.WorkTaskId, cancellationToken);
+        if (task is null)
+            return;
+
+        var session = await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken);
+        if (session is null || string.IsNullOrWhiteSpace(session.WorkspaceRoot))
+            return;
+
+        var sessionRoot = Path.GetFullPath(session.WorkspaceRoot);
+        var activeInWorkspace = await _leases.CountActiveForWorkspaceAsync(session.WorkspaceRoot, cancellationToken);
+
+        if (!TryResolveMirrorTarget(lease, sessionRoot, activeInWorkspace, out var target, out _))
+            return;
+
+        if (!Directory.Exists(target.MirrorRoot))
+            return;
+
+        var snapshot = await BuildSnapshotAsync(
+            task,
+            lease,
+            target,
+            lease.WorktreePath,
+            filesCopied: 0,
+            cancellationToken);
+        WriteMirrorMeta(
+            target.MirrorRoot,
+            snapshot,
+            task,
+            status: "active",
+            completedAt: null,
+            mergeState: WorkerMergeState.MergeConflict,
+            conflictCategory: category,
+            conflictReason: reason,
+            conflictFiles: conflictFiles);
+
+        await _observability.WriteIndexFileAsync(session, activeInWorkspace, cancellationToken);
+    }
+
+    private bool TryResolveMirrorTarget(
+        ExecutionLease lease,
+        string sessionRoot,
+        int activeLeasesInWorkspace,
+        out MirrorTarget target,
+        out string? error)
+    {
+        if (WorkspaceLiveMirrorTargetResolver.TryResolve(
+                lease,
+                sessionRoot,
+                _workspace.MirrorToSessionRoot,
+                _parallelism,
+                activeLeasesInWorkspace,
+                out var resolved,
+                out error))
+        {
+            target = new MirrorTarget(
+                resolved.MirrorRoot,
+                resolved.SessionRoot,
+                resolved.IsSharedSessionRoot,
+                resolved.MirrorKeyId,
+                resolved.Mode);
+            return true;
+        }
+
+        target = default!;
+        return false;
+    }
+
+    private void PruneCompletedMirrors(string sessionRoot, OperatorSession session)
+    {
+        var retentionDays = _parallelism.LiveMirrorRetentionDays;
+        if (retentionDays <= 0)
+            return;
+
+        var liveBase = Path.Combine(sessionRoot, WorkspaceLiveMirrorPaths.LiveRootSegment);
+        if (!Directory.Exists(liveBase))
+            return;
+
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-retentionDays);
+        foreach (var taskDir in Directory.EnumerateDirectories(liveBase))
+        {
+            PruneMirrorDirectory(taskDir, cutoff);
+            foreach (var execDir in Directory.EnumerateDirectories(taskDir))
+                PruneMirrorDirectory(execDir, cutoff, session);
+        }
+    }
+
+    private void PruneMirrorDirectory(string mirrorDir, DateTimeOffset cutoff, OperatorSession? session = null)
+    {
+        var metaPath = Path.Combine(mirrorDir, ".joyzoning", "mirror-meta.json");
+        if (!File.Exists(metaPath))
+            return;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(metaPath));
+            var status = doc.RootElement.TryGetProperty("status", out var st) ? st.GetString() : null;
+            if (!string.Equals(status, "completed", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var mergeState = doc.RootElement.TryGetProperty("mergeState", out var ms)
+                ? ms.GetString()
+                : null;
+            if (WorkerMergeStateResolver.BlocksPrune(WorkerMergeStateNames.Parse(mergeState)))
+                return;
+
+            if (!doc.RootElement.TryGetProperty("completedAt", out var atEl)
+                || !DateTimeOffset.TryParse(atEl.GetString(), out var completedAt)
+                || completedAt > cutoff)
+                return;
+
+            TryMarkPruned(mirrorDir);
+            if (TryReadLeaseIdFromMeta(mirrorDir, out var leaseId))
+                _registry.RecordOutcome(leaseId, LiveMirrorHealthState.Pruned, mirrorRoot: mirrorDir);
+
+            Directory.Delete(mirrorDir, recursive: true);
+            _logger.LogDebug("Pruned completed live mirror {MirrorDir}", mirrorDir);
+
+            if (session is not null)
+                _ = _observability.WriteIndexFileAsync(session, activeLeasesInWorkspace: 0);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to prune live mirror {MirrorDir}", mirrorDir);
+        }
+    }
+
+    private static void TryMarkPruned(string mirrorDir)
+    {
+        var metaPath = Path.Combine(mirrorDir, ".joyzoning", "mirror-meta.json");
+        if (!File.Exists(metaPath))
+            return;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(metaPath));
+            var body = new Dictionary<string, object?>();
+            foreach (var prop in doc.RootElement.EnumerateObject())
+                body[prop.Name] = prop.Value.ValueKind switch
+                {
+                    JsonValueKind.String => prop.Value.GetString(),
+                    JsonValueKind.Number => prop.Value.GetInt64(),
+                    JsonValueKind.True => true,
+                    JsonValueKind.False => false,
+                    _ => prop.Value.ToString(),
+                };
+            body["status"] = "pruned";
+            body["healthState"] = "pruned";
+            body["completedAt"] = DateTimeOffset.UtcNow.ToString("O");
+            File.WriteAllText(metaPath, JsonSerializer.Serialize(body, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch
+        {
+            // best-effort
+        }
+    }
+
+    private static bool TryReadLeaseIdFromMeta(string mirrorDir, out Guid leaseId)
+    {
+        leaseId = Guid.Empty;
+        var metaPath = Path.Combine(mirrorDir, ".joyzoning", "mirror-meta.json");
+        if (!File.Exists(metaPath))
+            return false;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(metaPath));
+            return doc.RootElement.TryGetProperty("leaseId", out var li)
+                && Guid.TryParse(li.GetString(), out leaseId);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void WriteMirrorMeta(
+        string mirrorRoot,
+        WorkspaceLiveSnapshot snapshot,
+        WorkTask task,
+        string status,
+        DateTimeOffset? completedAt,
+        WorkerMergeState? mergeState = null,
+        string? conflictCategory = null,
+        string? conflictReason = null,
+        IReadOnlyList<string>? conflictFiles = null)
+    {
+        var metaDir = Path.Combine(mirrorRoot, ".joyzoning");
+        Directory.CreateDirectory(metaDir);
+        var body = new
+        {
+            status,
+            healthState = status,
+            mergeState = mergeState is null ? null : WorkerMergeStateNames.ToApiString(mergeState.Value),
+            mergeConflict = conflictCategory is null
+                ? null
+                : new
+                {
+                    category = conflictCategory,
+                    reason = conflictReason,
+                    conflictFiles = conflictFiles ?? Array.Empty<string>(),
+                },
+            taskId = snapshot.TaskId,
+            taskTitle = task.Title,
+            leaseId = snapshot.LeaseId,
+            executionSessionId = snapshot.MirrorKeyId,
+            hermesSessionId = snapshot.HermesSessionId,
+            mirrorRoot = snapshot.LiveMirrorRoot,
+            mirrorMode = snapshot.MirrorMode,
+            worktreePath = snapshot.WorktreePath,
+            leaseStatus = snapshot.LeaseStatus,
+            kanbanStatus = task.Status.ToString(),
+            kanbanRevision = task.KanbanRevision,
+            kanbanPushedRevision = task.KanbanPushedRevision,
+            lastMirroredAt = snapshot.UpdatedAt,
+            updatedAt = snapshot.UpdatedAt,
+            completedAt,
+        };
+        File.WriteAllText(
+            Path.Combine(metaDir, "mirror-meta.json"),
+            JsonSerializer.Serialize(body, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private int MirrorDirectory(string sourceRoot, string destRoot)
@@ -124,14 +518,22 @@ public sealed class WorkspaceLiveMirrorService
         return parts.Any(p => ExcludedDirNames.Contains(p));
     }
 
-    private WorkspaceLiveSnapshot BuildSnapshot(
+    private async Task<WorkspaceLiveSnapshot> BuildSnapshotAsync(
         WorkTask task,
         ExecutionLease lease,
-        string sessionRoot,
+        MirrorTarget target,
         string worktree,
-        int filesCopied)
+        int filesCopied,
+        CancellationToken cancellationToken)
     {
-        var counts = CountProjectFiles(sessionRoot);
+        string? hermesSessionId = null;
+        if (lease.ExecutionSessionId is { } execId && execId != Guid.Empty)
+        {
+            var execution = await _executions.GetByIdAsync(execId, cancellationToken);
+            hermesSessionId = execution?.HermesSessionId;
+        }
+
+        var counts = CountProjectFiles(target.MirrorRoot);
         var worktreeActivity = AnalyzeWorktreeActivity(worktree);
         var (recent, lastKind) = ParseRecentEvidence(lease.EvidenceLogJson, max: 8);
         var status = lease.Status.ToString();
@@ -152,11 +554,17 @@ public sealed class WorkspaceLiveMirrorService
         return new WorkspaceLiveSnapshot(
             UpdatedAt: DateTimeOffset.UtcNow,
             TaskId: task.Id,
+            LeaseId: lease.Id,
+            MirrorKeyId: target.MirrorKeyId,
+            HermesSessionId: hermesSessionId,
             TaskTitle: task.Title,
             LeaseStatus: status,
             BlockedReason: lease.BlockedReason,
             EvidenceLogJson: lease.EvidenceLogJson,
-            SessionWorkspaceRoot: sessionRoot,
+            SessionWorkspaceRoot: target.SessionRoot,
+            LiveMirrorRoot: target.MirrorRoot,
+            MirrorMode: target.Mode.ToString(),
+            IsSharedSessionRootMirror: target.IsSharedSessionRoot,
             WorktreePath: worktree,
             FilesCopiedThisTick: filesCopied,
             AppScreenCount: counts.AppScreens,
@@ -169,13 +577,13 @@ public sealed class WorkspaceLiveMirrorService
             LastEvidenceKind: lastKind,
             RecommendedPollSeconds: presentation.RecommendedPollSeconds,
             RecentEvidence: recent,
-            LiveFilePath: Path.Combine(sessionRoot, _options.LiveStatusFileName),
+            LiveFilePath: Path.Combine(target.MirrorRoot, _workspace.LiveStatusFileName),
             Presentation: presentation);
     }
 
-    private void WriteLiveFile(string sessionRoot, WorkspaceLiveSnapshot snapshot)
+    private void WriteLiveFile(string mirrorRoot, WorkspaceLiveSnapshot snapshot, MirrorTarget target)
     {
-        var path = Path.Combine(sessionRoot, _options.LiveStatusFileName);
+        var path = Path.Combine(mirrorRoot, _workspace.LiveStatusFileName);
         var d = snapshot.Presentation;
         var sb = new StringBuilder();
 
@@ -228,7 +636,7 @@ public sealed class WorkspaceLiveMirrorService
         }
 
         if (snapshot.FilesCopiedThisTick > 0)
-            sb.AppendLine($"\n*{snapshot.FilesCopiedThisTick} file(s) synced to your folder this update.*");
+            sb.AppendLine($"\n*{snapshot.FilesCopiedThisTick} file(s) synced to this live mirror this update.*");
 
         if (d.NextActions.Count > 0)
         {
@@ -263,17 +671,22 @@ public sealed class WorkspaceLiveMirrorService
         sb.AppendLine();
         sb.AppendLine($"- **Task:** {snapshot.TaskTitle}");
         sb.AppendLine($"- **Task ID:** `{snapshot.TaskId}`");
+        sb.AppendLine($"- **Lease ID:** `{snapshot.LeaseId}`");
+        sb.AppendLine($"- **Mirror key:** `{snapshot.MirrorKeyId}`");
         sb.AppendLine($"- **Status:** `{snapshot.LeaseStatus}`");
         if (!string.IsNullOrWhiteSpace(snapshot.BlockedReason))
             sb.AppendLine($"- **Blocked:** {snapshot.BlockedReason}");
         sb.AppendLine($"- **Canonical build folder:** `{snapshot.WorktreePath}`");
-        sb.AppendLine($"- **Your IDE folder (mirrored copy):** `{snapshot.SessionWorkspaceRoot}`");
-        sb.AppendLine();
-        sb.AppendLine("JoyZoning builds in `.joyzoning/worktrees/<task>/` and mirrors files here automatically.");
+        sb.AppendLine($"- **Live mirror ({snapshot.MirrorMode}):** `{snapshot.LiveMirrorRoot}`");
+        sb.AppendLine($"- **Session workspace:** `{snapshot.SessionWorkspaceRoot}`");
+        if (target.IsSharedSessionRoot)
+            sb.AppendLine("- **Note:** Files are mirrored into the session root (single-worker mode).");
+        else
+            sb.AppendLine("- **Note:** Parallel workers each have their own folder under `.joyzoning/live/` — see `index.json`.");
         sb.AppendLine();
         sb.AppendLine("```bash");
         sb.AppendLine("jz task lease " + snapshot.TaskId);
-        sb.AppendLine("open \"" + snapshot.SessionWorkspaceRoot + "\"");
+        sb.AppendLine("open \"" + snapshot.LiveMirrorRoot + "\"");
         sb.AppendLine("```");
         sb.AppendLine();
         sb.AppendLine("</details>");
@@ -283,12 +696,12 @@ public sealed class WorkspaceLiveMirrorService
         File.WriteAllText(path, sb.ToString());
     }
 
-    private void WriteLiveJson(string sessionRoot, WorkspaceLiveSnapshot snapshot)
+    private void WriteLiveJson(string mirrorRoot, WorkspaceLiveSnapshot snapshot)
     {
-        if (!_options.WriteLiveJsonFile)
+        if (!_workspace.WriteLiveJsonFile)
             return;
 
-        var jsonPath = Path.Combine(sessionRoot, _options.LiveJsonRelativePath);
+        var jsonPath = Path.Combine(mirrorRoot, _workspace.LiveJsonRelativePath);
         var parent = Path.GetDirectoryName(jsonPath);
         if (!string.IsNullOrEmpty(parent))
             Directory.CreateDirectory(parent);
@@ -298,9 +711,15 @@ public sealed class WorkspaceLiveMirrorService
         {
             updatedAt = snapshot.UpdatedAt,
             taskId = snapshot.TaskId,
+            leaseId = snapshot.LeaseId,
+            mirrorKeyId = snapshot.MirrorKeyId,
             title = snapshot.TaskTitle,
             leaseStatus = snapshot.LeaseStatus,
             liveMarkdown = snapshot.LiveFilePath,
+            liveMirrorRoot = snapshot.LiveMirrorRoot,
+            mirrorMode = snapshot.MirrorMode,
+            isSharedSessionRootMirror = snapshot.IsSharedSessionRootMirror,
+            sessionWorkspaceRoot = snapshot.SessionWorkspaceRoot,
             recommendedPollSeconds = d.RecommendedPollSeconds,
             pollMode = d.PollMode,
             display = new
@@ -408,16 +827,30 @@ public sealed class WorkspaceLiveMirrorService
 
         return (count, newest);
     }
+
+    private sealed record MirrorTarget(
+        string MirrorRoot,
+        string SessionRoot,
+        bool IsSharedSessionRoot,
+        Guid MirrorKeyId,
+        LiveMirrorMode Mode);
+
 }
 
 public sealed record WorkspaceLiveSnapshot(
     DateTimeOffset UpdatedAt,
     Guid TaskId,
+    Guid LeaseId,
+    Guid MirrorKeyId,
+    string? HermesSessionId,
     string TaskTitle,
     string LeaseStatus,
     string? BlockedReason,
     string EvidenceLogJson,
     string SessionWorkspaceRoot,
+    string LiveMirrorRoot,
+    string MirrorMode,
+    bool IsSharedSessionRootMirror,
     string WorktreePath,
     int FilesCopiedThisTick,
     int AppScreenCount,

@@ -14,8 +14,12 @@ public interface IExecutionLeaseRepository
         Guid workTaskId,
         CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ExecutionLease>> ListActiveAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ExecutionLease>> ListForWorkspaceAsync(
+        string workspaceRoot,
+        CancellationToken cancellationToken = default);
     Task<int> CountActiveAsync(CancellationToken cancellationToken = default);
     Task<int> CountActiveBySessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
+    Task<int> CountActiveForWorkspaceAsync(string workspaceRoot, CancellationToken cancellationToken = default);
     Task<ExecutionLease> CreateAsync(ExecutionLease lease, CancellationToken cancellationToken = default);
     Task UpdateAsync(ExecutionLease lease, CancellationToken cancellationToken = default);
     Task ReassignWorkTaskAsync(

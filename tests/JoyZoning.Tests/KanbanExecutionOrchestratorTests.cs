@@ -43,6 +43,10 @@ public class KanbanExecutionOrchestratorTests : IDisposable
             o.Duration.CriticalHours = 1;
         });
         services.AddScoped<LeaseRuntimeService>();
+        services.AddSingleton<WorkspaceLiveMirrorRegistry>();
+        services.Configure<WorkspaceOptions>(o => o.MirrorToSessionRoot = false);
+        services.Configure<WorkspaceParallelismOptions>(_ => { });
+        services.AddScoped<WorkspaceLiveMirrorService>();
 
         var mockProxy = new Mock<IClientProxy>();
         mockProxy

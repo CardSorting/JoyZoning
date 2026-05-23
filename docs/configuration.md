@@ -94,6 +94,22 @@ Example override in `appsettings.Development.json`:
 }
 ```
 
+### Workspace parallelism (`WorkspaceParallelism` section)
+
+When several cards run at once on the same project folder:
+
+| Key | Default | Role |
+|-----|---------|------|
+| `DeferFullKanbanSyncWhenActiveLeasesAtLeast` | 2 | Skip full two-way kanban sync while this many active leases exist on the workspace |
+| `KanbanOutboxPollIntervalMs` | 250 | Backoff after outbox drain errors |
+| `LiveMirrorMode` | `PerExecution` | `SharedSessionRoot`, `PerTask`, or `PerExecution` under `.joyzoning/live/` |
+| `DisableSharedSessionRootMirrorWhenParallel` | true | Skip copying all worktrees into session root when 2+ active leases |
+| `LiveMirrorRetentionDays` | 14 | Delete completed mirror folders older than N days (0 = keep) |
+
+Status changes are queued to a single drain worker per process (serialized PATCH per task). Executor dispatches use an isolated `HermesSessionId` on each `ExecutionSession`; the manager keeps `OperatorSession.HermesSessionId`.
+
+Live mirrors: each worker writes to `.joyzoning/live/<task-id>/<execution-id>/` with `JOYZONING_LIVE.md`, `live.json`, and a workspace index at `.joyzoning/live/index.json`.
+
 ## Data paths
 
 | Data | macOS path | Override |

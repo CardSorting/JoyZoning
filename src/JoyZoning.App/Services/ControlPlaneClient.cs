@@ -186,6 +186,14 @@ public class ControlPlaneClient
         return ParseSession(json);
     }
 
+    public async Task<SessionInfo?> ResolveCanonicalSessionAsync(Guid sessionId)
+    {
+        var r = await _http.GetAsync($"api/sessions/{sessionId}");
+        if (!r.IsSuccessStatusCode) return null;
+        var json = await r.Content.ReadFromJsonAsync<JsonElement>();
+        return ParseSession(json);
+    }
+
     public async Task<IReadOnlyList<TaskInfo>> ListTasksAsync(Guid sessionId)
     {
         var r = await _http.GetAsync($"api/tasks?sessionId={sessionId}");

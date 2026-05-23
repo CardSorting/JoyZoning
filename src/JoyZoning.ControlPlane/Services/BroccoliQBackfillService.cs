@@ -1,4 +1,5 @@
 using System.Text.Json;
+using JoyZoning.ControlPlane.Services;
 using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Entities;
 using JoyZoning.Persistence.Repositories;
@@ -99,12 +100,17 @@ public sealed class BroccoliQBackfillService
     private async Task<int> BackfillTasksAsync(CancellationToken cancellationToken)
     {
         var count = 0;
-        var sessions = await _sessions.ListAsync(cancellationToken);
+        var seen = new HashSet<Guid>();
+        var sessions = WorkspaceSessionCatalog.SelectCanonicalSessions(
+            await _sessions.ListAsync(cancellationToken));
         foreach (var session in sessions)
         {
-            var tasks = await _tasks.ListBySessionAsync(session.Id, cancellationToken);
+            var tasks = await _tasks.ListByWorkspaceRootAsync(session.WorkspaceRoot, cancellationToken);
             foreach (var task in tasks)
             {
+                if (!seen.Add(task.Id))
+                    continue;
+
                 await _bridge.MirrorWorkTaskAsync(
                     task.Id,
                     task.Title,

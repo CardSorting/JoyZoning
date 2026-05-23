@@ -33,6 +33,88 @@ public static class GitWorkspaceStatus
         return files;
     }
 
+    public static async Task<GitWorktreeSummary?> TryGetWorktreeSummaryAsync(
+        string worktreePath,
+        string? mergeTargetRoot,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(worktreePath) || !Directory.Exists(worktreePath))
+            return null;
+
+        if (!IsGitRepository(worktreePath))
+            return null;
+
+        var head = await RunGitAsync(worktreePath, "rev-parse HEAD", cancellationToken);
+        var branch = await RunGitAsync(worktreePath, "rev-parse --abbrev-ref HEAD", cancellationToken);
+        var (_, files) = await TryListChangedFilesAsync(worktreePath, cancellationToken);
+
+        string? baseCommit = null;
+        if (!string.IsNullOrWhiteSpace(mergeTargetRoot)
+            && Directory.Exists(mergeTargetRoot)
+            && IsGitRepository(mergeTargetRoot))
+        {
+            var targetHead = await RunGitAsync(mergeTargetRoot, "rev-parse HEAD", cancellationToken);
+            if (!string.IsNullOrWhiteSpace(targetHead) && !string.IsNullOrWhiteSpace(head))
+            {
+                baseCommit = await RunGitAsync(
+                    worktreePath,
+                    $"merge-base {targetHead.Trim()} {head.Trim()}",
+                    cancellationToken);
+            }
+        }
+
+        var conflictPaths = files
+            .Where(f => string.Equals(f.ChangeKind, "unmerged", StringComparison.OrdinalIgnoreCase)
+                        || f.Path.Contains("conflict", StringComparison.OrdinalIgnoreCase))
+            .Select(f => f.Path)
+            .ToList();
+
+        var porcelainConflict = await DetectUnmergedFromPorcelainAsync(worktreePath, cancellationToken);
+        foreach (var p in porcelainConflict)
+        {
+            if (!conflictPaths.Contains(p, StringComparer.OrdinalIgnoreCase))
+                conflictPaths.Add(p);
+        }
+
+        var isDirty = files.Count > 0;
+
+        return new GitWorktreeSummary(
+            HeadCommit: head?.Trim(),
+            BranchName: branch?.Trim(),
+            BaseCommit: baseCommit?.Trim(),
+            IsDirty: isDirty,
+            HasUnmergedConflicts: conflictPaths.Count > 0,
+            ChangedPaths: files.Select(f => f.Path).ToList(),
+            ConflictPaths: conflictPaths);
+    }
+
+    private static async Task<IReadOnlyList<string>> DetectUnmergedFromPorcelainAsync(
+        string workspaceRoot,
+        CancellationToken cancellationToken)
+    {
+        var output = await RunGitAsync(workspaceRoot, "status --porcelain=1 -u", cancellationToken);
+        if (output is null)
+            return Array.Empty<string>();
+
+        var conflicts = new List<string>();
+        foreach (var raw in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var line = raw.TrimEnd('\r');
+            if (line.Length < 3)
+                continue;
+
+            var status = line[..2];
+            if (!status.Contains('U', StringComparison.Ordinal) && status is not "AA" and not "DD")
+                continue;
+
+            var pathPart = line[2..].TrimStart();
+            if (!string.IsNullOrWhiteSpace(pathPart))
+                conflicts.Add(pathPart);
+        }
+
+        return conflicts;
+    }
+
     public static IReadOnlyList<ChangedFile> ParsePorcelain(string porcelain)
     {
         var results = new List<ChangedFile>();
@@ -74,7 +156,10 @@ public static class GitWorkspaceStatus
             return "added";
         if (index == 'D' || workTree == 'D')
             return "deleted";
-        if (index == 'M' || workTree == 'M' || index == 'U' || workTree == 'U')
+        if (index == 'U' || workTree == 'U' || status is "AA" or "DD")
+            return "unmerged";
+
+        if (index == 'M' || workTree == 'M')
             return "modified";
 
         return "changed";

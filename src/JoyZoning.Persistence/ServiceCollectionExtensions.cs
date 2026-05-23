@@ -73,6 +73,10 @@ public static class ServiceCollectionExtensions
         TryAddColumn(db, "execution_leases", "AssignedAgent", "INTEGER NOT NULL DEFAULT 1");
         TryAddColumn(db, "execution_leases", "DispatchAttemptCount", "INTEGER NOT NULL DEFAULT 0");
         TryAddColumn(db, "execution_leases", "RecoveredFromLeaseId", "TEXT NULL");
+        TryAddColumn(db, "operator_sessions", "WorkspaceKey", "TEXT NULL");
+        TryAddColumn(db, "execution_sessions", "HermesSessionId", "TEXT NULL");
+        TryAddColumn(db, "work_tasks", "KanbanRevision", "INTEGER NOT NULL DEFAULT 0");
+        TryAddColumn(db, "work_tasks", "KanbanPushedRevision", "INTEGER NOT NULL DEFAULT 0");
 
         db.Database.ExecuteSqlRaw("""
              CREATE UNIQUE INDEX IF NOT EXISTS UX_execution_leases_one_active_per_card
@@ -81,6 +85,9 @@ public static class ServiceCollectionExtensions
   CREATE UNIQUE INDEX IF NOT EXISTS UX_work_tasks_session_kanban
   ON work_tasks (OperatorSessionId, HermesKanbanTaskId)
   WHERE HermesKanbanTaskId IS NOT NULL;
+  CREATE UNIQUE INDEX IF NOT EXISTS UX_operator_sessions_workspace_key
+  ON operator_sessions (WorkspaceKey)
+  WHERE WorkspaceKey IS NOT NULL;
   """);
     }
 

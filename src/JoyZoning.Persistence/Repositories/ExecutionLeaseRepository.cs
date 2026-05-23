@@ -67,6 +67,34 @@ public class ExecutionLeaseRepository : IExecutionLeaseRepository
         return leases;
     }
 
+    public async Task<IReadOnlyList<ExecutionLease>> ListForWorkspaceAsync(
+        string workspaceRoot,
+        CancellationToken cancellationToken = default)
+    {
+        var sessions = await _db.OperatorSessions.AsNoTracking().ToListAsync(cancellationToken);
+        var sessionIds = sessions
+            .Where(s => WorkspacePaths.EqualsNormalized(s.WorkspaceRoot, workspaceRoot))
+            .Select(s => s.Id)
+            .ToHashSet();
+
+        if (sessionIds.Count == 0)
+            return Array.Empty<ExecutionLease>();
+
+        var taskIds = await _db.WorkTasks.AsNoTracking()
+            .Where(t => sessionIds.Contains(t.OperatorSessionId))
+            .Select(t => t.Id)
+            .ToListAsync(cancellationToken);
+
+        if (taskIds.Count == 0)
+            return Array.Empty<ExecutionLease>();
+
+        var leases = await _db.ExecutionLeases
+            .Where(l => taskIds.Contains(l.WorkTaskId))
+            .ToListAsync(cancellationToken);
+
+        return leases.OrderByDescending(l => l.StartedAt).ToList();
+    }
+
     public Task<int> CountActiveAsync(CancellationToken cancellationToken = default) =>
         _db.ExecutionLeases.CountAsync(
             l => KanbanExecutionRules.ActiveLeaseStatuses.Contains(l.Status),
@@ -79,6 +107,33 @@ public class ExecutionLeaseRepository : IExecutionLeaseRepository
             l => l.AssignedSessionId == sessionId
                  && KanbanExecutionRules.ActiveLeaseStatuses.Contains(l.Status),
             cancellationToken);
+
+    public async Task<int> CountActiveForWorkspaceAsync(
+        string workspaceRoot,
+        CancellationToken cancellationToken = default)
+    {
+        var sessions = await _db.OperatorSessions.AsNoTracking().ToListAsync(cancellationToken);
+        var sessionIds = sessions
+            .Where(s => WorkspacePaths.EqualsNormalized(s.WorkspaceRoot, workspaceRoot))
+            .Select(s => s.Id)
+            .ToHashSet();
+
+        if (sessionIds.Count == 0)
+            return 0;
+
+        var taskIds = await _db.WorkTasks.AsNoTracking()
+            .Where(t => sessionIds.Contains(t.OperatorSessionId))
+            .Select(t => t.Id)
+            .ToListAsync(cancellationToken);
+
+        if (taskIds.Count == 0)
+            return 0;
+
+        return await _db.ExecutionLeases.CountAsync(
+            l => taskIds.Contains(l.WorkTaskId)
+                 && KanbanExecutionRules.ActiveLeaseStatuses.Contains(l.Status),
+            cancellationToken);
+    }
 
     public async Task<ExecutionLease> CreateAsync(ExecutionLease lease, CancellationToken cancellationToken = default)
     {

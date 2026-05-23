@@ -50,6 +50,26 @@ public sealed class WorkspaceSessionConsolidator
         var all = await _sessions.ListAsync(cancellationToken);
         foreach (var group in all.GroupBy(WorkspaceSessionCatalog.WorkspaceKey, StringComparer.OrdinalIgnoreCase))
             await ConsolidateGroupAsync(group.ToList(), cancellationToken);
+
+        await BackfillWorkspaceKeysAsync(cancellationToken);
+    }
+
+    private async Task BackfillWorkspaceKeysAsync(CancellationToken cancellationToken)
+    {
+        var all = await _sessions.ListAsync(cancellationToken);
+        foreach (var session in all)
+        {
+            if (!WorkspacePaths.TryNormalize(session.WorkspaceRoot, out var key))
+                continue;
+
+            if (string.Equals(session.WorkspaceKey, key, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            session.WorkspaceKey = key;
+            session.WorkspaceRoot = key;
+            session.UpdatedAt = DateTimeOffset.UtcNow;
+            await _sessions.UpdateAsync(session, cancellationToken);
+        }
     }
 
     private async Task ConsolidateWorkspaceAsync(
@@ -78,12 +98,10 @@ public sealed class WorkspaceSessionConsolidator
             ? norm
             : canonical.WorkspaceRoot;
 
-        if (!WorkspacePaths.EqualsNormalized(canonical.WorkspaceRoot, normalizedRoot))
-        {
-            canonical.WorkspaceRoot = normalizedRoot;
-            canonical.UpdatedAt = DateTimeOffset.UtcNow;
-            await _sessions.UpdateAsync(canonical, cancellationToken);
-        }
+        canonical.WorkspaceRoot = normalizedRoot;
+        canonical.WorkspaceKey = normalizedRoot;
+        canonical.UpdatedAt = DateTimeOffset.UtcNow;
+        await _sessions.UpdateAsync(canonical, cancellationToken);
 
         foreach (var duplicate in group.Where(s => s.Id != canonical.Id))
             await MergeDuplicateSessionAsync(canonical, duplicate, cancellationToken);
@@ -113,9 +131,29 @@ public sealed class WorkspaceSessionConsolidator
                 }
             }
 
+            var titleMatch = await _tasks.FindByTitleForWorkspaceAsync(
+                canonical.WorkspaceRoot, task.Title, cancellationToken);
+            if (titleMatch is not null && titleMatch.Id != task.Id)
+            {
+                await _leases.ReassignWorkTaskAsync(task.Id, titleMatch.Id, cancellationToken);
+                await _tasks.DeleteAsync(task.Id, cancellationToken);
+                _logger.LogInformation(
+                    "Removed duplicate task {TaskId} (title {Title}) during session merge",
+                    task.Id,
+                    task.Title);
+                continue;
+            }
+
             task.OperatorSessionId = canonical.Id;
             task.UpdatedAt = DateTimeOffset.UtcNow;
             await _tasks.UpdateAsync(task, cancellationToken);
+        }
+
+        if (ShouldPreferHermesSessionId(duplicate.HermesSessionId, canonical.HermesSessionId, canonical.Id))
+        {
+            canonical.HermesSessionId = duplicate.HermesSessionId;
+            canonical.UpdatedAt = DateTimeOffset.UtcNow;
+            await _sessions.UpdateAsync(canonical, cancellationToken);
         }
 
         await _leases.ReassignOperatorSessionAsync(duplicate.Id, canonical.Id, cancellationToken);
@@ -125,5 +163,21 @@ public sealed class WorkspaceSessionConsolidator
             duplicate.Id,
             canonical.Id,
             canonical.WorkspaceRoot);
+    }
+
+    private static bool ShouldPreferHermesSessionId(
+        string? candidate,
+        string? current,
+        Guid canonicalSessionId)
+    {
+        if (string.IsNullOrWhiteSpace(candidate))
+            return false;
+
+        if (string.IsNullOrWhiteSpace(current))
+            return true;
+
+        var defaultId = canonicalSessionId.ToString();
+        return string.Equals(current, defaultId, StringComparison.Ordinal)
+            && !string.Equals(candidate, defaultId, StringComparison.Ordinal);
     }
 }

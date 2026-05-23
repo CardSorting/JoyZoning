@@ -66,7 +66,9 @@ public sealed class LeaseWorktreeMonitor
                     lease.WorktreePath,
                     files.Count,
                     "worktree",
-                    live?.LiveFilePath),
+                    live?.LiveFilePath,
+                    live?.LiveMirrorRoot,
+                    live?.MirrorMode),
                 cancellationToken);
 
             if (live is not null)
@@ -79,7 +81,9 @@ public sealed class LeaseWorktreeMonitor
                         live.Presentation.Headline,
                         live.Presentation.ProgressPercent,
                         live.FilesCopiedThisTick,
-                        live.UpdatedAt),
+                        live.UpdatedAt,
+                        live.LiveMirrorRoot,
+                        live.MirrorMode),
                     cancellationToken);
             }
         }
@@ -93,4 +97,6 @@ public record WorktreeRefreshedDto(
     string WorkspaceRoot,
     int FileCount,
     string Inspect,
-    string? LiveStatusPath = null);
+    string? LiveStatusPath = null,
+    string? LiveMirrorRoot = null,
+    string? MirrorMode = null);

@@ -52,17 +52,33 @@ export interface LiveTaskSnapshot {
   blockedReason: string | null;
   worktreePath: string | null;
   sessionWorkspaceRoot: string | null;
+  liveMirrorRoot?: string | null;
+  mirrorMode?: string | null;
+  mirrorKeyId?: string | null;
+  leaseId?: string | null;
+  isSharedSessionRootMirror?: boolean;
+  liveIndexJson?: string | null;
   recommendedPollSeconds: number;
   progress?: LiveProgress;
   display: LiveDisplay;
   recentEvidence?: unknown[];
   updatedAt?: string;
+  modeNavigation?: {
+    recommendedMode: string;
+    availableTransitions: {
+      targetMode: string;
+      label: string;
+      reason: string;
+      handoffKind?: string | null;
+    }[];
+  };
 }
 
 export interface WatchSession {
   id: string;
   name: string;
   workspaceRoot: string;
+  workspaceKey?: string;
   hermesProfile: string | null;
 }
 

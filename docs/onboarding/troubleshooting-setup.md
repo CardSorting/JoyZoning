@@ -128,7 +128,7 @@ flowchart TD
 | Symptom | Fix |
 |---------|-----|
 | `jz.dll` not found | Re-run `./scripts/install-jz.sh`; use wrapper at `~/.local/bin/jz` |
-| .NET 8 required | `export DOTNET_ROOT=$HOME/.dotnet` |
+| .NET 8 required / SDK 8.0.421 not found but installed | SDK is often in `~/.dotnet` while PATH uses `/usr/local/share/dotnet` (6.x). Fix: `export DOTNET_ROOT="$HOME/.dotnet" PATH="$HOME/.dotnet:$PATH"` or use `./scripts/dotnet` from repo root. See [development.md](../development.md#net-sdk-required-8x). |
 | `cannot execute binary file` | Do not symlink wrapper over binary — [first-run-cli.md](first-run-cli.md) |
 | Session required | `export JOYZONING_SESSION_ID=<guid>` |
 | doctor hermes warn | Start gateway (Tree 2 step 3) |

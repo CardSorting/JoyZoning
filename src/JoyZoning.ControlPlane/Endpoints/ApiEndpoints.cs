@@ -118,10 +118,42 @@ public static class ApiEndpoints
             return Results.Created($"/api/sessions/{session.Id}", session);
         });
 
-        app.MapGet("/api/sessions/{id:guid}", async (Guid id, IOperatorSessionRepository repo) =>
+        app.MapPost("/api/sessions/consolidate", async (WorkspaceSessionConsolidator consolidator) =>
         {
-            var session = await repo.GetByIdAsync(id);
-            return session is null ? Results.NotFound() : Results.Ok(session);
+            await consolidator.ConsolidateAllAsync();
+            return Results.Ok(new { consolidated = true });
+        });
+
+        app.MapGet("/api/sessions/{id:guid}", async (Guid id, OrchestrationService orch) =>
+        {
+            try
+            {
+                var session = await orch.ResolveCanonicalSessionAsync(id);
+                return Results.Ok(session);
+            }
+            catch (InvalidOperationException)
+            {
+                return Results.NotFound();
+            }
+        });
+
+        app.MapGet("/api/tasks", async (
+            Guid? sessionId,
+            IWorkTaskRepository tasks,
+            OrchestrationService orch) =>
+        {
+            if (!sessionId.HasValue)
+                return Results.BadRequest("sessionId required");
+
+            try
+            {
+                var canonical = await orch.ResolveCanonicalSessionAsync(sessionId.Value);
+                return Results.Ok(await tasks.ListByWorkspaceRootAsync(canonical.WorkspaceRoot));
+            }
+            catch (InvalidOperationException)
+            {
+                return Results.NotFound();
+            }
         });
 
         app.MapGet("/api/watch/bootstrap", async (
@@ -157,16 +189,132 @@ public static class ApiEndpoints
                     s.Id,
                     s.Name,
                     s.WorkspaceRoot,
+                    workspaceKey = s.WorkspaceKey ?? s.WorkspaceRoot,
                     s.HermesProfile,
                 }),
                 activeTasks,
             });
         });
 
-        app.MapGet("/api/tasks", async (Guid? sessionId, IWorkTaskRepository repo) =>
+        app.MapPost("/api/sessions/open-path", (OpenWorkspacePathRequest req) =>
         {
-            if (!sessionId.HasValue) return Results.BadRequest("sessionId required");
-            return Results.Ok(await repo.ListBySessionAsync(sessionId.Value));
+            if (string.IsNullOrWhiteSpace(req.Path) || !Directory.Exists(req.Path))
+                return Results.BadRequest(new { message = "Path does not exist." });
+
+            var full = Path.GetFullPath(req.Path);
+            try
+            {
+                if (OperatingSystem.IsMacOS())
+                {
+                    System.Diagnostics.Process.Start("open", full);
+                    return Results.Ok(new { ok = true });
+                }
+
+                if (OperatingSystem.IsLinux())
+                {
+                    System.Diagnostics.Process.Start("xdg-open", full);
+                    return Results.Ok(new { ok = true });
+                }
+
+                return Results.StatusCode(StatusCodes.Status501NotImplemented);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message, statusCode: 500);
+            }
+        });
+
+        app.MapGet("/api/sessions/{id:guid}/parallel-workers", async (
+            Guid id,
+            WorkspaceLiveMirrorObservabilityService observability,
+            OrchestrationService orch,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var canonical = await orch.ResolveCanonicalSessionAsync(id, cancellationToken);
+                var model = await observability.GetParallelWorkersAsync(canonical.Id, cancellationToken);
+                return Results.Ok(ParallelWorkersApiMapper.ToJson(model));
+            }
+            catch (InvalidOperationException)
+            {
+                return Results.NotFound();
+            }
+        });
+
+        app.MapGet("/api/sessions/{id:guid}/merge-queue", async (
+            Guid id,
+            WorkspaceLiveMirrorObservabilityService observability,
+            OrchestrationService orch,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var canonical = await orch.ResolveCanonicalSessionAsync(id, cancellationToken);
+                var model = await observability.GetMergeQueueAsync(canonical.Id, cancellationToken);
+                return Results.Ok(MergeQueueApiMapper.ToJson(model));
+            }
+            catch (InvalidOperationException)
+            {
+                return Results.NotFound();
+            }
+        });
+
+        app.MapGet("/api/operational-modes", () =>
+            Results.Ok(new
+            {
+                modes = JoyZoningOperationalModes.All.Select(m => new
+                {
+                    slug = m.Slug,
+                    title = m.Title,
+                    primaryQuestion = m.PrimaryQuestion,
+                    shortDescription = m.ShortDescription,
+                    mentalModel = m.MentalModel,
+                    canonicalMetaphor = m.CanonicalMetaphor,
+                    isCanonicalOperationalSurface = m.IsCanonicalOperationalSurface,
+                    canonicalSurfaces = m.CanonicalSurfaces,
+                    forbiddenInMode = m.ForbiddenInMode,
+                    primaryEntities = m.PrimaryEntities,
+                    desktopSurfaces = m.DesktopSurfaces,
+                    watchComponents = m.WatchComponents,
+                    apiRouteHints = m.ApiRouteHints,
+                    allowsKanbanMutation = OperationalModeGuardrails.AllowsKanbanMutation(m.Slug),
+                    allowsMergeApproveRevoke = OperationalModeGuardrails.AllowsMergeApproveRevoke(m.Slug),
+                    allowsAuthoritativeWorkspaceActions = OperationalModeGuardrails.AllowsAuthoritativeWorkspaceActions(m.Slug),
+                }),
+                registryTransitions = OperationalModeNavigation.StandardRegistryTransitions().Select(t => new
+                {
+                    targetMode = t.TargetModeSlug,
+                    t.Label,
+                    t.Reason,
+                }),
+            }));
+
+        app.MapGet("/api/sessions/{sessionId:guid}/workers/{executionSessionId:guid}/decision-preflight", async (
+            Guid sessionId,
+            Guid executionSessionId,
+            string? action,
+            WorkspaceLiveMirrorObservabilityService observability,
+            OrchestrationService orch,
+            CancellationToken cancellationToken) =>
+        {
+            if (string.IsNullOrWhiteSpace(action))
+                return Results.BadRequest(new { error = "invalid_action", message = "Query action=approve|revoke|inspect is required." });
+
+            try
+            {
+                var canonical = await orch.ResolveCanonicalSessionAsync(sessionId, cancellationToken);
+                var model = await observability.GetDecisionPreflightAsync(
+                    canonical.Id,
+                    executionSessionId,
+                    action,
+                    cancellationToken);
+                return Results.Ok(OperatorDecisionApiMapper.MapPreflight(model));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.NotFound(new { error = "not_found", message = ex.Message });
+            }
         });
 
         app.MapPost("/api/tasks", async (CreateTaskRequest req, OrchestrationService orch) =>
@@ -771,6 +919,7 @@ public static class ApiEndpoints
     }
 }
 
+public record OpenWorkspacePathRequest(string Path);
 public record ImportKanbanRequest(Guid SessionId);
 public record EnsureDashboardRequest(bool AlsoEnsureGateway = true);
 

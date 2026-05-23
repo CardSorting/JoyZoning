@@ -30,7 +30,7 @@ flowchart TD
 | 3 | [Setup checklist](onboarding/setup-checklist.md) | 10 min |
 | 4 | [What's next](onboarding/whats-next.md) | 20 min |
 
-**Big picture:** [what-is-joyzoning.md](what-is-joyzoning.md) · **Technical concepts:** [concepts.md](concepts.md) · **FAQ:** [faq.md](faq.md)
+**Big picture:** [what-is-joyzoning.md](what-is-joyzoning.md) · **Technical concepts:** [concepts.md](concepts.md) · **Operational modes:** [operational-modes.md](operational-modes.md) · **FAQ:** [faq.md](faq.md)
 
 ### Understand workspace state (recommended)
 

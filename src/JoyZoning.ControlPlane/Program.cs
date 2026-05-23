@@ -28,6 +28,8 @@ builder.Services.Configure<ControlPlaneOptions>(builder.Configuration.GetSection
 builder.Services.Configure<LeaseRuntimeOptions>(builder.Configuration.GetSection(LeaseRuntimeOptions.SectionName));
 builder.Services.Configure<WorkspaceOptions>(builder.Configuration.GetSection(WorkspaceOptions.SectionName));
 builder.Services.Configure<ExecutorOptions>(builder.Configuration.GetSection(ExecutorOptions.SectionName));
+builder.Services.Configure<WorkspaceParallelismOptions>(
+    builder.Configuration.GetSection(WorkspaceParallelismOptions.SectionName));
 builder.Services.Configure<BroccoliQOptions>(builder.Configuration.GetSection(BroccoliQOptions.SectionName));
 builder.Services.PostConfigure<BroccoliQOptions>(opts =>
 {
@@ -50,6 +52,8 @@ builder.Services.AddJoyZoningAdapters();
 
 builder.Services.AddScoped<EventIngestor>();
 builder.Services.AddScoped<WorkspaceEventPublisher>();
+builder.Services.AddScoped<WorkerMergeObservabilityBuilder>();
+builder.Services.AddScoped<WorkspaceLiveMirrorObservabilityService>();
 builder.Services.AddScoped<WorkspaceLiveMirrorService>();
 builder.Services.AddSingleton<LeaseLiveRefreshCoordinator>();
 builder.Services.AddScoped<LeaseWorktreeMonitor>();
@@ -57,7 +61,8 @@ builder.Services.AddScoped<LeaseRuntimeService>();
 builder.Services.AddScoped<KanbanExecutionOrchestrator>();
 builder.Services.AddScoped<OrchestrationService>();
 builder.Services.AddScoped<WorkspaceSessionConsolidator>();
-builder.Services.AddSingleton<KanbanSyncCoordinator>();
+builder.Services.AddSingleton<WorkspaceIdentityCoordinator>();
+builder.Services.AddSingleton<WorkspaceLiveMirrorRegistry>();
 builder.Services.AddScoped<ApprovalService>();
 builder.Services.AddScoped<ConfigService>();
 builder.Services.AddSingleton<HermesConnectivityService>();
@@ -65,6 +70,8 @@ builder.Services.AddSingleton<HermesConnectorDiagnostics>();
 builder.Services.AddScoped<HermesDashboardConnectivityService>();
 builder.Services.AddSingleton<HermesRunEventConsumer>();
 builder.Services.AddSingleton<KanbanSyncState>();
+builder.Services.AddSingleton<KanbanStatusOutbox>();
+builder.Services.AddHostedService<KanbanStatusOutboxHostedService>();
 builder.Services.AddSingleton<BroccoliQRuntimeMetrics>();
 builder.Services.AddSingleton<BroccoliQCoordinator>();
 builder.Services.AddScoped<BroccoliQBackfillService>();
