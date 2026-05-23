@@ -69,6 +69,55 @@ dotnet run --project src/JoyZoning.ControlPlane
 dotnet run --project src/JoyZoning.App
 ```
 
+## Live workspace mirror (DietCode progress)
+
+JoyZoning builds in `.joyzoning/worktrees/<task-id>/`, not the session folder root. To see progress in your IDE without manual `rsync`:
+
+| Mechanism | What you get |
+|-----------|----------------|
+| **`JOYZONING_LIVE.md`** | Auto-written at the session workspace root every ~10s while a lease is active (`Workspace:MirrorToSessionRoot`) |
+| **`GET /api/tasks/{id}/live`** | JSON snapshot + triggers mirror; includes `recommendedPollSeconds` |
+| **`POST /api/tasks/{id}/live/refresh`** | Force mirror + status file update |
+| **`jz task watch <id> [--workspace path]`** | Same as workspace-live.sh — step tracker + adaptive poll |
+| **`./scripts/workspace-live.sh <task-id> [workspace]`** | Friendly terminal tracker (steps, % bar, plain language; 3–25s adaptive poll) |
+| **`.joyzoning/live.json`** | Machine-readable mirror of `display` for IDE tooling |
+
+Config (`appsettings` / `Workspace` section):
+
+```json
+"Workspace": {
+  "MirrorToSessionRoot": true,
+  "LiveStatusFileName": "JOYZONING_LIVE.md",
+  "LiveMonitorIntervalSeconds": 10
+}
+```
+
+Open `TinyQuest-Campfire/JOYZONING_LIVE.md` (or your session root) while a task runs.
+
+**Terminal watcher** (dedicated pane while DietCode runs):
+
+```bash
+./scripts/workspace-live.sh f6d456dc-707b-427c-b130-6459529db5cc /path/to/session-workspace
+# once:  ./scripts/workspace-live.sh --once <task-id>
+# fixed: JOYZONING_LIVE_INTERVAL=10 ./scripts/workspace-live.sh <task-id>
+```
+
+The tracker uses familiar patterns (install wizard / package tracker):
+
+- **Headline + subheadline** in plain language (not lease enum names)
+- **Step list** — Getting started → Building → Quality checks → Review
+- **Progress bar** — combined build stage + deliverables checklist
+- **“What you can do next”** when blocked or ready for review
+- **`JOYZONING_LIVE.md`** — same narrative for non-technical readers (IDE-friendly)
+
+API clients can read `display` on `GET /api/tasks/{id}/live` (`headline`, `steps`, `nextActions`, `progressPercent`, `activityState`).
+
+Options: `--simple`, `--paths`, `--once`, `--notify` (macOS), `JOYZONING_LIVE_OPEN=1`.
+
+Polling modes (`display.pollMode`): **burst** (~3s) while files are changing, **normal**, **slow** (~20s) when idle/stuck, **stopped** when done.
+
+On TTY, compact **in-place** status lines appear between full dashboard redraws (like `npm` / CI log tail). Full refresh shows **Step N of M**, timeline `●──◉──○──○`, ETA estimate, and **Good to know** tips.
+
 ## Run (development)
 
 | Command | What it does |

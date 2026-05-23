@@ -11,17 +11,20 @@ public sealed class LeaseWorktreeMonitor
     private readonly IExecutionLeaseRepository _leases;
     private readonly IWorkspaceAdapter _workspace;
     private readonly WorkspaceEventPublisher _publisher;
+    private readonly WorkspaceLiveMirrorService _liveMirror;
     private readonly IHubContext<OperatorHub> _hub;
 
     public LeaseWorktreeMonitor(
         IExecutionLeaseRepository leases,
         IWorkspaceAdapter workspace,
         WorkspaceEventPublisher publisher,
+        WorkspaceLiveMirrorService liveMirror,
         IHubContext<OperatorHub> hub)
     {
         _leases = leases;
         _workspace = workspace;
         _publisher = publisher;
+        _liveMirror = liveMirror;
         _hub = hub;
     }
 
@@ -51,13 +54,17 @@ public sealed class LeaseWorktreeMonitor
                 continue;
 
             publishedCount++;
+
+            var live = await _liveMirror.RefreshForLeaseAsync(lease, cancellationToken);
+
             await _hub.Clients.All.SendAsync(
                 "OnWorktreeRefreshed",
                 new WorktreeRefreshedDto(
                     lease.WorkTaskId,
                     lease.WorktreePath,
                     files.Count,
-                    "worktree"),
+                    "worktree",
+                    live?.LiveFilePath),
                 cancellationToken);
         }
 
@@ -69,4 +76,5 @@ public record WorktreeRefreshedDto(
     Guid TaskId,
     string WorkspaceRoot,
     int FileCount,
-    string Inspect);
+    string Inspect,
+    string? LiveStatusPath = null);

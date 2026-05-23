@@ -9,16 +9,19 @@ namespace JoyZoning.ControlPlane.Background;
 public class LeaseWorktreeMonitorHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly IOptions<LeaseRuntimeOptions> _options;
+    private readonly IOptions<LeaseRuntimeOptions> _leaseOptions;
+    private readonly IOptions<WorkspaceOptions> _workspaceOptions;
     private readonly ILogger<LeaseWorktreeMonitorHostedService> _logger;
 
     public LeaseWorktreeMonitorHostedService(
         IServiceScopeFactory scopeFactory,
-        IOptions<LeaseRuntimeOptions> options,
+        IOptions<LeaseRuntimeOptions> leaseOptions,
+        IOptions<WorkspaceOptions> workspaceOptions,
         ILogger<LeaseWorktreeMonitorHostedService> logger)
     {
         _scopeFactory = scopeFactory;
-        _options = options;
+        _leaseOptions = leaseOptions;
+        _workspaceOptions = workspaceOptions;
         _logger = logger;
     }
 
@@ -28,7 +31,7 @@ public class LeaseWorktreeMonitorHostedService : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            if (_options.Value.WorktreeMonitorEnabled)
+            if (_leaseOptions.Value.WorktreeMonitorEnabled)
             {
                 try
                 {
@@ -48,7 +51,11 @@ public class LeaseWorktreeMonitorHostedService : BackgroundService
                 }
             }
 
-            var interval = Math.Max(20, _options.Value.WorktreeMonitorIntervalSeconds);
+            var interval = Math.Max(
+                5,
+                _workspaceOptions.Value.LiveMonitorIntervalSeconds > 0
+                    ? _workspaceOptions.Value.LiveMonitorIntervalSeconds
+                    : _leaseOptions.Value.WorktreeMonitorIntervalSeconds);
             await Task.Delay(TimeSpan.FromSeconds(interval), stoppingToken);
         }
     }

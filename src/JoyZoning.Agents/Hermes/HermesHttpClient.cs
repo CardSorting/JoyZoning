@@ -28,7 +28,10 @@ public class HermesHttpClient
     private void SyncBaseAddress()
     {
         var snapshot = _settings.GetSnapshot();
-        _http.BaseAddress = snapshot.ApiUri;
+        // HttpClient forbids changing BaseAddress after the first request — only set when unset.
+        if (_http.BaseAddress is null)
+            _http.BaseAddress = snapshot.ApiUri;
+
         _http.DefaultRequestHeaders.Authorization = null;
         if (!string.IsNullOrEmpty(snapshot.ApiKey))
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", snapshot.ApiKey);

@@ -26,6 +26,7 @@ if (string.IsNullOrWhiteSpace(dbPath))
 builder.Services.Configure<HermesOptions>(builder.Configuration.GetSection(HermesOptions.SectionName));
 builder.Services.Configure<ControlPlaneOptions>(builder.Configuration.GetSection(ControlPlaneOptions.SectionName));
 builder.Services.Configure<LeaseRuntimeOptions>(builder.Configuration.GetSection(LeaseRuntimeOptions.SectionName));
+builder.Services.Configure<WorkspaceOptions>(builder.Configuration.GetSection(WorkspaceOptions.SectionName));
 builder.Services.Configure<ExecutorOptions>(builder.Configuration.GetSection(ExecutorOptions.SectionName));
 builder.Services.Configure<BroccoliQOptions>(builder.Configuration.GetSection(BroccoliQOptions.SectionName));
 builder.Services.PostConfigure<BroccoliQOptions>(opts =>
@@ -49,6 +50,7 @@ builder.Services.AddJoyZoningAdapters();
 
 builder.Services.AddScoped<EventIngestor>();
 builder.Services.AddScoped<WorkspaceEventPublisher>();
+builder.Services.AddScoped<WorkspaceLiveMirrorService>();
 builder.Services.AddScoped<LeaseWorktreeMonitor>();
 builder.Services.AddScoped<LeaseRuntimeService>();
 builder.Services.AddScoped<KanbanExecutionOrchestrator>();

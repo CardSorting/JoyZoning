@@ -470,6 +470,52 @@ public static class ApiEndpoints
                 : Results.Ok(new { path, diff });
         });
 
+        app.MapGet("/api/tasks/{id:guid}/live", async (
+            Guid id,
+            IWorkTaskRepository tasks,
+            KanbanExecutionOrchestrator exec,
+            WorkspaceLiveMirrorService liveMirror,
+            CancellationToken cancellationToken) =>
+        {
+            var task = await tasks.GetByIdAsync(id, cancellationToken);
+            if (task is null)
+                return Results.NotFound(new { error = "task_not_found", message = "Task not found." });
+
+            var lease = await exec.GetActiveLeaseAsync(id, cancellationToken);
+            WorkspaceLiveSnapshot? snapshot = null;
+            if (lease is not null)
+                snapshot = await liveMirror.RefreshForLeaseAsync(lease, cancellationToken);
+
+            if (snapshot is null)
+                return Results.Ok(WorkspaceLiveResponseBuilder.IdleBody(
+                    id,
+                    task.Title,
+                    "No active lease — live mirror runs during DietCode execution."));
+
+            return Results.Ok(WorkspaceLiveResponseBuilder.ToApiBody(snapshot));
+        });
+
+        app.MapPost("/api/tasks/{id:guid}/live/refresh", async (
+            Guid id,
+            IWorkTaskRepository tasks,
+            KanbanExecutionOrchestrator exec,
+            WorkspaceLiveMirrorService liveMirror,
+            CancellationToken cancellationToken) =>
+        {
+            var task = await tasks.GetByIdAsync(id, cancellationToken);
+            if (task is null)
+                return Results.NotFound(new { error = "task_not_found", message = "Task not found." });
+
+            var lease = await exec.GetActiveLeaseAsync(id, cancellationToken);
+            if (lease is null)
+                return Results.NotFound(new { error = "no_active_lease", message = "No active lease for this task." });
+
+            var snapshot = await liveMirror.RefreshForLeaseAsync(lease, cancellationToken);
+            return snapshot is null
+                ? Results.Conflict(new { ok = false, message = "Mirror skipped (check workspace paths)." })
+                : Results.Ok(WorkspaceLiveResponseBuilder.ToApiBody(snapshot));
+        });
+
         app.MapGet("/api/tasks/{id:guid}/workspace/changed", async (
             Guid id,
             Guid? sessionId,

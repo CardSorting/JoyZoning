@@ -165,6 +165,9 @@ public static class CliDispatcher
                 return CliOutput.WriteResult(ctx,
                     await OperatorWorkflows.RecoverTaskAsync(client, args, CliArgs.RequireGuid(a, 2, "task id")));
 
+            case "watch":
+                return TaskWatchCommand.Run(ctx, CliArgs.RequireGuid(a, 2, "task id"));
+
             case "list":
                 return CliOutput.WriteResult(ctx, await client.ListTasksAsync(
                     args.RequireSessionId(CliArgs.ParseGuidOpt(raw, "--session"))));
@@ -238,7 +241,7 @@ public static class CliDispatcher
                     args.RequireSessionId(CliArgs.ParseGuidOpt(raw, "--session"))));
 
             default:
-                throw Usage("task run | verify | complete | fail | recover | list | create | ...");
+                throw Usage("task run | watch | verify | complete | fail | recover | list | create | ...");
         }
     }
 
