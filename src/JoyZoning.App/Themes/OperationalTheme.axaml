@@ -1,32 +1,115 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Style Selector="Window">
-    <Setter Property="Background" Value="#0d1117" />
-    <Setter Property="Foreground" Value="#c9d1d9" />
+    <Setter Property="Background" Value="#212121" />
+    <Setter Property="Foreground" Value="#ececec" />
   </Style>
-  <Style Selector="Border.panel">
-    <Setter Property="Background" Value="#161b22" />
-    <Setter Property="BorderBrush" Value="#30363d" />
+
+  <Style Selector="TextBlock.sidebar-section">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="#b4b4b4" />
+    <Setter Property="Margin" Value="12,8,12,4" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="Button.sidebar">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="12,10" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Foreground" Value="#ececec" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style Selector="Button.sidebar:pointerover">
+    <Setter Property="Background" Value="#2a2a2a" />
+  </Style>
+  <Style Selector="Button.sidebar.nav-active">
+    <Setter Property="Background" Value="#2a2a2a" />
+  </Style>
+
+  <Style Selector="Button.banner">
+    <Setter Property="Background" Value="#2f2f2f" />
+    <Setter Property="BorderBrush" Value="#ffffff1a" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="12,6" />
+    <Setter Property="Foreground" Value="#ececec" />
+  </Style>
+  <Style Selector="Button.banner:pointerover">
+    <Setter Property="Background" Value="#3a3a3a" />
+  </Style>
+
+  <Style Selector="Button.chat-action">
+    <Setter Property="Background" Value="#2f2f2f" />
+    <Setter Property="BorderBrush" Value="#ffffff1a" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="14,8" />
+    <Setter Property="Foreground" Value="#ececec" />
+  </Style>
+  <Style Selector="Button.chat-action:pointerover">
+    <Setter Property="Background" Value="#3a3a3a" />
+  </Style>
+
+  <Style Selector="Button.chat-chip">
+    <Setter Property="Background" Value="#212121" />
+    <Setter Property="BorderBrush" Value="#ffffff1a" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="10,4" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="#ececec" />
+  </Style>
+  <Style Selector="Button.chat-chip:pointerover">
+    <Setter Property="Background" Value="#3a3a3a" />
+  </Style>
+
+  <Style Selector="Button.chat-send">
+    <Setter Property="Background" Value="White" />
+    <Setter Property="Foreground" Value="Black" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="Button.chat-send:disabled">
+    <Setter Property="Background" Value="#4a4a4a" />
+    <Setter Property="Foreground" Value="#888888" />
+  </Style>
+  <Style Selector="Button.chat-send:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#e6e6e6" />
+  </Style>
+
+  <!-- Legacy panel styles for other views -->
+  <Style Selector="Border.panel">
+    <Setter Property="Background" Value="#212121" />
+    <Setter Property="BorderBrush" Value="#ffffff1a" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
     <Setter Property="Padding" Value="12" />
   </Style>
   <Style Selector="TextBlock.title">
     <Setter Property="FontSize" Value="18" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="#58a6ff" />
+    <Setter Property="Foreground" Value="#ececec" />
   </Style>
   <Style Selector="TextBlock.subtitle">
     <Setter Property="FontSize" Value="12" />
-    <Setter Property="Foreground" Value="#8b949e" />
+    <Setter Property="Foreground" Value="#b4b4b4" />
   </Style>
   <Style Selector="Button.nav">
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Left" />
     <Setter Property="Margin" Value="0,2" />
     <Setter Property="Padding" Value="10,8" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="#ececec" />
   </Style>
   <Style Selector="Button.nav:pointerover">
-    <Setter Property="Background" Value="#21262d" />
+    <Setter Property="Background" Value="#2a2a2a" />
   </Style>
 </Styles>

@@ -6,12 +6,42 @@ namespace JoyZoning.App.Services;
 /// </summary>
 public static class HermesInstallPaths
 {
+    private static string? FindMonorepoRoot()
+    {
+        var dir = AppDomain.CurrentDomain.BaseDirectory;
+        while (!string.IsNullOrEmpty(dir))
+        {
+            if (File.Exists(Path.Combine(dir, "JoyZoning.sln")))
+            {
+                return dir;
+            }
+            var parent = Path.GetDirectoryName(dir);
+            if (parent == dir) break;
+            dir = parent;
+        }
+        return null;
+    }
+
     /// <summary>Canonical diet-hermes checkout (master install).</summary>
-    public static string CanonicalInstallRoot =>
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "Downloads",
-            "diet-hermes-main-master");
+    public static string CanonicalInstallRoot
+    {
+        get
+        {
+            var monorepoRoot = FindMonorepoRoot();
+            if (monorepoRoot != null)
+            {
+                var localRuntime = Path.Combine(monorepoRoot, "apps", "agent-runtime");
+                if (Directory.Exists(localRuntime))
+                {
+                    return localRuntime;
+                }
+            }
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Downloads",
+                "diet-hermes-main-master");
+        }
+    }
 
     public static bool IsDietHermesCheckout(string path)
     {

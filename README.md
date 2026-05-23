@@ -126,24 +126,28 @@ Desktop, REST (`:9470`), and CLI all call the same orchestrator — **no back do
 git clone https://github.com/CardSorting/JoyZoning.git
 cd JoyZoning
 
-cp src/JoyZoning.ControlPlane/appsettings.example.json \
-   src/JoyZoning.ControlPlane/appsettings.Development.json
-# Set Hermes:InstallRoot to your diet-hermes path (or use first-launch auto-setup)
+# 1. Install workspace dependencies
+pnpm install
 
-./scripts/run-dev.sh
+# 2. Run the interactive setup wizard (configures ports, workspace, Python venv)
+pnpm setup
+
+# 3. Start the entire dev stack (Control Plane + UI + Proxy Server + Desktop App)
+pnpm dev
 ```
 
 ```bash
-# Optional: terminal-only operator
+# Optional: terminal-only operator commands
 ./scripts/jz doctor
 jz task run <task-id> --poll 10
 jz task verify <task-id> --cmd "dotnet test"
 jz task complete <task-id> --yes
 ```
 
-**Prerequisites:** [.NET 8 SDK](https://dotnet.microsoft.com/download) (`global.json`), diet-hermes, Node.js or Bun (for embedded [BroccoliQ](docs/broccoliq.md) — built automatically by `./scripts/run-dev.sh`). **macOS** recommended for `.app` publish; control plane runs on Linux.
+**Prerequisites:** [.NET 8 SDK](https://dotnet.microsoft.com/download) (`global.json`), Node.js (v18+), pnpm, and Python 3.11.
 
-**Documentation:** [Onboarding hub](docs/onboarding/README.md) · [5-min quickstart](docs/onboarding/quickstart.md) · [Menu guide (no terminal)](docs/onboarding/desktop-menu-guide.md) · [Setup troubleshooting](docs/onboarding/troubleshooting-setup.md) · [Getting started](docs/getting-started.md)
+**Documentation:** [Fusion Architecture](docs/fusion-architecture.md) · [Onboarding Guide](docs/onboarding.md) · [Agent Containment & Safety](docs/agent-containment.md) · [Onboarding hub](docs/onboarding/README.md) · [5-min quickstart](docs/onboarding/quickstart.md)
+
 
 ---
 

@@ -1,0 +1,19 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install python packages
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir .[web] google-cloud-firestore google-cloud-tasks google-cloud-storage
+
+# Copy project files
+COPY . .
+
+# Expose port and run uvicorn
+EXPOSE 8080
+CMD ["uvicorn", "operator_api:app", "--host", "0.0.0.0", "--port", "8080"]

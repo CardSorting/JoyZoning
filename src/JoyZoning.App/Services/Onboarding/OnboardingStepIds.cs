@@ -21,4 +21,5 @@ public static class OnboardingSurfaceIds
     public const string Execution = "execution";
     public const string Workspace = "workspace";
     public const string Timeline = "timeline";
+    public const string Approvals = "approvals";
 }

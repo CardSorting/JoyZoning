@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-WEB="$ROOT/web/watch"
+WEB="$ROOT/apps/joyzoning"
 OUT="$ROOT/src/JoyZoning.ControlPlane/wwwroot"
 
 cd "$WEB"

@@ -1,0 +1,14 @@
+{
+  "name": "joyzoning-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "pnpm tsx scripts/setup.ts",
+    "dev": "pnpm tsx scripts/dev-all.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

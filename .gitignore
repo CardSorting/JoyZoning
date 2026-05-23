@@ -1,3 +1,4 @@
+# Build and IDE outputs
 bin/
 obj/
 .vs/
@@ -8,13 +9,28 @@ obj/
 *.db-shm
 *.db-wal
 .DS_Store
-dist/
-broccoliq/node_modules/
-broccoliq/dist/
 
-web/watch/node_modules/
-web/watch/.next/
-web/watch/out/
+# Node/TypeScript dependency & build directories (at any level)
+node_modules/
+dist/
+out/
+.next/
+*.tsbuildinfo
+
+# Python environments and cache (at any level)
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.plans/
+
+# Local workspaces and agent states
+.joy-workspaces/
+.joyzoning/
 
 # Local developer overrides (copy from appsettings.example.json)
 src/JoyZoning.ControlPlane/appsettings.Development.json

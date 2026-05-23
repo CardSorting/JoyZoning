@@ -16,6 +16,7 @@ public partial class MainWindow : Window
         {
             WireOnboardingHub(vm);
             vm.WorkspacePickerRequested += async () => await PickAndOpenWorkspaceAsync(vm);
+            vm.NavigateSurfaceRequested += surfaceId => NavigateToSurface(vm, surfaceId);
             Loaded += OnLoadedAsync;
         }
     }
@@ -254,6 +255,30 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainWindowViewModel vm)
             NavigateToSurface(vm, OnboardingSurfaceIds.Timeline);
+    }
+
+    private void OnNavApprovals(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+            ShowApprovalsSurface(vm);
+    }
+
+    private void ShowApprovalsSurface(MainWindowViewModel vm)
+    {
+        var view = new UserControl { DataContext = vm.Approvals };
+        var panel = new StackPanel { Margin = new Avalonia.Thickness(24) };
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Approvals",
+            FontSize = 24,
+            FontWeight = Avalonia.Media.FontWeight.SemiBold,
+            Foreground = Avalonia.Media.Brushes.White,
+            Margin = new Avalonia.Thickness(0, 0, 0, 16),
+        });
+        panel.Children.Add(new ApprovalsPanel { DataContext = vm.Approvals });
+        view.Content = panel;
+        MainContent.Content = view;
+        vm.OnSurfaceActivated(OnboardingSurfaceIds.Approvals);
     }
 
     private void NavigateToSurface(MainWindowViewModel vm, string surfaceId)

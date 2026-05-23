@@ -1,0 +1,54 @@
+name: Diet integrations check
+
+on:
+  pull_request:
+  push:
+    branches: [master, main, sync/**]
+
+jobs:
+  broccolidb-joyzoning-overlay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b16344cecbd52dd7e6f2c5d6a0c  # v4.2.2
+
+      - name: Assert integration paths exist
+        run: |
+          set -euo pipefail
+          test -f broccolidb/package.json
+          test -d broccolidb/core
+          test -f plugins/joyzoning_governance/plugin.yaml
+          test -f plugins/joyzoning_governance/__init__.py
+          test -f tools/broccolidb_tools/runner.py
+          test -f tools/broccolidb.py
+          test -f scripts/joy_check.py
+          grep -q 'broccolidb_init' toolsets.py
+          grep -q 'broccolidb_check_layering' toolsets.py
+          grep -q '"/dietcode"' web/src/App.tsx
+
+      - uses: actions/setup-python@0b93645e9fea731c7a2a2aa6c358edd285328f92  # v5.3.0
+        with:
+          python-version: "3.11"
+
+      - name: BroccoliDB tool registry smoke test
+        run: |
+          python -c "
+          from tools.registry import discover_builtin_tools, registry
+          discover_builtin_tools()
+          tools = registry.get_tool_names_for_toolset('broccolidb')
+          assert len(tools) >= 20, tools
+          print('broccolidb tools:', len(tools))
+          "
+
+      - name: JoyZoning governance plugin loads
+        run: |
+          python -c "
+          from hermes_cli.plugins import discover_plugins, get_plugin_manager
+          discover_plugins(force=True)
+          pm = get_plugin_manager()
+          loaded = [k for k in pm._plugins if 'joyzoning' in k]
+          assert loaded, 'joyzoning_governance not discovered'
+          for k in loaded:
+              p = pm._plugins[k]
+              assert p.enabled, f'{k} not enabled: {getattr(p, \"error\", None)}'
+          print('ok:', loaded)
+          "

@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JoyZoning.App.Services;
 using JoyZoning.App.Services.Onboarding;
+using JoyZoning.Domain.Enums;
 
 namespace JoyZoning.App.ViewModels;
 
@@ -127,6 +128,7 @@ public partial class MainWindowViewModel : ViewModelBase
         };
         hub.JoyEventReceived += evt =>
         {
+            ManagerChat.HandleJoyEvent(evt);
             Timeline.AddEvent(evt);
             Execution.HandleJoyEvent(evt);
             if (ShouldRefreshWorkspaceForEvent(evt))
@@ -141,6 +143,7 @@ public partial class MainWindowViewModel : ViewModelBase
             Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
             {
                 await Kanban.RefreshAsync();
+                UpdateSidebarCounts();
                 if (Kanban.SelectedCard is { } card)
                     await RefreshWorkspaceForTaskAsync(card.Id);
             });
@@ -152,8 +155,9 @@ public partial class MainWindowViewModel : ViewModelBase
                 Avalonia.Threading.Dispatcher.UIThread.Post(async () => await Kanban.RefreshAsync());
             }
         };
-        hub.ApprovalRequestedReceived += _ =>
+        hub.ApprovalRequestedReceived += msg =>
         {
+            ManagerChat.AddStatusCard("needs_review", "Approval requested", msg.Description);
             Avalonia.Threading.Dispatcher.UIThread.Post(async () => await Approvals.RefreshAsync());
         };
         hub.ExecutionUpdatedReceived += msg =>
@@ -200,7 +204,6 @@ public partial class MainWindowViewModel : ViewModelBase
             && !HermesFullyReady)
             await ConnectHermesAsync();
 
-        var prefs = OnboardingPreferences.Load();
         if (!string.IsNullOrWhiteSpace(prefs.LastWorkspacePath)
             && Directory.Exists(prefs.LastWorkspacePath))
         {
@@ -514,6 +517,13 @@ public partial class MainWindowViewModel : ViewModelBase
     public void RequestWorkspacePicker() => WorkspacePickerRequested?.Invoke();
 
     public event Action? WorkspacePickerRequested;
+    public event Action<string>? NavigateSurfaceRequested;
+
+    public int SidebarActiveTaskCount { get; private set; }
+    public int SidebarNeedsReviewCount { get; private set; }
+
+    public void RequestNavigateSurface(string surfaceId) =>
+        NavigateSurfaceRequested?.Invoke(surfaceId);
 
     [RelayCommand]
     public async Task OpenWorkspaceAsync(string? path)
@@ -550,7 +560,7 @@ public partial class MainWindowViewModel : ViewModelBase
         WorkspaceRoot = workspaceRoot;
         ProjectName = name;
 
-        ManagerChat.SessionId = sessionId;
+        ManagerChat.BindSession(sessionId, name, workspaceRoot);
         Kanban.SessionId = sessionId;
         Workspace.SessionId = sessionId;
         Workspace.WorkspaceRoot = workspaceRoot;
@@ -558,6 +568,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         await AppServices.Hub.SubscribeSessionAsync(sessionId);
         await Kanban.RefreshAsync();
+        UpdateSidebarCounts();
         await Approvals.RefreshAsync();
         _ = Workspace.RefreshAsync();
 
@@ -573,6 +584,17 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public Task RefreshWorkspaceForTaskAsync(Guid? taskId) =>
         Workspace.RefreshForTaskAsync(taskId);
+
+    private void UpdateSidebarCounts()
+    {
+        var cards = Kanban.Columns.SelectMany(c => c.Cards);
+        SidebarActiveTaskCount = cards.Count(c =>
+            c.Status is WorkTaskStatus.InProgress or WorkTaskStatus.Verifying);
+        SidebarNeedsReviewCount = cards.Count(c =>
+            c.Status == WorkTaskStatus.NeedsApproval);
+        OnPropertyChanged(nameof(SidebarActiveTaskCount));
+        OnPropertyChanged(nameof(SidebarNeedsReviewCount));
+    }
 
     private static bool ShouldRefreshWorkspaceForEvent(JoyEventMessage evt)
     {

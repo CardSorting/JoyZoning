@@ -4,13 +4,107 @@
         xmlns:views="using:JoyZoning.App.Views"
         x:Class="JoyZoning.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="JoyZoning — Operator Cockpit"
+        Title="JoyZoning"
         Width="1280" Height="800"
-        MinWidth="960" MinHeight="600">
+        MinWidth="720" MinHeight="560"
+        Background="#212121">
 
   <Panel>
-  <DockPanel>
-    <Menu DockPanel.Dock="Top">
+    <Grid ColumnDefinitions="260,*">
+      <!-- ChatGPT-style sidebar -->
+      <Border Grid.Column="0" Background="#171717" BorderBrush="#ffffff1a" BorderThickness="0,0,1,0">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="8,10,8,8">
+            <Grid ColumnDefinitions="Auto,*">
+              <TextBlock Grid.Column="0" Text="✦" FontSize="16" Foreground="#10a37f"
+                         VerticalAlignment="Center" Margin="8,0,8,0" />
+              <TextBlock Grid.Column="1" Text="JoyZoning" FontSize="14" FontWeight="SemiBold"
+                         Foreground="#ececec" VerticalAlignment="Center" />
+            </Grid>
+            <Button Classes="sidebar" Content="＋  New chat" Click="OnNavManager" Margin="0,8,0,0" />
+          </StackPanel>
+
+          <StackPanel DockPanel.Dock="Bottom" Spacing="2" Margin="8,8,8,10">
+            <Border Background="#2a2a2a" CornerRadius="8" Padding="10,8" Margin="0,0,0,4">
+              <StackPanel Spacing="4">
+                <TextBlock Text="{Binding ProjectName}" FontSize="13" Foreground="#ececec"
+                           TextTrimming="CharacterEllipsis" />
+                <Grid ColumnDefinitions="*,*">
+                  <TextBlock FontSize="11" Foreground="#b4b4b4"
+                             Text="{Binding SidebarActiveTaskCount, StringFormat=Active: {0}}" />
+                  <TextBlock Grid.Column="1" FontSize="11" Foreground="#f0c674" HorizontalAlignment="Right"
+                             Text="{Binding SidebarNeedsReviewCount, StringFormat=Review: {0}}" />
+                </Grid>
+                <TextBlock Text="{Binding StatusLine}" FontSize="11" Foreground="#b4b4b4"
+                           TextWrapping="Wrap" MaxHeight="36" />
+              </StackPanel>
+            </Border>
+            <Button Classes="sidebar" Content="⚙  Settings" Click="OnOpenSettings" />
+            <Button Classes="sidebar" Content="📁  Open workspace…" Click="OnOpenWorkspace" />
+          </StackPanel>
+
+          <ScrollViewer Margin="8,0">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="sidebar-section" Text="Start" />
+              <Button Name="NavGettingStarted" Classes="sidebar" Click="OnNavGettingStarted">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="Getting Started" />
+                  <TextBlock Grid.Column="1" Text="●" Foreground="#d29922"
+                             IsVisible="{Binding ShowGettingStartedNavBadge}" Margin="4,0,0,0" />
+                </Grid>
+              </Button>
+
+              <TextBlock Classes="sidebar-section" Text="Chats" Margin="0,12,0,0" />
+              <Button Name="NavManager" Classes="sidebar nav-active" Content="Manager Chat" Click="OnNavManager" />
+
+              <TextBlock Classes="sidebar-section" Text="Workspace" Margin="0,12,0,0" />
+              <Button Name="NavKanban" Classes="sidebar" Content="Kanban" Click="OnNavKanban" />
+              <Button Name="NavExecution" Classes="sidebar" Content="Execution" Click="OnNavExecution" />
+              <Button Name="NavWorkspace" Classes="sidebar" Content="Workspace" Click="OnNavWorkspace" />
+              <Button Name="NavTimeline" Classes="sidebar" Content="Timeline" Click="OnNavTimeline" />
+              <Button Classes="sidebar" Content="Approvals" Click="OnNavApprovals" />
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+
+      <!-- Main content -->
+      <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+        <Border Grid.Row="0" Padding="16,10" Background="#212121"
+                IsVisible="{Binding ShowSetupBanner}">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+            <StackPanel>
+              <TextBlock Text="{Binding SetupBannerMessage}" TextWrapping="Wrap" Foreground="#ececec" />
+              <TextBlock Text="{Binding SetupProgressText}" FontSize="12" Foreground="#b4b4b4" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="Getting Started" Click="OnNavGettingStarted"
+                    Margin="8,0" VerticalAlignment="Center" Classes="banner" />
+            <Button Grid.Column="2" Name="BannerSmartSetup" Content="Smart setup"
+                    Margin="8,0" VerticalAlignment="Center" Click="OnBannerSmartSetup" Classes="banner" />
+            <Button Grid.Column="3" Content="✕" Command="{Binding DismissSetupBannerCommand}"
+                    ToolTip.Tip="Dismiss until next launch" VerticalAlignment="Center" Classes="banner" />
+          </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Padding="16,10" Background="#212121"
+                IsVisible="{Binding ShowWorkspaceBanner}">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="Hermes is connected — open a workspace to use Manager Chat, Kanban, and Workspace."
+                       TextWrapping="Wrap" Foreground="#ececec" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <Button Content="Open workspace…" Command="{Binding OpenWorkspaceFromBannerCommand}" Classes="banner" />
+              <Button Content="Open last" Command="{Binding OpenRecentWorkspaceCommand}"
+                      ToolTip.Tip="Reopen last workspace folder" Classes="banner" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <ContentControl Grid.Row="2" Name="MainContent" />
+      </Grid>
+    </Grid>
+
+    <!-- Hidden menu for keyboard shortcuts / power users -->
+    <Menu IsVisible="False">
       <MenuItem Header="Project">
         <MenuItem Header="Open Workspace…" Click="OnOpenWorkspace" />
       </MenuItem>
@@ -27,110 +121,16 @@
       <MenuItem Header="Recovery" Click="OnResumeExecutions" />
     </Menu>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="8">
-      <Border Grid.Row="0" Classes="panel" Padding="12,8"
-              IsVisible="{Binding ShowSetupBanner}" Background="#1c2128">
-        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
-          <StackPanel>
-            <TextBlock Text="{Binding SetupBannerMessage}" TextWrapping="Wrap" />
-            <TextBlock Classes="subtitle" Text="{Binding SetupProgressText}" />
-          </StackPanel>
-          <Button Grid.Column="1" Content="Getting Started" Click="OnNavGettingStarted"
-                  Margin="8,0" VerticalAlignment="Center" />
-          <Button Grid.Column="2" Name="BannerSmartSetup" Content="Smart setup"
-                  Margin="8,0" VerticalAlignment="Center" Click="OnBannerSmartSetup" />
-          <Button Grid.Column="3" Content="Setup wizard…" Click="OnOpenSetupWizard"
-                  VerticalAlignment="Center" />
-          <Button Grid.Column="4" Content="✕" Command="{Binding DismissSetupBannerCommand}"
-                  ToolTip.Tip="Dismiss until next launch" VerticalAlignment="Center" />
-        </Grid>
-      </Border>
-
-      <Border Grid.Row="1" Classes="panel" Padding="12,8"
-              IsVisible="{Binding ShowWorkspaceBanner}" Background="#1f2d3d">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="Hermes is connected — open a workspace to use Manager Chat, Kanban, and Workspace."
-                     TextWrapping="Wrap" VerticalAlignment="Center" />
-          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-            <Button Content="Open workspace…" Command="{Binding OpenWorkspaceFromBannerCommand}" />
-            <Button Content="Open last" Command="{Binding OpenRecentWorkspaceCommand}"
-                    ToolTip.Tip="Reopen last workspace folder" />
-          </StackPanel>
-        </Grid>
-      </Border>
-
-      <Border Grid.Row="2" Classes="panel" Padding="12,8">
-        <Grid ColumnDefinitions="*,Auto,Auto,Auto">
-          <StackPanel>
-            <TextBlock Classes="title" Text="JoyZoning" />
-            <TextBlock Classes="subtitle" Text="{Binding ProjectName}" />
-          </StackPanel>
-          <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
-            <Button Classes="nav" Background="Transparent" BorderThickness="0" Padding="0"
-                    Click="OnOpenHermesConnection" HorizontalAlignment="Left">
-              <TextBlock Text="{Binding HermesStatus, StringFormat=API: {0}}" />
-            </Button>
-            <Button Classes="nav" Background="Transparent" BorderThickness="0" Padding="0"
-                    Click="OnOpenHermesConnection" HorizontalAlignment="Left">
-              <TextBlock Text="{Binding DashboardStatus, StringFormat=Dashboard: {0}}" />
-            </Button>
-            <TextBlock Text="{Binding DietCodeStatus, StringFormat=DietCode: {0}}" />
-            <TextBlock Text="{Binding BroccoliQStatus, StringFormat=Hive: {0}}"
-                       ToolTip.Tip="BroccoliQ write-behind mirror (broccoliq.db)" />
-          </StackPanel>
-          <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="16,0"
-                     Text="{Binding StatusLine}" TextWrapping="Wrap" MaxWidth="320" />
-          <Button Grid.Column="3" Content="Refresh" Command="{Binding RefreshStatusCommand}"
-                  VerticalAlignment="Center" />
-        </Grid>
-      </Border>
-
-      <Grid Grid.Row="3" ColumnDefinitions="180,*,280">
-        <Border Grid.Column="0" Classes="panel">
-          <StackPanel>
-            <TextBlock Classes="subtitle" Text="START" Margin="0,0,0,8" />
-            <Button Name="NavGettingStarted" Classes="nav" Click="OnNavGettingStarted">
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="Getting Started" />
-                <TextBlock Grid.Column="1" Text="●" Foreground="#d29922"
-                           IsVisible="{Binding ShowGettingStartedNavBadge}" Margin="4,0,0,0" />
-              </Grid>
-            </Button>
-            <TextBlock Classes="subtitle" Text="SURFACES" Margin="0,12,0,8" />
-            <Button Name="NavManager" Classes="nav" Content="Manager Chat" Click="OnNavManager" />
-            <Button Name="NavKanban" Classes="nav" Content="Kanban" Click="OnNavKanban" />
-            <Button Name="NavExecution" Classes="nav" Content="Execution" Click="OnNavExecution" />
-            <Button Name="NavWorkspace" Classes="nav" Content="Workspace" Click="OnNavWorkspace" />
-            <Button Name="NavTimeline" Classes="nav" Content="Timeline" Click="OnNavTimeline" />
-          </StackPanel>
-        </Border>
-
-        <Border Grid.Column="1" Classes="panel" Margin="8,0">
-          <ContentControl Name="MainContent" />
-        </Border>
-
-        <Border Grid.Column="2" Classes="panel">
-          <StackPanel>
-            <TextBlock Classes="title" Text="Approvals" FontSize="14" />
-            <views:ApprovalsPanel DataContext="{Binding Approvals}" />
-          </StackPanel>
-        </Border>
-      </Grid>
-
-      <Border Grid.Row="4" Classes="panel" Margin="0,8,0,0" Padding="8,6">
-        <TextBlock Classes="subtitle" Text="{Binding OnboardingToast}" />
-      </Border>
-    </Grid>
-  </DockPanel>
-
-  <Border IsVisible="{Binding IsAutoSettingUp}" Background="#E60d1117" ZIndex="200">
-    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="520" Spacing="16" Margin="24">
-      <TextBlock Classes="title" Text="Setting up JoyZoning" FontSize="20" HorizontalAlignment="Center" />
-      <TextBlock TextWrapping="Wrap" TextAlignment="Center" Opacity="0.95"
-                 Text="You don't need to configure anything. JoyZoning uses one diet-hermes install (~/Downloads/diet-hermes-main-master), sets it up if needed, and connects. Manager and executor roles are separate sessions synced on the kanban board." />
-      <ProgressBar Minimum="0" Maximum="100" Value="{Binding AutoSetupPercent}" Height="8" />
-      <TextBlock Text="{Binding AutoSetupLine}" TextWrapping="Wrap" TextAlignment="Center" Classes="subtitle" />
-    </StackPanel>
-  </Border>
+    <Border IsVisible="{Binding IsAutoSettingUp}" Background="#E6212121" ZIndex="200">
+      <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="520" Spacing="16" Margin="24">
+        <TextBlock Text="Setting up JoyZoning" FontSize="20" FontWeight="SemiBold"
+                   Foreground="#ececec" HorizontalAlignment="Center" />
+        <TextBlock TextWrapping="Wrap" TextAlignment="Center" Opacity="0.95" Foreground="#b4b4b4"
+                   Text="You don't need to configure anything. JoyZoning uses one diet-hermes install (~/Downloads/diet-hermes-main-master), sets it up if needed, and connects. Manager and executor roles are separate sessions synced on the kanban board." />
+        <ProgressBar Minimum="0" Maximum="100" Value="{Binding AutoSetupPercent}" Height="8" />
+        <TextBlock Text="{Binding AutoSetupLine}" TextWrapping="Wrap" TextAlignment="Center"
+                   FontSize="12" Foreground="#b4b4b4" />
+      </StackPanel>
+    </Border>
   </Panel>
 </Window>

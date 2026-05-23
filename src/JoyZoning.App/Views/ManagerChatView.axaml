@@ -1,70 +1,184 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:JoyZoning.App.ViewModels"
-             xmlns:views="using:JoyZoning.App.Views"
              x:Class="JoyZoning.App.Views.ManagerChatView"
-             x:DataType="vm:ManagerChatViewModel">
-  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
-    <views:SurfaceTipBar Grid.Row="0" x:Name="SurfaceTip" />
-    <Border Grid.Row="1" Classes="panel" Padding="16" Margin="8"
-            IsVisible="{Binding ShowOnboardingNudge}" Background="#1c2128">
-      <StackPanel Spacing="10" MaxWidth="480" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <TextBlock Classes="title" Text="Manager Chat" FontSize="16" HorizontalAlignment="Center" />
-        <TextBlock Text="{Binding OnboardingNudgeMessage}" TextWrapping="Wrap" TextAlignment="Center" />
-        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-          <Button Content="Open workspace…" Command="{Binding OpenWorkspaceFromNudgeCommand}" />
-          <Button Content="Connect Hermes" Command="{Binding ConnectHermesFromNudgeCommand}"
-                  IsVisible="{Binding ShowConnectHermesNudge}" />
+             x:DataType="vm:ManagerChatViewModel"
+             Background="#212121">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <!-- Session header -->
+    <Border Grid.Row="0" Padding="20,12,20,8" BorderBrush="#ffffff1a" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="2">
+          <TextBlock Text="{Binding SessionDisplayName}" FontSize="14" FontWeight="SemiBold" Foreground="#ececec" />
+          <TextBlock Text="{Binding WorkspaceRoot}" FontSize="11" Foreground="#b4b4b4"
+                     TextTrimming="CharacterEllipsis" />
         </StackPanel>
-      </StackPanel>
+        <TextBlock Grid.Column="1" Text="{Binding ConnectionLabel}" FontSize="11" Foreground="#b4b4b4"
+                   VerticalAlignment="Center" />
+      </Grid>
     </Border>
 
-    <ScrollViewer Grid.Row="2" IsVisible="{Binding !ShowOnboardingNudge}">
-      <ItemsControl ItemsSource="{Binding Messages}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="vm:ChatLineViewModel">
-            <Border Margin="0,4" Padding="8" Background="#21262d" CornerRadius="4">
-              <StackPanel>
-                <TextBlock FontWeight="Bold" Text="{Binding Speaker}" />
-                <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
-              </StackPanel>
-            </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </ScrollViewer>
-
-    <Border Grid.Row="2" Background="#161b22" Padding="8" Margin="0,8,0,0" CornerRadius="4"
-            IsVisible="{Binding HasSuggestedTasks}">
-      <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
-          <TextBlock Classes="subtitle" Text="SUGGESTED TASKS" VerticalAlignment="Center" />
-          <Button Content="Create all" Command="{Binding CreateAllSuggestedTasksCommand}" />
-          <Button Content="Re-parse" Command="{Binding ParseSuggestedTasksCommand}" />
+    <Grid Grid.Row="1" RowDefinitions="*,Auto">
+      <!-- Onboarding empty state -->
+      <Border Grid.Row="0" IsVisible="{Binding ShowOnboardingNudge}"
+              VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="520" Margin="24">
+        <StackPanel Spacing="16" HorizontalAlignment="Center">
+          <TextBlock Text="Open or create a workspace to start chatting with Hermes"
+                     FontSize="26" FontWeight="SemiBold" Foreground="#ececec"
+                     TextAlignment="Center" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding OnboardingNudgeMessage}" TextWrapping="Wrap" TextAlignment="Center"
+                     Foreground="#b4b4b4" FontSize="14" />
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Margin="0,8,0,0">
+            <Button Classes="chat-action" Content="Open workspace…" Command="{Binding OpenWorkspaceFromNudgeCommand}" />
+            <Button Classes="chat-action" Content="Connect Hermes" Command="{Binding ConnectHermesFromNudgeCommand}"
+                    IsVisible="{Binding ShowConnectHermesNudge}" />
+          </StackPanel>
         </StackPanel>
-        <ListBox ItemsSource="{Binding SuggestedTasks}" MaxHeight="140">
-          <ListBox.ItemTemplate>
-            <DataTemplate>
-              <Grid ColumnDefinitions="*,Auto" Margin="0,2">
-                <TextBlock Grid.Column="0" Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                <Button Grid.Column="1" Content="Create" Margin="8,0,0,0" Click="OnSuggestedCreateClick" />
+      </Border>
+
+      <!-- Chat empty state -->
+      <Border Grid.Row="0" IsVisible="{Binding ShowEmptyChat}"
+              VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="640" Margin="24">
+        <StackPanel Spacing="8" HorizontalAlignment="Center">
+          <TextBlock Text="What can Hermes help with?" FontSize="32" FontWeight="SemiBold"
+                     Foreground="#ececec" TextAlignment="Center" />
+          <TextBlock Text="Ask Hermes to fix a bug, explain the repo, or start a bounded YOLO task."
+                     TextAlignment="Center" Foreground="#b4b4b4" FontSize="14" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <!-- Message list -->
+      <ScrollViewer Grid.Row="0" Name="MessageScroll" IsVisible="{Binding HasMessages}"
+                    HorizontalScrollBarVisibility="Disabled" Padding="0,8,0,120">
+        <ItemsControl ItemsSource="{Binding Messages}" Margin="0,0,0,8">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ChatLineViewModel">
+              <Grid Margin="0,0,0,4">
+                <!-- Status card -->
+                <Border IsVisible="{Binding IsStatusCard}" HorizontalAlignment="Stretch"
+                        MaxWidth="680" Margin="24,8,24,8" Background="#1a3d32" BorderBrush="#10a37f55"
+                        BorderThickness="1" CornerRadius="12" Padding="14,12">
+                  <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding StatusCardKind}" FontSize="11" FontWeight="SemiBold"
+                               Foreground="#10a37f" />
+                    <TextBlock Text="{Binding CardTitle}" FontSize="13" FontWeight="SemiBold" Foreground="#ececec" />
+                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="13" Foreground="#ececec" />
+                  </StackPanel>
+                </Border>
+
+                <!-- Escalation -->
+                <Border IsVisible="{Binding IsEscalation}" MaxWidth="680" Margin="24,8,24,8"
+                        Background="#3d2f1a" BorderBrush="#f0c67455" BorderThickness="1"
+                        CornerRadius="12" Padding="14,12">
+                  <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding CardTitle}" FontWeight="SemiBold" Foreground="#f0c674" />
+                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" Foreground="#ececec" />
+                  </StackPanel>
+                </Border>
+
+                <!-- System / tool -->
+                <Border IsVisible="{Binding IsSystem}" HorizontalAlignment="Center"
+                        MaxWidth="680" Margin="24,8,24,8" Background="#2f2f2f"
+                        BorderBrush="#ffffff1a" BorderThickness="1" CornerRadius="12" Padding="12,10">
+                  <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="13"
+                             Foreground="#b4b4b4" TextAlignment="Center" />
+                </Border>
+                <Border IsVisible="{Binding IsTool}" HorizontalAlignment="Stretch"
+                        MaxWidth="680" Margin="24,8,24,8" Background="#2a2a2a"
+                        BorderBrush="#ffffff1a" BorderThickness="1" CornerRadius="10" Padding="12,10">
+                  <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="13" Foreground="#b4b4b4" />
+                </Border>
+
+                <!-- Error -->
+                <Border IsVisible="{Binding IsError}" MaxWidth="680" Margin="24,8,24,8"
+                        Background="#3d1a1a" BorderBrush="#ff6b6b55" BorderThickness="1"
+                        CornerRadius="12" Padding="14,12">
+                  <TextBlock Text="{Binding Text}" TextWrapping="Wrap" Foreground="#ffb4b4" />
+                </Border>
+
+                <!-- User message -->
+                <Border IsVisible="{Binding IsOperator}" HorizontalAlignment="Right"
+                        MaxWidth="680" Margin="24,8,24,8" Background="#303030"
+                        CornerRadius="24" Padding="16,10">
+                  <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="15"
+                             Foreground="#ececec" LineHeight="22" />
+                </Border>
+
+                <!-- Assistant message -->
+                <Grid IsVisible="{Binding IsAssistant}" ColumnDefinitions="Auto,*"
+                      MaxWidth="768" Margin="24,12,24,12" HorizontalAlignment="Left">
+                  <Border Grid.Column="0" Width="32" Height="32" CornerRadius="16"
+                          Background="#10a37f" Margin="0,0,16,0" VerticalAlignment="Top">
+                    <TextBlock Text="✦" FontSize="14" Foreground="White"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <StackPanel Grid.Column="1">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="Hermes" FontSize="13" FontWeight="SemiBold" Foreground="#ececec" />
+                      <TextBlock Text="typing…" FontSize="11" Foreground="#b4b4b4" IsVisible="{Binding IsStreaming}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="15"
+                               Foreground="#ececec" LineHeight="22" Margin="0,4,0,0" />
+                  </StackPanel>
+                </Grid>
               </Grid>
             </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-      </DockPanel>
-    </Border>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
 
-    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,8,0,0">
-      <TextBox Text="{Binding ComposerText}" PlaceholderText="{Binding Placeholder}" AcceptsReturn="True" MinHeight="48" />
-      <Button Grid.Column="1" Content="Parse" Command="{Binding ParseSuggestedTasksCommand}"
-              Margin="8,0,0,0" VerticalAlignment="Bottom" />
-      <Button Grid.Column="2" Content="→ Task" Command="{Binding CreateTaskFromReplyCommand}"
-              IsEnabled="{Binding CanCreateTaskFromReply}"
-              Margin="8,0,0,0" VerticalAlignment="Bottom" />
-      <Button Grid.Column="3" Content="Send" Command="{Binding SendCommand}"
-              IsEnabled="{Binding !IsStreaming}"
-              Margin="8,0,0,0" VerticalAlignment="Bottom" />
+      <!-- Suggested tasks -->
+      <Border Grid.Row="1" Margin="24,0,24,8" Background="#2f2f2f" BorderBrush="#ffffff1a"
+              BorderThickness="1" CornerRadius="12" Padding="12" MaxWidth="768"
+              HorizontalAlignment="Center" IsVisible="{Binding HasSuggestedTasks}">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+            <TextBlock Text="Suggested tasks" FontSize="12" Foreground="#b4b4b4" VerticalAlignment="Center" />
+            <Button Classes="chat-chip" Content="Create all" Command="{Binding CreateAllSuggestedTasksCommand}" />
+            <Button Classes="chat-chip" Content="→ Task" Command="{Binding CreateTaskFromReplyCommand}"
+                    IsEnabled="{Binding CanCreateTaskFromReply}" />
+          </StackPanel>
+          <ListBox ItemsSource="{Binding SuggestedTasks}" MaxHeight="100" Background="Transparent" BorderThickness="0">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                  <TextBlock Grid.Column="0" Text="{Binding Title}" TextWrapping="Wrap"
+                             VerticalAlignment="Center" Foreground="#ececec" FontSize="13" />
+                  <Button Grid.Column="1" Classes="chat-chip" Content="Create" Margin="8,0,0,0"
+                          Click="OnSuggestedCreateClick" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
     </Grid>
+
+    <!-- Composer -->
+    <Border Grid.Row="2" Background="#212121" Padding="24,0,24,24">
+      <StackPanel MaxWidth="768" Spacing="10">
+        <WrapPanel Orientation="Horizontal">
+          <Button Classes="chat-chip" Content="Explain this workspace" Margin="0,0,6,6" Click="OnChipExplain" />
+          <Button Classes="chat-chip" Content="Start bounded YOLO" Margin="0,0,6,6" Click="OnChipYolo" />
+          <Button Classes="chat-chip" Content="Show blocked workers" Margin="0,0,6,6" Click="OnChipBlocked" />
+          <Button Classes="chat-chip" Content="Summarize latest changes" Margin="0,0,6,6" Click="OnChipChanges" />
+          <Button Classes="chat-chip" Content="Open Kanban" Margin="0,0,6,6"
+                  Command="{Binding OpenKanbanFromChatCommand}" />
+        </WrapPanel>
+        <Border CornerRadius="26" Background="#2f2f2f" BorderBrush="#ffffff1a" BorderThickness="1" Padding="4">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBox Grid.Column="0" Text="{Binding ComposerText}" PlaceholderText="{Binding Placeholder}"
+                     AcceptsReturn="True" MinHeight="44" MaxHeight="160"
+                     Background="Transparent" BorderThickness="0"
+                     FontSize="15" Padding="12,10" VerticalContentAlignment="Center"
+                     KeyDown="OnComposerKeyDown" />
+            <Button Grid.Column="1" Classes="chat-send" Content="↑"
+                    Command="{Binding SendCommand}"
+                    IsEnabled="{Binding !IsStreaming}"
+                    VerticalAlignment="Bottom" Margin="0,0,4,4" Width="32" Height="32" />
+          </Grid>
+        </Border>
+      </StackPanel>
+    </Border>
   </Grid>
 </UserControl>
