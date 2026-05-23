@@ -1,9 +1,13 @@
+using JoyZoning.Agents;
+using JoyZoning.ControlPlane.Background;
+using JoyZoning.Domain.Agents;
 using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Entities;
 using JoyZoning.Domain.Enums;
 using JoyZoning.Domain.Events;
 using JoyZoning.Domain.Orchestration;
 using JoyZoning.Persistence.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace JoyZoning.ControlPlane.Services;
@@ -15,6 +19,7 @@ public class LeaseRuntimeService
     private readonly IWorkTaskRepository _tasks;
     private readonly IExecutionRepository _executions;
     private readonly EventIngestor _events;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly LeaseRuntimeOptions _options;
 
     public LeaseRuntimeService(
@@ -22,12 +27,14 @@ public class LeaseRuntimeService
         IWorkTaskRepository tasks,
         IExecutionRepository executions,
         EventIngestor events,
+        IServiceScopeFactory scopeFactory,
         IOptions<LeaseRuntimeOptions> options)
     {
         _leases = leases;
         _tasks = tasks;
         _executions = executions;
         _events = events;
+        _scopeFactory = scopeFactory;
         _options = options.Value;
     }
 
@@ -186,6 +193,12 @@ public class LeaseRuntimeService
                     or ExecutionPhase.Cancelled
                     or ExecutionPhase.Interrupted)
                 {
+                    if (await TryRepairOrphanedViaHermesPollAsync(lease, execution, cancellationToken))
+                    {
+                        report.OrphanedRunning++;
+                        continue;
+                    }
+
                     await RepairOrphanedRunningAsync(lease, execution.Phase.ToString(), cancellationToken);
                     report.OrphanedRunning++;
                 }
@@ -209,12 +222,85 @@ public class LeaseRuntimeService
         return report;
     }
 
+    private async Task<bool> TryRepairOrphanedViaHermesPollAsync(
+        ExecutionLease lease,
+        ExecutionSession execution,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(execution.HermesRunId))
+            return false;
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var agents = scope.ServiceProvider.GetRequiredService<AgentAdapterRegistry>();
+            var consumer = scope.ServiceProvider.GetRequiredService<HermesRunEventConsumer>();
+
+            var polled = await agents.Get(AgentKind.DietCode)
+                .PollRunStatusAsync(execution.HermesRunId, cancellationToken);
+
+            if (HermesRunEventRules.IsActiveRunStatus(polled?.Status))
+            {
+                consumer.ResumeTracking(execution.HermesRunId, AgentKind.DietCode, lease.WorkTaskId);
+                return true;
+            }
+
+            if (polled?.Status is "completed")
+            {
+                if (execution.Phase != ExecutionPhase.Completed)
+                    await _executions.UpdatePhaseAsync(execution.Id, ExecutionPhase.Completed, cancellationToken);
+
+                var from = lease.Status;
+                lease.Status = ExecutionLeaseStatus.Verifying;
+                lease.BlockedReason = null;
+                AppendEvidence(
+                    lease,
+                    "execution.completed",
+                    StatusChangeActor.System,
+                    from,
+                    ExecutionLeaseStatus.Verifying,
+                    summary: "Reconciliation: Hermes poll reported completed; lease moved to verifying.",
+                    detail: new { execution.Id, execution.HermesRunId, polled.Status });
+
+                await _leases.UpdateAsync(lease, cancellationToken);
+                await SyncTaskAsync(lease.WorkTaskId, lease.Status, cancellationToken);
+                return true;
+            }
+        }
+        catch
+        {
+            // Hermes unavailable in unit tests or during outage — fall back to legacy repair.
+        }
+
+        return false;
+    }
+
     private async Task RepairOrphanedRunningAsync(
         ExecutionLease lease,
         string phase,
         CancellationToken cancellationToken)
     {
         var from = lease.Status;
+
+        if (phase == ExecutionPhase.Completed.ToString())
+        {
+            lease.Status = ExecutionLeaseStatus.Verifying;
+            lease.BlockedReason = null;
+
+            AppendEvidence(
+                lease,
+                "execution.completed",
+                StatusChangeActor.System,
+                from,
+                ExecutionLeaseStatus.Verifying,
+                summary: "Reconciliation: execution completed; lease moved to verifying.",
+                detail: new { lease.ExecutionSessionId, phase });
+
+            await _leases.UpdateAsync(lease, cancellationToken);
+            await SyncTaskAsync(lease.WorkTaskId, lease.Status, cancellationToken);
+            return;
+        }
+
         lease.Status = ExecutionLeaseStatus.Blocked;
         lease.BlockedReason = $"Orphaned running lease; execution phase is {phase}.";
 

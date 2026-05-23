@@ -1,10 +1,12 @@
 using JoyZoning.Agents;
 using JoyZoning.ControlPlane.Background;
 using JoyZoning.Domain.Agents;
+using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -26,6 +28,7 @@ public class HermesRunEventConsumerTests
             registry,
             scopeFactory.Object,
             env.Object,
+            Options.Create(new ExecutorOptions()),
             NullLogger<HermesRunEventConsumer>.Instance);
 
         var ex = Record.Exception(() => consumer.TrackRun("run-1", AgentKind.DietCode, Guid.NewGuid()));
@@ -47,6 +50,7 @@ public class HermesRunEventConsumerTests
             registry,
             scopeFactory.Object,
             env.Object,
+            Options.Create(new ExecutorOptions()),
             NullLogger<HermesRunEventConsumer>.Instance);
 
         consumer.TrackRun("run-1", AgentKind.DietCode, Guid.NewGuid());

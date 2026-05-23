@@ -1,12 +1,15 @@
+using JoyZoning.Agents;
+using JoyZoning.Domain.Agents;
 using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Entities;
 using JoyZoning.Domain.Enums;
 using JoyZoning.Domain.Orchestration;
+using JoyZoning.ControlPlane.Background;
 using JoyZoning.ControlPlane.Hubs;
 using JoyZoning.ControlPlane.Services;
+using JoyZoning.Tests.Infrastructure;
 using JoyZoning.Persistence;
 using JoyZoning.Persistence.Repositories;
-using JoyZoning.Tests.Infrastructure;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +58,14 @@ public class LeaseRuntimeServiceTests : IDisposable
             o.Duration.LowHours = 8;
             o.Duration.CriticalHours = 8;
         });
+        services.AddSingleton<TestDietCodeAdapter>();
+        services.AddSingleton<TestHermesAdapter>();
+        services.AddSingleton<IAgentAdapter>(sp => sp.GetRequiredService<TestDietCodeAdapter>());
+        services.AddSingleton<IAgentAdapter>(sp => sp.GetRequiredService<TestHermesAdapter>());
+        services.AddSingleton<AgentAdapterRegistry>(sp =>
+            new AgentAdapterRegistry(sp.GetServices<IAgentAdapter>()));
+        services.AddSingleton<HermesRunEventConsumer>();
+        services.Configure<ExecutorOptions>(_ => { });
         services.AddScoped<LeaseRuntimeService>();
         services.AddScoped<KanbanExecutionOrchestrator>();
 
@@ -252,8 +263,42 @@ public class LeaseRuntimeServiceTests : IDisposable
         Assert.Equal(1, report.OrphanedRunning);
 
         var lease = await orchestrator.GetActiveLeaseAsync(cardId);
-        Assert.Equal(ExecutionLeaseStatus.Blocked, lease!.Status);
-        Assert.Contains("execution.failed", lease.EvidenceLogJson);
+        Assert.Equal(ExecutionLeaseStatus.Verifying, lease!.Status);
+        Assert.Contains("execution.completed", lease.EvidenceLogJson);
+    }
+
+    [Fact]
+    public async Task Reconciliation_keeps_running_when_hermes_poll_still_active()
+    {
+        var dietCode = _services.GetRequiredService<TestDietCodeAdapter>();
+        dietCode.PollOverride = runId => new AgentRunPollResult(runId, "running", false);
+
+        var runtime = _services.GetRequiredService<LeaseRuntimeService>();
+        var orchestrator = _services.GetRequiredService<KanbanExecutionOrchestrator>();
+        var executions = _services.GetRequiredService<IExecutionRepository>();
+        var (_, cardId) = await SeedCardAsync(RiskLevel.Low);
+
+        await orchestrator.BeginLeaseAsync(cardId);
+        await orchestrator.RecordDispatchAttemptAsync(cardId);
+        var execId = Guid.NewGuid();
+        await orchestrator.MarkLeaseRunningAsync(cardId, execId);
+
+        await executions.CreateAsync(new ExecutionSession
+        {
+            Id = execId,
+            WorkTaskId = cardId,
+            HermesRunId = "run-active",
+            Objective = "test",
+            Phase = ExecutionPhase.Interrupted,
+            StartedAt = DateTimeOffset.UtcNow,
+        });
+
+        var report = await runtime.ReconcileAsync();
+        Assert.Equal(1, report.OrphanedRunning);
+
+        var lease = await orchestrator.GetActiveLeaseAsync(cardId);
+        Assert.Equal(ExecutionLeaseStatus.Running, lease!.Status);
+        Assert.Null(lease.BlockedReason);
     }
 
     private async Task<(Guid SessionId, Guid CardId)> SeedCardAsync(RiskLevel risk)

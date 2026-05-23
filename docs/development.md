@@ -146,6 +146,18 @@ Dogfood uses `JoyZoningDogfoodServerProcess` (real Kestrel port) + shared temp S
 | Hermes SSE consumer | `ControlPlane/Background/HermesRunEventConsumer.cs` |
 | Testing stubs | `ControlPlane/Testing/TestAgentHostSetup.cs` |
 
+### Executor / false-blocker hardening
+
+DietCode runs can lose SSE before Hermes emits `run.completed`. JoyZoning avoids blocking the lease in that case:
+
+- **Terminal events:** only `run.completed` / `run.failed` / `run.cancelled` / `run.stopping` end a DietCode run (`message.complete` does not).
+- **Stream death:** poll Hermes run status (`executor.streamStatusPollAttempts`, `streamStatusPollIntervalSeconds`); resume SSE when status is still active; cap re-attaches with `maxStreamResumeAttempts`. Resume is scheduled **after** the prior consumer releases its cancellation token (no immediate self-cancel race).
+- **Reconciliation:** orphaned `Running` lease + stale execution row → Hermes poll before blocking; active → resume tracking; completed → `Verifying`.
+- **Dispatch retry:** `POST /dispatch` on an existing **Leased** card skips `BeginLease` and only records dispatch attempt + starts Hermes.
+- **Tool approvals:** `executor.autoApproveToolRequests` (default true) auto-approves DietCode tool prompts.
+
+Config section: `executor:` in control-plane `appsettings` / env overrides.
+
 ## Domain rules (do not bypass in UI/CLI)
 
 - `KanbanExecutionRules` — agent-allowed lease targets, critical dispatch, merge guards

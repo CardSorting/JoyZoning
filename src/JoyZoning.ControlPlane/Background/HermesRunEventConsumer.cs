@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using JoyZoning.Agents;
 using JoyZoning.Domain.Agents;
+using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Enums;
 using JoyZoning.Domain.Events;
 using JoyZoning.ControlPlane.Hubs;
@@ -9,6 +10,7 @@ using JoyZoning.ControlPlane.Services;
 using JoyZoning.Persistence.Repositories;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace JoyZoning.ControlPlane.Background;
 
@@ -17,18 +19,22 @@ public class HermesRunEventConsumer
     private readonly AgentAdapterRegistry _agents;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IHostEnvironment _environment;
+    private readonly ExecutorOptions _executorOptions;
     private readonly ILogger<HermesRunEventConsumer> _logger;
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _activeRuns = new();
+    private readonly ConcurrentDictionary<string, int> _streamResumeAttempts = new();
 
     public HermesRunEventConsumer(
         AgentAdapterRegistry agents,
         IServiceScopeFactory scopeFactory,
         IHostEnvironment environment,
+        IOptions<ExecutorOptions> executorOptions,
         ILogger<HermesRunEventConsumer> logger)
     {
         _agents = agents;
         _scopeFactory = scopeFactory;
         _environment = environment;
+        _executorOptions = executorOptions.Value;
         _logger = logger;
     }
 
@@ -58,6 +64,35 @@ public class HermesRunEventConsumer
             cts.Cancel();
     }
 
+    /// <summary>Re-attach SSE consumer after approval resolution (not during an active consume loop).</summary>
+    public void ResumeTracking(string runId, AgentKind agentKind, Guid? correlationId)
+    {
+        if (string.IsNullOrWhiteSpace(runId) || _environment.IsEnvironment("Testing"))
+            return;
+
+        if (_activeRuns.ContainsKey(runId))
+            return;
+
+        if (!TryReserveStreamResume(runId))
+            return;
+
+        TrackRun(runId, agentKind, correlationId);
+    }
+
+    private bool TryReserveStreamResume(string runId)
+    {
+        var max = Math.Max(1, _executorOptions.MaxStreamResumeAttempts);
+        var count = _streamResumeAttempts.AddOrUpdate(runId, 1, static (_, c) => c + 1);
+        if (count <= max)
+            return true;
+
+        _logger.LogWarning(
+            "Run {RunId} exceeded max stream resume attempts ({Max}); not re-attaching SSE",
+            runId,
+            max);
+        return false;
+    }
+
     private async Task ConsumeRunAsync(
         string runId,
         AgentKind agentKind,
@@ -65,6 +100,7 @@ public class HermesRunEventConsumer
         CancellationToken cancellationToken)
     {
         var sawTerminal = false;
+        var streamEndAction = StreamEndAction.None;
         try
         {
             var adapter = _agents.Get(agentKind);
@@ -97,9 +133,10 @@ public class HermesRunEventConsumer
                         cancellationToken);
                 }
 
-                if (IsTerminalEvent(evt.EventType))
+                if (HermesRunEventRules.IsTerminalEvent(evt.EventType, agentKind))
                 {
                     sawTerminal = true;
+                    _streamResumeAttempts.TryRemove(runId, out _);
                     await HandleTerminalEventAsync(
                         runId,
                         agentKind,
@@ -117,11 +154,13 @@ public class HermesRunEventConsumer
             if (!sawTerminal && !cancellationToken.IsCancellationRequested)
             {
                 using var scope = _scopeFactory.CreateScope();
-                await HandleStreamEndedWithoutTerminalAsync(
+                streamEndAction = await HandleStreamEndedWithoutTerminalAsync(
                     runId,
                     agentKind,
+                    correlationId,
                     _agents,
                     scope.ServiceProvider.GetRequiredService<IExecutionRepository>(),
+                    scope.ServiceProvider.GetRequiredService<IApprovalRepository>(),
                     scope.ServiceProvider.GetRequiredService<KanbanExecutionOrchestrator>(),
                     cancellationToken);
             }
@@ -138,11 +177,13 @@ public class HermesRunEventConsumer
                 try
                 {
                     using var scope = _scopeFactory.CreateScope();
-                    await HandleStreamEndedWithoutTerminalAsync(
+                    streamEndAction = await HandleStreamEndedWithoutTerminalAsync(
                         runId,
                         agentKind,
+                        correlationId,
                         _agents,
                         scope.ServiceProvider.GetRequiredService<IExecutionRepository>(),
+                        scope.ServiceProvider.GetRequiredService<IApprovalRepository>(),
                         scope.ServiceProvider.GetRequiredService<KanbanExecutionOrchestrator>(),
                         CancellationToken.None);
                 }
@@ -157,34 +198,63 @@ public class HermesRunEventConsumer
             if (_activeRuns.TryRemove(runId, out var cts))
                 cts.Dispose();
         }
-    }
 
-    private static bool IsTerminalEvent(string eventType) =>
-        eventType.Contains("run.completed", StringComparison.OrdinalIgnoreCase) ||
-        eventType.Contains("run.failed", StringComparison.OrdinalIgnoreCase) ||
-        eventType.Contains("run.cancelled", StringComparison.OrdinalIgnoreCase) ||
-        eventType.Contains("run.stopping", StringComparison.OrdinalIgnoreCase) ||
-        eventType.Contains("message.complete", StringComparison.OrdinalIgnoreCase);
+        // Schedule resume only after this consumer released its CTS — avoids cancelling the child immediately.
+        if (streamEndAction == StreamEndAction.ResumeTracking && TryReserveStreamResume(runId))
+            TrackRun(runId, agentKind, correlationId);
+    }
 
     private static bool IsApprovalRequest(string eventType) =>
         eventType.Contains("approval.request", StringComparison.OrdinalIgnoreCase);
 
-    private async Task HandleStreamEndedWithoutTerminalAsync(
+    private async Task<StreamEndAction> HandleStreamEndedWithoutTerminalAsync(
         string runId,
         AgentKind agentKind,
+        Guid? correlationId,
         AgentAdapterRegistry agents,
         IExecutionRepository executions,
+        IApprovalRepository approvals,
         KanbanExecutionOrchestrator orchestrator,
         CancellationToken cancellationToken)
     {
         if (agentKind != AgentKind.DietCode)
-            return;
+            return StreamEndAction.None;
 
         var execution = await executions.GetByRunIdAsync(runId, cancellationToken);
         if (execution is null || execution.Phase != ExecutionPhase.Running)
-            return;
+            return StreamEndAction.None;
 
-        var polled = await agents.Get(agentKind).PollRunStatusAsync(runId, cancellationToken);
+        if (await approvals.HasPendingForRunAsync(runId, cancellationToken))
+        {
+            _logger.LogInformation(
+                "SSE closed for run {RunId} with pending approval — lease stays running",
+                runId);
+            return StreamEndAction.ResumeTracking;
+        }
+
+        var adapter = agents.Get(agentKind);
+        var pollAttempts = Math.Max(1, _executorOptions.StreamStatusPollAttempts);
+        var pollInterval = TimeSpan.FromSeconds(Math.Max(1, _executorOptions.StreamStatusPollIntervalSeconds));
+        AgentRunPollResult? polled = null;
+        for (var attempt = 0; attempt < pollAttempts; attempt++)
+        {
+            polled = await adapter.PollRunStatusAsync(runId, cancellationToken);
+            if (polled is { IsTerminal: true })
+                break;
+
+            if (HermesRunEventRules.IsActiveRunStatus(polled?.Status))
+            {
+                _logger.LogDebug(
+                    "SSE closed for run {RunId} but Hermes status={Status} — resuming event tracking",
+                    runId,
+                    polled!.Status);
+                return StreamEndAction.ResumeTracking;
+            }
+
+            if (attempt < pollAttempts - 1)
+                await Task.Delay(pollInterval, cancellationToken);
+        }
+
         if (polled is { IsTerminal: true } terminal)
         {
             if (terminal.Status is "completed")
@@ -206,7 +276,7 @@ public class HermesRunEventConsumer
                 _logger.LogInformation(
                     "SSE ended early for run {RunId}; Hermes status=completed — execution completed, lease verifying",
                     runId);
-                return;
+                return StreamEndAction.None;
             }
 
             var reason = $"Hermes run ended with status '{terminal.Status}' (SSE closed early)";
@@ -220,19 +290,22 @@ public class HermesRunEventConsumer
                 _logger.LogDebug(ex, "Lease failure after polled terminal for task {TaskId}", execution.WorkTaskId);
             }
 
-            return;
+            return StreamEndAction.None;
         }
 
-        const string streamReason = "Hermes event stream closed without a terminal run event";
-        await executions.UpdatePhaseAsync(execution.Id, ExecutionPhase.Interrupted, cancellationToken);
-        try
+        if (polled is null)
         {
-            await orchestrator.RecordExecutionFailureAsync(execution.WorkTaskId, streamReason, cancellationToken);
+            _logger.LogWarning(
+                "SSE closed for run {RunId} and poll failed — resuming tracking instead of blocking lease",
+                runId);
+            return StreamEndAction.ResumeTracking;
         }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Lease failure after stream death for task {TaskId}", execution.WorkTaskId);
-        }
+
+        _logger.LogDebug(
+            "SSE closed for run {RunId} with non-terminal status {Status} — resuming tracking",
+            runId,
+            polled.Status);
+        return StreamEndAction.ResumeTracking;
     }
 
     private async Task HandleTerminalEventAsync(
@@ -406,8 +479,18 @@ public class HermesRunEventConsumer
         try
         {
             using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("error", out var e))
-                return e.GetString();
+            var root = doc.RootElement;
+            foreach (var name in new[] { "error", "message", "detail", "output", "reason" })
+            {
+                if (root.TryGetProperty(name, out var prop))
+                {
+                    var text = prop.ValueKind == JsonValueKind.String
+                        ? prop.GetString()
+                        : prop.ToString();
+                    if (!string.IsNullOrWhiteSpace(text))
+                        return text;
+                }
+            }
         }
         catch
         {

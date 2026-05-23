@@ -8,6 +8,9 @@ public sealed class TestDietCodeAdapter : IAgentAdapter
 {
     public bool FailNextDispatch { get; set; }
 
+    /// <summary>When set, overrides default poll result for reconciliation tests.</summary>
+    public Func<string, AgentRunPollResult?>? PollOverride { get; set; }
+
     public AgentKind Kind => AgentKind.DietCode;
 
     public Task<HealthStatus> GetHealthAsync(CancellationToken cancellationToken = default) =>
@@ -31,7 +34,8 @@ public sealed class TestDietCodeAdapter : IAgentAdapter
     }
 
     public Task<AgentRunPollResult?> PollRunStatusAsync(string runId, CancellationToken cancellationToken = default) =>
-        Task.FromResult<AgentRunPollResult?>(new AgentRunPollResult(runId, "completed", true));
+        Task.FromResult<AgentRunPollResult?>(PollOverride?.Invoke(runId)
+            ?? new AgentRunPollResult(runId, "completed", true));
 
     public Task StopRunAsync(string runId, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;

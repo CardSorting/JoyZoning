@@ -26,6 +26,7 @@ if (string.IsNullOrWhiteSpace(dbPath))
 builder.Services.Configure<HermesOptions>(builder.Configuration.GetSection(HermesOptions.SectionName));
 builder.Services.Configure<ControlPlaneOptions>(builder.Configuration.GetSection(ControlPlaneOptions.SectionName));
 builder.Services.Configure<LeaseRuntimeOptions>(builder.Configuration.GetSection(LeaseRuntimeOptions.SectionName));
+builder.Services.Configure<ExecutorOptions>(builder.Configuration.GetSection(ExecutorOptions.SectionName));
 
 builder.Services.AddJoyZoningPersistence(dbPath);
 builder.Services.AddSingleton<JoyZoning.Agents.Hermes.IDashboardTokenRefresher, DashboardTokenRefresher>();

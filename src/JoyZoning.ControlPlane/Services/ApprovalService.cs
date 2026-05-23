@@ -1,12 +1,15 @@
 using JoyZoning.Agents;
 using JoyZoning.Agents.Approval;
+using JoyZoning.ControlPlane.Background;
 using JoyZoning.Domain.Agents;
+using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Entities;
 using JoyZoning.Domain.Enums;
 using JoyZoning.Domain.Events;
 using JoyZoning.Persistence.Repositories;
 using Microsoft.AspNetCore.SignalR;
 using JoyZoning.ControlPlane.Hubs;
+using Microsoft.Extensions.Options;
 
 namespace JoyZoning.ControlPlane.Services;
 
@@ -18,6 +21,8 @@ public class ApprovalService
     private readonly AgentAdapterRegistry _agents;
     private readonly EventIngestor _events;
     private readonly IHubContext<OperatorHub> _hub;
+    private readonly HermesRunEventConsumer _runConsumer;
+    private readonly ExecutorOptions _executorOptions;
 
     public ApprovalService(
         IApprovalRepository approvals,
@@ -25,7 +30,9 @@ public class ApprovalService
         IExecutionRepository executions,
         AgentAdapterRegistry agents,
         EventIngestor events,
-        IHubContext<OperatorHub> hub)
+        IHubContext<OperatorHub> hub,
+        HermesRunEventConsumer runConsumer,
+        IOptions<ExecutorOptions> executorOptions)
     {
         _approvals = approvals;
         _grants = grants;
@@ -33,6 +40,8 @@ public class ApprovalService
         _agents = agents;
         _events = events;
         _hub = hub;
+        _runConsumer = runConsumer;
+        _executorOptions = executorOptions.Value;
     }
 
     public async Task<ApprovalRequest?> CreateFromHermesEventAsync(
@@ -50,23 +59,18 @@ public class ApprovalService
         if (workTaskId.HasValue &&
             await _grants.HasActiveGrantAsync(workTaskId.Value, category, cancellationToken))
         {
-            var agentAdapter = _agents.Get(agent);
-            try
-            {
-                await agentAdapter.ResolveApprovalAsync(
-                    runId, new ApprovalResolution(ApprovalScope.Once), cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException(
-                    $"Auto-approve failed for run {runId}: {ex.Message}", ex);
-            }
+            await AutoApproveRunAsync(runId, agent, workTaskId.Value, category, true, cancellationToken);
+            return null;
+        }
 
-            await _events.IngestAsync(
-                workTaskId.Value,
-                EventSource.JoyZoning,
-                EventTypes.ApprovalGranted,
-                new { runId, auto = true, category = category.ToString() },
+        if (_executorOptions.AutoApproveToolRequests && agent == AgentKind.DietCode)
+        {
+            await AutoApproveRunAsync(
+                runId,
+                agent,
+                workTaskId,
+                category,
+                auto: true,
                 cancellationToken);
             return null;
         }
@@ -129,6 +133,12 @@ public class ApprovalService
                 throw new InvalidOperationException(
                     $"Hermes rejected approval resolution for run {request.HermesRunId}: {ex.Message}", ex);
             }
+
+            if (status == ApprovalStatus.Approved)
+                _runConsumer.ResumeTracking(
+                    request.HermesRunId,
+                    request.RequestingAgent,
+                    request.WorkTaskId);
         }
 
         await _approvals.ResolveAsync(approvalId, status, scope, cancellationToken);
@@ -166,6 +176,39 @@ public class ApprovalService
 
     public Task<IReadOnlyList<ApprovalRequest>> ListPendingAsync(CancellationToken cancellationToken = default) =>
         _approvals.ListPendingAsync(cancellationToken);
+
+    private async Task AutoApproveRunAsync(
+        string runId,
+        AgentKind agent,
+        Guid? workTaskId,
+        ApprovalCategory category,
+        bool auto,
+        CancellationToken cancellationToken)
+    {
+        var agentAdapter = _agents.Get(agent);
+        try
+        {
+            await agentAdapter.ResolveApprovalAsync(
+                runId, new ApprovalResolution(ApprovalScope.Once), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                $"Auto-approve failed for run {runId}: {ex.Message}", ex);
+        }
+
+        if (workTaskId.HasValue)
+        {
+            await _events.IngestAsync(
+                workTaskId.Value,
+                EventSource.JoyZoning,
+                EventTypes.ApprovalGranted,
+                new { runId, auto, category = category.ToString() },
+                cancellationToken);
+        }
+
+        _runConsumer.ResumeTracking(runId, agent, workTaskId);
+    }
 }
 
 public record ApprovalDto(

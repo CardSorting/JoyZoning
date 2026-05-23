@@ -25,7 +25,7 @@ public static class HandoffPacketBuilder
             ],
             AllowedPaths = allowed,
             ForbiddenPaths = forbidden,
-            VerificationCommands = DefaultVerificationCommands(risk),
+            VerificationCommands = DefaultVerificationCommands(task, risk),
             RollbackInstructions =
                 $"Discard branch {branchName} and remove worktree at {worktreePath} if execution is revoked.",
             RiskLevel = risk,
@@ -85,7 +85,9 @@ public static class HandoffPacketBuilder
         LeaseRiskLevel risk)
     {
         var forbidden = new List<string> { ".git/", "node_modules/", ".env", "secrets/" };
-        var allowed = new List<string> { "src/", "tests/", "docs/", "scripts/" };
+        var allowed = IsMobileStackTask(task)
+            ? MobileAllowedPaths()
+            : new List<string> { "src/", "tests/", "docs/", "scripts/" };
 
         if (risk == LeaseRiskLevel.Critical)
             forbidden.AddRange(["infra/", "deploy/", "migrations/"]);
@@ -93,10 +95,51 @@ public static class HandoffPacketBuilder
         return (allowed, forbidden);
     }
 
-    private static IReadOnlyList<string> DefaultVerificationCommands(LeaseRiskLevel risk) =>
-        risk == LeaseRiskLevel.Critical
+    private static IReadOnlyList<string> MobileAllowedPaths() =>
+    [
+        "app/",
+        "features/",
+        "shared/",
+        "assets/",
+        "src/",
+        "tests/",
+        "docs/",
+        "scripts/",
+        "package.json",
+        "package-lock.json",
+        "app.json",
+        "app.config.ts",
+        "app.config.js",
+        "tsconfig.json",
+        "babel.config.js",
+        "metro.config.js",
+        "expo-env.d.ts",
+        ".npmrc",
+    ];
+
+    private static bool IsMobileStackTask(WorkTask task)
+    {
+        var text = $"{task.Title} {task.Description}".ToLowerInvariant();
+        return text.Contains("expo", StringComparison.Ordinal)
+            || text.Contains("react native", StringComparison.Ordinal)
+            || text.Contains("react-native", StringComparison.Ordinal)
+            || text.Contains("mobile app", StringComparison.Ordinal)
+            || text.Contains("expo router", StringComparison.Ordinal);
+    }
+
+    private static IReadOnlyList<string> DefaultVerificationCommands(WorkTask task, LeaseRiskLevel risk)
+    {
+        if (IsMobileStackTask(task))
+        {
+            return risk == LeaseRiskLevel.Critical
+                ? ["npm install", "npx tsc --noEmit", "npm run lint"]
+                : ["npm install", "npx tsc --noEmit"];
+        }
+
+        return risk == LeaseRiskLevel.Critical
             ? ["dotnet build", "dotnet test --no-build"]
             : ["dotnet build"];
+    }
 
     private static IReadOnlyList<string> ParseLines(string text) =>
         text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

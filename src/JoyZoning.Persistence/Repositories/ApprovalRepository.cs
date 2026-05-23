@@ -21,6 +21,12 @@ public class ApprovalRepository : IApprovalRepository
         return rows.OrderBy(a => a.RequestedAt).ToList();
     }
 
+    public Task<bool> HasPendingForRunAsync(string hermesRunId, CancellationToken cancellationToken = default) =>
+        _db.ApprovalRequests.AsNoTracking()
+            .AnyAsync(
+                a => a.HermesRunId == hermesRunId && a.Status == ApprovalStatus.Pending,
+                cancellationToken);
+
     public async Task<ApprovalRequest> CreateAsync(ApprovalRequest request, CancellationToken cancellationToken = default)
     {
         _db.ApprovalRequests.Add(request);

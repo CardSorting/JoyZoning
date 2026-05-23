@@ -241,15 +241,37 @@ public class OrchestrationService
             ?? throw new InvalidOperationException("Operator session not found");
 
         var op = new LeaseOperationContext(session.Id, StatusChangeActor.System);
-        var (_, handoff) = await DispatchStepAsync(
-            "BeginLease",
-            () => _executionOrchestrator.BeginLeaseAsync(taskId, humanApprovedCritical, op, cancellationToken),
-            cancellationToken);
+        HandoffPacket handoff;
+        var existingLease = await _executionOrchestrator.GetActiveLeaseAsync(taskId, cancellationToken);
+        if (existingLease?.Status == ExecutionLeaseStatus.Leased)
+        {
+            handoff = HandoffPacketBuilder.Deserialize(existingLease.HandoffPacketJson);
+            await DispatchStepAsync(
+                "RecordDispatchAttempt",
+                () => _executionOrchestrator.RecordDispatchAttemptAsync(taskId, op, cancellationToken),
+                cancellationToken);
+        }
+        else if (existingLease is not null
+                 && existingLease.Status is not ExecutionLeaseStatus.Blocked
+                 && KanbanExecutionRules.IsActiveLease(existingLease))
+        {
+            throw LeaseOrchestrationException.Conflict(
+                $"Task {taskId} already has an active lease ({existingLease.Status}). "
+                + "Recover or reopen the lease before dispatching again.");
+        }
+        else
+        {
+            var (_, createdHandoff) = await DispatchStepAsync(
+                "BeginLease",
+                () => _executionOrchestrator.BeginLeaseAsync(taskId, humanApprovedCritical, op, cancellationToken),
+                cancellationToken);
+            handoff = createdHandoff;
 
-        await DispatchStepAsync(
-            "RecordDispatchAttempt",
-            () => _executionOrchestrator.RecordDispatchAttemptAsync(taskId, op, cancellationToken),
-            cancellationToken);
+            await DispatchStepAsync(
+                "RecordDispatchAttempt",
+                () => _executionOrchestrator.RecordDispatchAttemptAsync(taskId, op, cancellationToken),
+                cancellationToken);
+        }
 
         await DispatchStepAsync(
             "ApplyHermesProfile",
