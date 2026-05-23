@@ -1,5 +1,6 @@
 using JoyZoning.Domain.Entities;
 using JoyZoning.Domain.Enums;
+using JoyZoning.Domain.Orchestration;
 using Microsoft.EntityFrameworkCore;
 
 namespace JoyZoning.Persistence.Repositories;
@@ -32,6 +33,40 @@ public class WorkTaskRepository : IWorkTaskRepository
             .OrderBy(t => t.Status)
             .ThenByDescending(t => t.UpdatedAt)
             .ToList();
+    }
+
+    public async Task<IReadOnlyList<WorkTask>> ListByWorkspaceRootAsync(
+        string workspaceRoot,
+        CancellationToken cancellationToken = default)
+    {
+        var sessions = await _db.OperatorSessions.AsNoTracking().ToListAsync(cancellationToken);
+        var sessionIds = sessions
+            .Where(s => WorkspacePaths.EqualsNormalized(s.WorkspaceRoot, workspaceRoot))
+            .Select(s => s.Id)
+            .ToHashSet();
+
+        if (sessionIds.Count == 0)
+            return Array.Empty<WorkTask>();
+
+        var rows = await _db.WorkTasks.AsNoTracking()
+            .Where(t => sessionIds.Contains(t.OperatorSessionId))
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .OrderBy(t => t.Status)
+            .ThenByDescending(t => t.UpdatedAt)
+            .ToList();
+    }
+
+    public async Task<WorkTask?> FindByTitleForWorkspaceAsync(
+        string workspaceRoot,
+        string title,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedTitle = title.Trim();
+        var tasks = await ListByWorkspaceRootAsync(workspaceRoot, cancellationToken);
+        return tasks.FirstOrDefault(t =>
+            string.Equals(t.Title.Trim(), normalizedTitle, StringComparison.OrdinalIgnoreCase));
     }
 
     public async Task<WorkTask> CreateAsync(WorkTask task, CancellationToken cancellationToken = default)
@@ -73,6 +108,16 @@ public class WorkTaskRepository : IWorkTaskRepository
     {
         task.UpdatedAt = DateTimeOffset.UtcNow;
         _db.WorkTasks.Update(task);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var tracked = await _db.WorkTasks.FindAsync(new object[] { id }, cancellationToken);
+        if (tracked is null)
+            return;
+
+        _db.WorkTasks.Remove(tracked);
         await _db.SaveChangesAsync(cancellationToken);
     }
 }

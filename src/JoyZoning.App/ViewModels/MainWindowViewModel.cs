@@ -200,10 +200,19 @@ public partial class MainWindowViewModel : ViewModelBase
             && !HermesFullyReady)
             await ConnectHermesAsync();
 
-        var sessions = await AppServices.ControlPlane.ListSessionsAsync();
-        var latest = sessions.FirstOrDefault();
-        if (latest is not null)
-            await ActivateSessionAsync(latest.Id, latest.Name, latest.WorkspaceRoot);
+        var prefs = OnboardingPreferences.Load();
+        if (!string.IsNullOrWhiteSpace(prefs.LastWorkspacePath)
+            && Directory.Exists(prefs.LastWorkspacePath))
+        {
+            await OpenWorkspaceCommand.ExecuteAsync(prefs.LastWorkspacePath);
+        }
+        else
+        {
+            var sessions = await AppServices.ControlPlane.ListSessionsAsync();
+            var latest = sessions.FirstOrDefault();
+            if (latest is not null)
+                await ActivateSessionAsync(latest.Id, latest.Name, latest.WorkspaceRoot);
+        }
 
         await RefreshStatusAsync();
         UpdateOnboardingUi();

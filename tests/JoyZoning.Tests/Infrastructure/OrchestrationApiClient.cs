@@ -114,6 +114,27 @@ internal sealed class OrchestrationApiClient
         return Guid.Parse(sessionJson.GetProperty("id").GetString()!);
     }
 
+    public async Task<Guid> CreateTaskAsync(
+        Guid sessionId,
+        string title,
+        string description = "Objective for orchestration API tests",
+        AgentKind assignedAgent = AgentKind.DietCode,
+        RiskLevel risk = RiskLevel.Low)
+    {
+        var taskBody = new
+        {
+            sessionId,
+            title,
+            description,
+            assignedAgent = (int)assignedAgent,
+            risk = (int)risk,
+        };
+        var taskResp = await PostJsonAsync("api/tasks", taskBody);
+        taskResp.EnsureSuccessStatusCode();
+        var taskJson = await taskResp.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        return Guid.Parse(taskJson.GetProperty("id").GetString()!);
+    }
+
     public static async Task<(HttpStatusCode Status, JsonElement? Body, string? Error, string? Message)> ReadAsync(
         HttpResponseMessage response)
     {

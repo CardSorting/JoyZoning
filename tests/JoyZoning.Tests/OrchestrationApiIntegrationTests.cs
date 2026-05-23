@@ -56,6 +56,15 @@ public class OrchestrationApiIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CreateTask_reuses_existing_title_in_workspace()
+    {
+        var root = WorkspaceRoot();
+        var (sessionId, taskId1) = await _api.SeedTaskAsync(root);
+        var taskId2 = await _api.CreateTaskAsync(sessionId, "API test card", "duplicate title");
+        Assert.Equal(taskId1, taskId2);
+    }
+
+    [Fact]
     public async Task Get_lease_returns_404_when_none()
     {
         var (_, taskId) = await _api.SeedTaskAsync(WorkspaceRoot());

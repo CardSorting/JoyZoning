@@ -18,4 +18,12 @@ public interface IExecutionLeaseRepository
     Task<int> CountActiveBySessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
     Task<ExecutionLease> CreateAsync(ExecutionLease lease, CancellationToken cancellationToken = default);
     Task UpdateAsync(ExecutionLease lease, CancellationToken cancellationToken = default);
+    Task ReassignWorkTaskAsync(
+        Guid fromWorkTaskId,
+        Guid toWorkTaskId,
+        CancellationToken cancellationToken = default);
+    Task ReassignOperatorSessionAsync(
+        Guid fromSessionId,
+        Guid toSessionId,
+        CancellationToken cancellationToken = default);
 }

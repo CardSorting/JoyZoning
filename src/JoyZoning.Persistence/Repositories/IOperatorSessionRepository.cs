@@ -11,4 +11,5 @@ public interface IOperatorSessionRepository
     Task<IReadOnlyList<OperatorSession>> ListAsync(CancellationToken cancellationToken = default);
     Task<OperatorSession> CreateAsync(OperatorSession session, CancellationToken cancellationToken = default);
     Task UpdateAsync(OperatorSession session, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

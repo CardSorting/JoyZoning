@@ -49,6 +49,8 @@ public static class WorkspacePaths
             return "/var/" + trimmed["/private/var/".Length..];
         if (trimmed.StartsWith("/private/tmp/", StringComparison.Ordinal))
             return "/tmp/" + trimmed["/private/tmp/".Length..];
+        if (trimmed.StartsWith("/private/", StringComparison.Ordinal))
+            return trimmed["/private".Length..];
         return trimmed;
     }
 }

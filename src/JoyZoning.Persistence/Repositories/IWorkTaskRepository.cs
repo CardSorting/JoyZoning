@@ -11,7 +11,15 @@ public interface IWorkTaskRepository
         string hermesKanbanTaskId,
         CancellationToken cancellationToken = default);
     Task<IReadOnlyList<WorkTask>> ListBySessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<WorkTask>> ListByWorkspaceRootAsync(
+        string workspaceRoot,
+        CancellationToken cancellationToken = default);
+    Task<WorkTask?> FindByTitleForWorkspaceAsync(
+        string workspaceRoot,
+        string title,
+        CancellationToken cancellationToken = default);
     Task<WorkTask> CreateAsync(WorkTask task, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     Task UpdateStatusAsync(Guid id, WorkTaskStatus status, CancellationToken cancellationToken = default);
     Task UpdateDispatchAsync(
         Guid id,

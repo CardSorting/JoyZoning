@@ -107,7 +107,10 @@ public static class ApiEndpoints
         });
 
         app.MapGet("/api/sessions", async (IOperatorSessionRepository repo) =>
-            Results.Ok(await repo.ListAsync()));
+        {
+            var all = await repo.ListAsync();
+            return Results.Ok(WorkspaceSessionCatalog.SelectCanonicalSessions(all));
+        });
 
         app.MapPost("/api/sessions", async (CreateSessionRequest req, OrchestrationService orch) =>
         {
@@ -127,7 +130,8 @@ public static class ApiEndpoints
             IExecutionLeaseRepository leases,
             CancellationToken cancellationToken) =>
         {
-            var sessionList = await sessions.ListAsync(cancellationToken);
+            var sessionList = WorkspaceSessionCatalog.SelectCanonicalSessions(
+                await sessions.ListAsync(cancellationToken));
             var activeLeases = await leases.ListActiveAsync(cancellationToken);
             var activeTasks = new List<object>();
 

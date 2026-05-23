@@ -52,4 +52,14 @@ public class OperatorSessionRepository : IOperatorSessionRepository
         tracked.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var tracked = await _db.OperatorSessions.FindAsync(new object[] { id }, cancellationToken);
+        if (tracked is null)
+            return;
+
+        _db.OperatorSessions.Remove(tracked);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
 }

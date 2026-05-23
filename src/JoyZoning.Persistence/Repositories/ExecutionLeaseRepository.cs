@@ -96,4 +96,41 @@ public class ExecutionLeaseRepository : IExecutionLeaseRepository
         _db.ExecutionLeases.Update(lease);
         await _db.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task ReassignWorkTaskAsync(
+        Guid fromWorkTaskId,
+        Guid toWorkTaskId,
+        CancellationToken cancellationToken = default)
+    {
+        var leases = await _db.ExecutionLeases
+            .Where(l => l.WorkTaskId == fromWorkTaskId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var lease in leases)
+            lease.WorkTaskId = toWorkTaskId;
+
+        if (leases.Count > 0)
+            await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ReassignOperatorSessionAsync(
+        Guid fromSessionId,
+        Guid toSessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var leases = await _db.ExecutionLeases
+            .Where(l => l.OperatorSessionId == fromSessionId || l.AssignedSessionId == fromSessionId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var lease in leases)
+        {
+            if (lease.OperatorSessionId == fromSessionId)
+                lease.OperatorSessionId = toSessionId;
+            if (lease.AssignedSessionId == fromSessionId)
+                lease.AssignedSessionId = toSessionId;
+        }
+
+        if (leases.Count > 0)
+            await _db.SaveChangesAsync(cancellationToken);
+    }
 }

@@ -75,10 +75,13 @@ public static class ServiceCollectionExtensions
         TryAddColumn(db, "execution_leases", "RecoveredFromLeaseId", "TEXT NULL");
 
         db.Database.ExecuteSqlRaw("""
-            CREATE UNIQUE INDEX IF NOT EXISTS UX_execution_leases_one_active_per_card
-            ON execution_leases (WorkTaskId)
-            WHERE Status IN (0, 1, 2, 3, 4);
-            """);
+             CREATE UNIQUE INDEX IF NOT EXISTS UX_execution_leases_one_active_per_card
+  ON execution_leases (WorkTaskId)
+  WHERE Status IN (0, 1, 2, 3, 4);
+  CREATE UNIQUE INDEX IF NOT EXISTS UX_work_tasks_session_kanban
+  ON work_tasks (OperatorSessionId, HermesKanbanTaskId)
+  WHERE HermesKanbanTaskId IS NOT NULL;
+  """);
     }
 
     private static void TryAddColumn(JoyZoningDbContext db, string table, string column, string definition)

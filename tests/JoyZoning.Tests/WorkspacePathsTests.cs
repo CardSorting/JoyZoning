@@ -29,4 +29,13 @@ public class WorkspacePathsTests
         var other = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "jz-b"));
         Assert.False(WorkspacePaths.IsSameOrChildWorkspace(other, root));
     }
+
+    [Fact]
+    public void EqualsNormalized_MatchesPrivateUsersAliasOnMacOS()
+    {
+        if (!OperatingSystem.IsMacOS())
+            return;
+
+        Assert.True(WorkspacePaths.EqualsNormalized("/private/Users/test/project", "/Users/test/project"));
+    }
 }

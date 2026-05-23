@@ -56,6 +56,8 @@ builder.Services.AddScoped<LeaseWorktreeMonitor>();
 builder.Services.AddScoped<LeaseRuntimeService>();
 builder.Services.AddScoped<KanbanExecutionOrchestrator>();
 builder.Services.AddScoped<OrchestrationService>();
+builder.Services.AddScoped<WorkspaceSessionConsolidator>();
+builder.Services.AddSingleton<KanbanSyncCoordinator>();
 builder.Services.AddScoped<ApprovalService>();
 builder.Services.AddScoped<ConfigService>();
 builder.Services.AddSingleton<HermesConnectivityService>();
@@ -117,6 +119,13 @@ using (var scope = app.Services.CreateScope())
 {
     var configSvc = scope.ServiceProvider.GetRequiredService<ConfigService>();
     await configSvc.BootstrapRuntimeAsync();
+}
+
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    using var scope = app.Services.CreateScope();
+    var consolidator = scope.ServiceProvider.GetRequiredService<WorkspaceSessionConsolidator>();
+    await consolidator.ConsolidateAllAsync();
 }
 
 app.UseCors();
