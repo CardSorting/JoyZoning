@@ -85,7 +85,7 @@ You can also set the profile in Hermes directly:
 | Symptom | Likely fix |
 |---------|------------|
 | Wrong model / provider | `jz config hermes` then `sync-model --from default` |
-| “Invalid API key” | Wrong profile — ensure keys in `profiles/joyzoning/.env` (or sync from `~/.hermes/.env`) |
+| “Invalid API key” (gateway / dispatch) | Stale gateway process — `curl -X POST http://127.0.0.1:9470/api/hermes/sync-credentials` or restart `hermes -p joyzoning gateway`. Key lives in `~/.hermes/profiles/joyzoning/.env` as `API_SERVER_KEY` (not the dashboard token field). |
 | “Model not found” | Run `hermes -p joyzoning model` to pick supported id |
 | Rate limit / 402 credits | Fix provider billing; model is correct but account is empty |
 

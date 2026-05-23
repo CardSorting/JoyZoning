@@ -50,6 +50,40 @@ public class HermesHttpClient
         }
     }
 
+    /// <summary>
+    /// Verifies Bearer auth against the gateway (health alone does not require a key).
+    /// Returns false on 401 invalid_api_key — usually means the running gateway was started
+    /// with a different API_SERVER_KEY than the active JoyZoning profile.
+    /// </summary>
+    public async Task<bool> VerifyApiKeyAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.GetSnapshot().ApiKey))
+            return false;
+
+        try
+        {
+            using var response = await SendWithAuthRetryAsync(
+                () => _http.PostAsync(
+                    "v1/runs",
+                    new StringContent(
+                        JsonSerializer.Serialize(new { input = "joyzoning-auth-probe" }),
+                        Encoding.UTF8,
+                        "application/json"),
+                    cancellationToken),
+                cancellationToken);
+            return response.StatusCode is HttpStatusCode.Accepted or HttpStatusCode.OK;
+        }
+        catch (HermesApiException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Hermes API key probe failed");
+            return false;
+        }
+    }
+
     public async Task<string> StartRunAsync(AgentRunRequest request, CancellationToken cancellationToken)
     {
         var result = await StartRunDetailedAsync(request, cancellationToken);

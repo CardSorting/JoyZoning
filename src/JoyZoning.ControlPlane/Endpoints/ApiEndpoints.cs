@@ -571,6 +571,14 @@ public static class ApiEndpoints
             });
         });
 
+        app.MapPost("/api/hermes/sync-credentials", async (HermesConnectivityService connectivity) =>
+        {
+            var report = await connectivity.SyncCredentialsAsync();
+            return report.Ok
+                ? Results.Ok(new { ok = true, message = report.Message })
+                : Results.Json(new { ok = false, message = report.Message }, statusCode: StatusCodes.Status409Conflict);
+        });
+
         app.MapGet("/api/hermes/dashboard", async (HermesDashboardConnectivityService dashboard) =>
         {
             var status = await dashboard.GetStatusAsync();

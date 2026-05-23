@@ -27,6 +27,10 @@ public class HermesConnectorDiagnostics
         var snapshot = _runtime.GetSnapshot();
         var checks = new List<HermesConnectorCheck>();
 
+        _runtime.ReloadApiKeyFromProfile();
+        _api.RefreshConnection();
+        snapshot = _runtime.GetSnapshot();
+
         var hasKey = !string.IsNullOrWhiteSpace(snapshot.ApiKey);
         checks.Add(new HermesConnectorCheck(
             "api_key",
@@ -34,6 +38,17 @@ public class HermesConnectorDiagnostics
             hasKey
                 ? $"API key loaded for profile '{snapshot.Profile}'"
                 : $"No API key for profile '{snapshot.Profile}'"));
+
+        if (hasKey)
+        {
+            var authOk = await _api.VerifyApiKeyAsync(cancellationToken);
+            checks.Add(new HermesConnectorCheck(
+                "api_auth",
+                authOk ? HealthState.Healthy : HealthState.Unavailable,
+                authOk
+                    ? "Gateway accepts API key"
+                    : "Gateway rejected API key — run POST /api/hermes/sync-credentials or restart gateway"));
+        }
 
         var apiHealth = await _api.GetHealthAsync(cancellationToken);
         checks.Add(new HermesConnectorCheck("api_health", apiHealth.State, apiHealth.Message));

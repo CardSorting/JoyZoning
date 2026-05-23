@@ -49,6 +49,15 @@ public class HermesProcessService : IDisposable
         }
     }
 
+    /// <summary>Stop any JoyZoning-managed gateway and start a fresh process with current profile credentials.</summary>
+    public async Task<bool> RestartGatewayAsync(CancellationToken cancellationToken = default)
+    {
+        StopGatewayProcess();
+        await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken);
+        await StartGatewayAsync(cancellationToken);
+        return await WaitForHealthyAsync(maxWait: TimeSpan.FromSeconds(45), cancellationToken);
+    }
+
     public async Task<bool> EnsureGatewayRunningAsync(CancellationToken cancellationToken = default)
     {
         if ((await _client.GetHealthAsync(cancellationToken)).State == HealthState.Healthy)
@@ -97,6 +106,10 @@ public class HermesProcessService : IDisposable
                 WorkingDirectory = snapshot.InstallRoot,
             };
             psi.Environment["API_SERVER_ENABLED"] = "1";
+            var apiKey = snapshot.ApiKey
+                ?? HermesProfileEnv.TryReadApiServerKey(snapshot.Profile);
+            if (!string.IsNullOrWhiteSpace(apiKey))
+                psi.Environment["API_SERVER_KEY"] = apiKey;
 
             _gatewayProcess = HermesChildProcessHost.Start(psi, _logger, "hermes-gateway");
             if (_gatewayProcess is null)
