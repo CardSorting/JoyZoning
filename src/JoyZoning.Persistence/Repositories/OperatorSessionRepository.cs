@@ -1,4 +1,5 @@
 using JoyZoning.Domain.Entities;
+using JoyZoning.Domain.Orchestration;
 using Microsoft.EntityFrameworkCore;
 
 namespace JoyZoning.Persistence.Repositories;
@@ -11,6 +12,17 @@ public class OperatorSessionRepository : IOperatorSessionRepository
 
     public Task<OperatorSession?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         _db.OperatorSessions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+
+    public async Task<OperatorSession?> FindByWorkspaceRootAsync(
+        string normalizedWorkspaceRoot,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await _db.OperatorSessions.AsNoTracking().ToListAsync(cancellationToken);
+        return rows
+            .Where(s => WorkspacePaths.EqualsNormalized(s.WorkspaceRoot, normalizedWorkspaceRoot))
+            .OrderByDescending(s => s.UpdatedAt)
+            .FirstOrDefault();
+    }
 
     public async Task<IReadOnlyList<OperatorSession>> ListAsync(CancellationToken cancellationToken = default)
     {

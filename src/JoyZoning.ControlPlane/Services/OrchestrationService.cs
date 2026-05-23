@@ -138,13 +138,33 @@ public class OrchestrationService
         string? hermesProfile,
         CancellationToken cancellationToken = default)
     {
+        var normalizedRoot = WorkspacePaths.TryNormalize(workspaceRoot, out var norm)
+            ? norm
+            : workspaceRoot;
+
+        var existing = await _sessions.FindByWorkspaceRootAsync(normalizedRoot, cancellationToken);
+        if (existing is not null)
+        {
+            existing.Name = name;
+            if (!string.IsNullOrWhiteSpace(hermesProfile))
+                existing.HermesProfile = hermesProfile;
+            existing.WorkspaceRoot = normalizedRoot;
+            existing.UpdatedAt = DateTimeOffset.UtcNow;
+            await _sessions.UpdateAsync(existing, cancellationToken);
+            _logger.LogInformation(
+                "Reusing operator session {SessionId} for workspace {WorkspaceRoot}",
+                existing.Id,
+                normalizedRoot);
+            return existing;
+        }
+
         var now = DateTimeOffset.UtcNow;
         var sessionId = Guid.NewGuid();
         var session = new OperatorSession
         {
             Id = sessionId,
             Name = name,
-            WorkspaceRoot = workspaceRoot,
+            WorkspaceRoot = normalizedRoot,
             HermesProfile = hermesProfile,
             HermesSessionId = sessionId.ToString(),
             Status = SessionStatus.Idle,
@@ -166,6 +186,9 @@ public class OrchestrationService
         RiskLevel risk,
         CancellationToken cancellationToken = default)
     {
+        var opSession = await _sessions.GetByIdAsync(sessionId, cancellationToken)
+            ?? throw new InvalidOperationException($"Session {sessionId} not found");
+
         var now = DateTimeOffset.UtcNow;
         var task = new WorkTask
         {
@@ -180,18 +203,25 @@ public class OrchestrationService
             UpdatedAt = now,
         };
 
-        await _tasks.CreateAsync(task, cancellationToken);
-
-        var opSession = await _sessions.GetByIdAsync(sessionId, cancellationToken);
-        if (opSession is not null)
+        var kanbanId = await _kanbanSync.SyncCreateTaskAsync(task, opSession.WorkspaceRoot, cancellationToken);
+        if (!string.IsNullOrEmpty(kanbanId))
         {
-            var kanbanId = await _kanbanSync.SyncCreateTaskAsync(task, opSession.WorkspaceRoot, cancellationToken);
-            if (!string.IsNullOrEmpty(kanbanId))
+            var existing = await FindTaskByHermesKanbanIdForWorkspaceAsync(
+                opSession.WorkspaceRoot, kanbanId, cancellationToken);
+            if (existing is not null)
             {
-                task.HermesKanbanTaskId = kanbanId;
-                await _tasks.UpdateAsync(task, cancellationToken);
+                _logger.LogInformation(
+                    "Reusing existing task {TaskId} for kanban card {KanbanId} in workspace {WorkspaceRoot}",
+                    existing.Id,
+                    kanbanId,
+                    opSession.WorkspaceRoot);
+                return existing;
             }
+
+            task.HermesKanbanTaskId = kanbanId;
         }
+
+        await _tasks.CreateAsync(task, cancellationToken);
 
         await _events.IngestAsync(task.Id, EventSource.JoyZoning, EventTypes.TaskCreated,
             new { task.Id, task.Title, task.Status }, cancellationToken);
@@ -502,8 +532,9 @@ public class OrchestrationService
         if (remote.Count == 0)
             return (0, 0, 0, 0, false, KanbanSyncOutcome.Success, null);
 
-        var sessionId = session.Id;
-        var workspaceNorm = Path.GetFullPath(session.WorkspaceRoot).TrimEnd(Path.DirectorySeparatorChar);
+        var canonicalSession = await ResolveCanonicalSessionForWorkspaceAsync(session, cancellationToken)
+            ?? session;
+        var sessionId = canonicalSession.Id;
         var imported = 0;
         var updated = 0;
         var skipped = 0;
@@ -511,23 +542,16 @@ public class OrchestrationService
 
         foreach (var snap in remote)
         {
-            if (!string.IsNullOrEmpty(snap.WorkspacePath))
+            if (string.IsNullOrEmpty(snap.WorkspacePath))
             {
-                try
-                {
-                    var taskRoot = Path.GetFullPath(snap.WorkspacePath).TrimEnd(Path.DirectorySeparatorChar);
-                    if (!taskRoot.Equals(workspaceNorm, StringComparison.OrdinalIgnoreCase)
-                        && !taskRoot.StartsWith(workspaceNorm + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                    {
-                        skipped++;
-                        continue;
-                    }
-                }
-                catch
-                {
-                    skipped++;
-                    continue;
-                }
+                skipped++;
+                continue;
+            }
+
+            if (!WorkspacePaths.IsSameOrChildWorkspace(snap.WorkspacePath, session.WorkspaceRoot))
+            {
+                skipped++;
+                continue;
             }
 
             var agent = snap.Assignee?.Contains("diet", StringComparison.OrdinalIgnoreCase) == true
@@ -535,7 +559,8 @@ public class OrchestrationService
                 : AgentKind.Hermes;
 
             var status = KanbanStatusMapping.FromHermesKanbanStatus(snap.Status);
-            var existing = await _tasks.GetByHermesKanbanIdAsync(sessionId, snap.Id, cancellationToken);
+            var existing = await FindTaskByHermesKanbanIdForWorkspaceAsync(
+                session.WorkspaceRoot, snap.Id, cancellationToken);
 
             if (existing is null)
             {
@@ -632,6 +657,38 @@ public class OrchestrationService
         session.HermesSessionId = returnedSessionId;
         session.UpdatedAt = DateTimeOffset.UtcNow;
         await _sessions.UpdateAsync(session, cancellationToken);
+    }
+
+    private async Task<WorkTask?> FindTaskByHermesKanbanIdForWorkspaceAsync(
+        string workspaceRoot,
+        string hermesKanbanTaskId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(hermesKanbanTaskId))
+            return null;
+
+        var sessions = await _sessions.ListAsync(cancellationToken);
+        foreach (var session in sessions)
+        {
+            if (!WorkspacePaths.EqualsNormalized(session.WorkspaceRoot, workspaceRoot))
+                continue;
+
+            var task = await _tasks.GetByHermesKanbanIdAsync(session.Id, hermesKanbanTaskId, cancellationToken);
+            if (task is not null)
+                return task;
+        }
+
+        return null;
+    }
+
+    private Task<OperatorSession?> ResolveCanonicalSessionForWorkspaceAsync(
+        OperatorSession session,
+        CancellationToken cancellationToken)
+    {
+        if (!WorkspacePaths.TryNormalize(session.WorkspaceRoot, out var norm))
+            return Task.FromResult<OperatorSession?>(session);
+
+        return _sessions.FindByWorkspaceRootAsync(norm, cancellationToken);
     }
 }
 

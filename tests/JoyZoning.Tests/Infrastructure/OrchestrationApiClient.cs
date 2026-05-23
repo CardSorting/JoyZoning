@@ -88,11 +88,7 @@ internal sealed class OrchestrationApiClient
         string workspaceRoot,
         RiskLevel risk = RiskLevel.Low)
     {
-        var sessionBody = new { name = "api-test", workspaceRoot, hermesProfile = "joyzoning" };
-        var sessionResp = await PostJsonAsync("api/sessions", sessionBody);
-        sessionResp.EnsureSuccessStatusCode();
-        var sessionJson = await sessionResp.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
-        var sessionId = Guid.Parse(sessionJson.GetProperty("id").GetString()!);
+        var sessionId = await CreateSessionAsync(workspaceRoot);
 
         var taskBody = new
         {
@@ -107,6 +103,15 @@ internal sealed class OrchestrationApiClient
         var taskJson = await taskResp.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
         var taskId = Guid.Parse(taskJson.GetProperty("id").GetString()!);
         return (sessionId, taskId);
+    }
+
+    public async Task<Guid> CreateSessionAsync(string workspaceRoot, string name = "api-test")
+    {
+        var sessionBody = new { name, workspaceRoot, hermesProfile = "joyzoning" };
+        var sessionResp = await PostJsonAsync("api/sessions", sessionBody);
+        sessionResp.EnsureSuccessStatusCode();
+        var sessionJson = await sessionResp.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        return Guid.Parse(sessionJson.GetProperty("id").GetString()!);
     }
 
     public static async Task<(HttpStatusCode Status, JsonElement? Body, string? Error, string? Message)> ReadAsync(

@@ -1,6 +1,7 @@
 using JoyZoning.Agents.Hermes;
 using JoyZoning.ControlPlane.Hubs;
 using JoyZoning.ControlPlane.Services;
+using JoyZoning.Domain.Orchestration;
 using JoyZoning.Persistence.Repositories;
 using Microsoft.AspNetCore.SignalR;
 
@@ -80,10 +81,19 @@ public class KanbanAutoSyncHostedService : BackgroundService
         }
 
         var failures = 0;
+        var syncedWorkspaces = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var syncedCount = 0;
         foreach (var session in all)
         {
+            var workspaceKey = WorkspacePaths.TryNormalize(session.WorkspaceRoot, out var norm)
+                ? norm
+                : session.WorkspaceRoot;
+            if (!syncedWorkspaces.Add(workspaceKey))
+                continue;
+
             try
             {
+                syncedCount++;
                 var result = await orch.SyncKanbanTwoWayAsync(session.Id, cancellationToken);
                 await hub.Clients.All.SendAsync(
                     "OnKanbanSynced",
@@ -99,8 +109,8 @@ public class KanbanAutoSyncHostedService : BackgroundService
 
         _state.LastSyncAt = DateTimeOffset.UtcNow;
         _state.LastMessage = failures == 0
-            ? $"Auto-sync OK ({all.Count} session(s))"
-            : $"Auto-sync partial: {failures}/{all.Count} session(s) failed — see logs";
+            ? $"Auto-sync OK ({syncedCount} workspace(s), {all.Count} session(s))"
+            : $"Auto-sync partial: {failures}/{syncedCount} workspace(s) failed — see logs";
     }
 
     private async Task<TimeSpan> GetIntervalAsync(CancellationToken cancellationToken)
