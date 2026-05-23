@@ -15,7 +15,7 @@ public sealed class WorkspaceOptions
     public string LiveStatusFileName { get; set; } = "JOYZONING_LIVE.md";
 
     /// <summary>Background worktree scan interval when <see cref="MirrorToSessionRoot"/> is enabled.</summary>
-    public int LiveMonitorIntervalSeconds { get; set; } = 15;
+    public int LiveMonitorIntervalSeconds { get; set; } = 4;
 
     /// <summary>Write machine-readable progress to <c>.joyzoning/live.json</c> in the session workspace.</summary>
     public bool WriteLiveJsonFile { get; set; } = true;

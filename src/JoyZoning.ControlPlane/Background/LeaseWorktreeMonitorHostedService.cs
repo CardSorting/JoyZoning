@@ -27,7 +27,7 @@ public class LeaseWorktreeMonitorHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await Task.Delay(TimeSpan.FromSeconds(20), stoppingToken);
+        await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {

@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-geist-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-geist-mono: ui-monospace, monospace;
+
+  --pet-night: #12101c;
+  --pet-deep: #1c1828;
+  --pet-shell: #2a2640;
+  --pet-elevated: #38324f;
+  --pet-cream: #faf6ef;
+  --pet-mint: #9ed4b5;
+  --pet-sky: #a8d4f0;
+  --pet-lavender: #c4b5e8;
+  --pet-rose: #e8a0a8;
+  --pet-gold: #f0d78c;
+  --pet-text: #f5f0e8;
+  --pet-muted: #a89fc4;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply min-h-screen antialiased;
+  color: var(--pet-text);
+  background: var(--pet-night);
+  background-image: radial-gradient(
+    ellipse 90% 60% at 50% -5%,
+    rgba(158, 212, 181, 0.1),
+    transparent 55%
+  );
+}
+
+::selection {
+  background: rgba(158, 212, 181, 0.35);
+  color: var(--pet-text);
+}
+
+@keyframes pet-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-pet-bob {
+  animation: pet-bob 3.2s ease-in-out infinite;
+}
+
+.pet-panel {
+  @apply rounded-3xl backdrop-blur-md;
+  background: rgba(42, 38, 64, 0.88);
+  border: 1px solid rgba(196, 181, 232, 0.16);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.pet-card {
+  @apply rounded-2xl;
+  background: rgba(56, 50, 79, 0.7);
+  border: 1px solid rgba(196, 181, 232, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .animate-pet-bob {
+    animation: none !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid rgba(158, 212, 181, 0.7);
+  outline-offset: 3px;
+}

@@ -51,6 +51,7 @@ builder.Services.AddJoyZoningAdapters();
 builder.Services.AddScoped<EventIngestor>();
 builder.Services.AddScoped<WorkspaceEventPublisher>();
 builder.Services.AddScoped<WorkspaceLiveMirrorService>();
+builder.Services.AddSingleton<LeaseLiveRefreshCoordinator>();
 builder.Services.AddScoped<LeaseWorktreeMonitor>();
 builder.Services.AddScoped<LeaseRuntimeService>();
 builder.Services.AddScoped<KanbanExecutionOrchestrator>();
@@ -89,7 +90,11 @@ builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins("http://127.0.0.1", "http://localhost")
+        policy.WithOrigins(
+                "http://127.0.0.1",
+                "http://localhost",
+                "http://127.0.0.1:3000",
+                "http://localhost:3000")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials());
@@ -115,6 +120,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseCors();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.MapJoyZoningApi();
 app.MapHub<OperatorHub>("/hubs/operator");
 

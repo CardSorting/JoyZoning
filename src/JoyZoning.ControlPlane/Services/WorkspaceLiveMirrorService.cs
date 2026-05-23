@@ -323,7 +323,11 @@ public sealed class WorkspaceLiveMirrorService
             },
         };
 
-        File.WriteAllText(jsonPath, JsonSerializer.Serialize(body, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(jsonPath, JsonSerializer.Serialize(body, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        }));
     }
 
     private static string RenderMarkdownBar(int percent)

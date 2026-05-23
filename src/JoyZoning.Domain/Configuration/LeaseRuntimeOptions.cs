@@ -8,12 +8,12 @@ public class LeaseRuntimeOptions
     public int MaxGlobalActiveLeases { get; set; } = 16;
     public int MaxActiveLeasesPerSession { get; set; } = 8;
     public int MaxCriticalLeases { get; set; } = 1;
-    public int ReconciliationIntervalSeconds { get; set; } = 60;
+    public int ReconciliationIntervalSeconds { get; set; } = 30;
 
     /// <summary>Background scan of active lease worktrees for git/mtime changes.</summary>
     public bool WorktreeMonitorEnabled { get; set; } = true;
 
-    public int WorktreeMonitorIntervalSeconds { get; set; } = 45;
+    public int WorktreeMonitorIntervalSeconds { get; set; } = 8;
 
     /// <summary>When true, absolute ExpiresAt transitions to revoked; otherwise blocked.</summary>
     public bool AbsoluteExpirationRevokes { get; set; }
@@ -31,9 +31,9 @@ public class LeaseDurationOptions
 
 public class LeaseStaleOptions
 {
-    public int LeasedMinutes { get; set; } = 30;
-    public int RunningMinutes { get; set; } = 45;
-    public int VerifyingMinutes { get; set; } = 90;
+    public int LeasedMinutes { get; set; } = 90;
+    public int RunningMinutes { get; set; } = 120;
+    public int VerifyingMinutes { get; set; } = 120;
     public int CriticalLeasedMinutes { get; set; } = 10;
     public int CriticalRunningMinutes { get; set; } = 20;
     public int CriticalVerifyingMinutes { get; set; } = 45;

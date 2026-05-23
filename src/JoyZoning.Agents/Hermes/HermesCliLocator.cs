@@ -6,6 +6,16 @@ public static class HermesCliLocator
 {
     public static string? FindHermesExecutable(string installRoot)
     {
+        if (!string.IsNullOrWhiteSpace(installRoot))
+        {
+            foreach (var venv in new[] { ".venv", "venv" })
+            {
+                var venvHermes = Path.Combine(installRoot, venv, "bin", "hermes");
+                if (File.Exists(venvHermes))
+                    return venvHermes;
+            }
+        }
+
         foreach (var path in new[] { "hermes", "/usr/local/bin/hermes" })
         {
             try
@@ -27,13 +37,6 @@ public static class HermesCliLocator
             {
                 // try next
             }
-        }
-
-        foreach (var venv in new[] { ".venv", "venv" })
-        {
-            var venvHermes = Path.Combine(installRoot, venv, "bin", "hermes");
-            if (File.Exists(venvHermes))
-                return venvHermes;
         }
 
         var localBin = Path.Combine(

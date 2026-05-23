@@ -120,12 +120,55 @@ On TTY, compact **in-place** status lines appear between full dashboard redraws 
 
 **Fourth-pass behavior:** background monitor always refreshes `JOYZONING_LIVE.md` / `live.json`; terminal merges **timeline events** from `/api/events`; **milestone** lines when advancing steps; **poll jitter**; periodic full refresh every ~18 ticks; `--simple` shows a one-screen wizard card.
 
+## Web progress dashboard (Watch UI — Next.js)
+
+The Watch UI lives in **`web/watch/`** — **Next.js 15**, **React 19**, **TypeScript**, Tailwind, Framer Motion, SignalR. It uses familiar **package-tracking** and **deploy-dashboard** patterns for non-technical users.
+
+### URLs
+
+```text
+http://127.0.0.1:9470/                              # production (static export in wwwroot)
+http://127.0.0.1:9470/?taskId=<uuid>
+http://localhost:3000/                              # local dev (next dev, proxies API)
+```
+
+### Build & publish
+
+```bash
+./scripts/build-watch-ui.sh    # npm run build → copies out/ to ControlPlane/wwwroot
+```
+
+### Dev workflow
+
+```bash
+# Terminal 1
+ASPNETCORE_ENVIRONMENT=Development dotnet run --project src/JoyZoning.ControlPlane
+
+# Terminal 2
+cd web/watch && npm install && npm run dev
+```
+
+See [web/watch/README.md](../web/watch/README.md).
+
+### Features
+
+- **Welcome wizard** — pick workspace + task, or jump to in-progress builds
+- **Status hero** — headline, progress ring, plain-language chips
+- **Vertical journey** — Setup → Build → Verify → Review (“you are here”)
+- **Right now** spotlight — typing indicator while active
+- **Tabs** — Workshop (live code + files) · Checklist · Timeline
+- **SignalR** — `OnTerminalOutput`, `OnCodeActivity`, `OnTaskLiveUpdated`, worktree refresh
+
+**Throughput tuning** (`appsettings.Development.json`): mirror tick 3s, stale lease 120m, stream poll 1s.
+
+Bootstrap API: `GET /api/watch/bootstrap`.
+
 ## Run (development)
 
 | Command | What it does |
 |---------|----------------|
 | `./scripts/run-dev.sh` | Control plane (background) + desktop |
-| `dotnet run --project src/JoyZoning.ControlPlane` | API only on `:9470` |
+| `dotnet run --project src/JoyZoning.ControlPlane` | API + Watch UI on `:9470` |
 | `dotnet run --project src/JoyZoning.App` | Desktop (auto-starts control plane) |
 | `./scripts/jz doctor` | CLI smoke check without installing `jz` |
 | `./scripts/broccoliq-build.sh` | Build vendored BroccoliQ + joy-bridge worker |

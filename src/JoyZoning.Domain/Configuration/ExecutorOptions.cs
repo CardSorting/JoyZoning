@@ -15,7 +15,7 @@ public sealed class ExecutorOptions
     public int StreamStatusPollAttempts { get; set; } = 8;
 
     /// <summary>Delay between stream-death status polls.</summary>
-    public int StreamStatusPollIntervalSeconds { get; set; } = 2;
+    public int StreamStatusPollIntervalSeconds { get; set; } = 1;
 
     /// <summary>Max times to re-attach SSE for the same run id (prevents infinite loops).</summary>
     public int MaxStreamResumeAttempts { get; set; } = 12;

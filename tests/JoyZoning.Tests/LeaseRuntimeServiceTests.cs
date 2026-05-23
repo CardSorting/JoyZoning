@@ -65,6 +65,7 @@ public class LeaseRuntimeServiceTests : IDisposable
         services.AddSingleton<IAgentAdapter>(sp => sp.GetRequiredService<TestHermesAdapter>());
         services.AddSingleton<AgentAdapterRegistry>(sp =>
             new AgentAdapterRegistry(sp.GetServices<IAgentAdapter>()));
+        services.AddSingleton<LeaseLiveRefreshCoordinator>();
         services.AddSingleton<HermesRunEventConsumer>();
         services.Configure<ExecutorOptions>(_ => { });
         services.AddScoped<LeaseRuntimeService>();

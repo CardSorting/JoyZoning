@@ -20,6 +20,7 @@ public class HermesRunEventConsumer
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IHostEnvironment _environment;
     private readonly ExecutorOptions _executorOptions;
+    private readonly LeaseLiveRefreshCoordinator _liveRefresh;
     private readonly ILogger<HermesRunEventConsumer> _logger;
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _activeRuns = new();
     private readonly ConcurrentDictionary<string, int> _streamResumeAttempts = new();
@@ -29,12 +30,14 @@ public class HermesRunEventConsumer
         IServiceScopeFactory scopeFactory,
         IHostEnvironment environment,
         IOptions<ExecutorOptions> executorOptions,
+        LeaseLiveRefreshCoordinator liveRefresh,
         ILogger<HermesRunEventConsumer> logger)
     {
         _agents = agents;
         _scopeFactory = scopeFactory;
         _environment = environment;
         _executorOptions = executorOptions.Value;
+        _liveRefresh = liveRefresh;
         _logger = logger;
     }
 
@@ -121,7 +124,9 @@ public class HermesRunEventConsumer
                 {
                     await IngestSafeAsync(events, cid, source, evt, cancellationToken);
                     await PushUiEventsAsync(hub, agentKind, cid, evt, cancellationToken);
-                    await PushTerminalOutputAsync(events, hub, cid, evt, cancellationToken);
+                    await PushAgentActivityAsync(events, hub, cid, evt, cancellationToken);
+                    if (ShouldTriggerFastLiveRefresh(evt.EventType))
+                        _liveRefresh.RequestRefresh(cid);
                 }
 
                 if (IsApprovalRequest(evt.EventType))
@@ -446,18 +451,44 @@ public class HermesRunEventConsumer
         }
     }
 
-    private static async Task PushTerminalOutputAsync(
+    private static bool ShouldTriggerFastLiveRefresh(string eventType)
+    {
+        if (string.IsNullOrEmpty(eventType))
+            return false;
+
+        return eventType.Contains("tool", StringComparison.OrdinalIgnoreCase)
+            || eventType.Contains("terminal", StringComparison.OrdinalIgnoreCase)
+            || eventType.Contains("write_file", StringComparison.OrdinalIgnoreCase)
+            || eventType.Contains("patch", StringComparison.OrdinalIgnoreCase)
+            || eventType.Contains("message.delta", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static async Task PushAgentActivityAsync(
         EventIngestor events,
         IHubContext<OperatorHub> hub,
         Guid correlationId,
         NormalizedAgentEvent evt,
         CancellationToken cancellationToken)
     {
+        var filePath = ExtractFilePath(evt.EventType, evt.PayloadJson);
+        if (!string.IsNullOrEmpty(filePath))
+        {
+            var kind = ClassifyFileActivity(evt.EventType);
+            var preview = ExtractTerminalText(evt.PayloadJson);
+            await hub.Clients.All.SendAsync(
+                "OnCodeActivity",
+                new CodeActivityDto(correlationId, filePath, kind, preview),
+                cancellationToken);
+        }
+
         if (!evt.EventType.Contains("tool", StringComparison.OrdinalIgnoreCase) &&
-            !evt.EventType.Contains("terminal", StringComparison.OrdinalIgnoreCase))
+            !evt.EventType.Contains("terminal", StringComparison.OrdinalIgnoreCase) &&
+            string.IsNullOrEmpty(filePath))
             return;
 
-        var text = ExtractTerminalText(evt.PayloadJson);
+        var text = !string.IsNullOrEmpty(filePath)
+            ? FormatFileActivityLine(evt.EventType, filePath, ExtractTerminalText(evt.PayloadJson))
+            : ExtractTerminalText(evt.PayloadJson);
         if (string.IsNullOrEmpty(text))
             return;
 
@@ -470,9 +501,93 @@ public class HermesRunEventConsumer
             correlationId,
             EventSource.Terminal,
             EventTypes.TerminalOutput,
-            new { preview = text, agentEventType = evt.EventType },
+            new { preview = text, agentEventType = evt.EventType, path = filePath },
             cancellationToken);
     }
+
+    private static string ClassifyFileActivity(string eventType)
+    {
+        if (eventType.Contains("patch", StringComparison.OrdinalIgnoreCase))
+            return "patch";
+        if (eventType.Contains("write_file", StringComparison.OrdinalIgnoreCase))
+            return "write";
+        if (eventType.Contains("read_file", StringComparison.OrdinalIgnoreCase))
+            return "read";
+        return "tool";
+    }
+
+    private static string FormatFileActivityLine(string eventType, string path, string? preview)
+    {
+        var verb = ClassifyFileActivity(eventType) switch
+        {
+            "patch" => "Patching",
+            "write" => "Writing",
+            "read" => "Reading",
+            _ => "Tool",
+        };
+        var line = $"{verb}: {path}";
+        if (!string.IsNullOrWhiteSpace(preview))
+        {
+            var snippet = preview.Length > 120 ? preview[..120] + "…" : preview;
+            line += "\n" + snippet.Replace("\n", " ");
+        }
+
+        return line;
+    }
+
+    private static string? ExtractFilePath(string eventType, string json)
+    {
+        if (!eventType.Contains("file", StringComparison.OrdinalIgnoreCase) &&
+            !eventType.Contains("patch", StringComparison.OrdinalIgnoreCase) &&
+            !eventType.Contains("tool", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            foreach (var name in new[]
+                     {
+                         "path", "file_path", "filePath", "target", "file", "relative_path",
+                         "filename",
+                     })
+            {
+                if (root.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.String)
+                {
+                    var text = prop.GetString();
+                    if (!string.IsNullOrWhiteSpace(text) && LooksLikeSourcePath(text))
+                        return text;
+                }
+            }
+
+            if (root.TryGetProperty("arguments", out var args)
+                || root.TryGetProperty("args", out args))
+            {
+                foreach (var name in new[] { "path", "file_path", "target", "file" })
+                {
+                    if (args.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.String)
+                    {
+                        var text = prop.GetString();
+                        if (!string.IsNullOrWhiteSpace(text) && LooksLikeSourcePath(text))
+                            return text;
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return null;
+    }
+
+    private static bool LooksLikeSourcePath(string text) =>
+        text.Contains('/') || text.Contains('\\') || text.EndsWith(".ts", StringComparison.OrdinalIgnoreCase)
+        || text.EndsWith(".tsx", StringComparison.OrdinalIgnoreCase)
+        || text.EndsWith(".js", StringComparison.OrdinalIgnoreCase)
+        || text.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+        || text.EndsWith(".md", StringComparison.OrdinalIgnoreCase);
 
     private static string? ExtractError(string json)
     {

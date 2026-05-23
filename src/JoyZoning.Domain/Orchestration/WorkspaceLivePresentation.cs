@@ -130,10 +130,10 @@ public static class WorkspaceLivePresentation
 
         var baseSeconds = leaseStatus switch
         {
-            nameof(ExecutionLeaseStatus.Running) => 5,
-            nameof(ExecutionLeaseStatus.Leased) => 8,
-            nameof(ExecutionLeaseStatus.Verifying) => 12,
-            nameof(ExecutionLeaseStatus.Blocked) => 25,
+            nameof(ExecutionLeaseStatus.Running) => 2,
+            nameof(ExecutionLeaseStatus.Leased) => 4,
+            nameof(ExecutionLeaseStatus.Verifying) => 8,
+            nameof(ExecutionLeaseStatus.Blocked) => 15,
             nameof(ExecutionLeaseStatus.ReadyForReview) => 0,
             nameof(ExecutionLeaseStatus.Merged) or nameof(ExecutionLeaseStatus.Revoked) => 0,
             _ => 10,
@@ -143,16 +143,16 @@ public static class WorkspaceLivePresentation
             return (0, PollStopped);
 
         if (filesCopiedThisTick > 0)
-            return (Math.Min(baseSeconds, 3), PollBurst);
+            return (Math.Min(baseSeconds, 1), PollBurst);
 
         if (activityState == ActivityActive)
-            return (Math.Min(baseSeconds, 3), PollBurst);
+            return (Math.Min(baseSeconds, 1), PollBurst);
 
         if (activityState is ActivityStuck or ActivityIdle)
-            return (Math.Max(baseSeconds, 20), PollSlow);
+            return (Math.Max(baseSeconds, 12), PollSlow);
 
         if (activityState == ActivityBlocked)
-            return (Math.Max(baseSeconds, 25), PollSlow);
+            return (Math.Max(baseSeconds, 15), PollSlow);
 
         return (baseSeconds, PollNormal);
     }
@@ -415,9 +415,11 @@ public static class WorkspaceLivePresentation
                 actions.Add("Run: hermes -p joyzoning config show");
                 actions.Add("Sync keys: curl -X POST http://127.0.0.1:9470/api/hermes/sync-credentials");
             }
-            else if (reason.Contains("credit") || reason.Contains("balance") || reason.Contains("fund"))
+            else if (reason.Contains("credit") || reason.Contains("balance") || reason.Contains("fund")
+                     || reason.Contains("402") || reason.Contains("afford"))
             {
-                actions.Add("Add credits or upgrade your AI provider plan.");
+                actions.Add("Add credits at https://openrouter.ai/settings/credits (or switch to a smaller/cheaper model).");
+                actions.Add("Run: hermes -p joyzoning config set model google/gemini-2.5-flash-preview");
             }
             else
             {

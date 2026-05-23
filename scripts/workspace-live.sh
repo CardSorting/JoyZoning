@@ -202,11 +202,11 @@ tick_once() {
       poll="$(cat "$POLL_FILE" 2>/dev/null || echo 10)"
       status="$(printf '%s' "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('leaseStatus') or '')" 2>/dev/null || true)"
       if [[ -n "$FIXED_INTERVAL" ]]; then
-        echo "$FIXED_INTERVAL"
+        echo "$FIXED_INTERVAL" >"$POLL_FILE"
       elif [[ "$status" == "ReadyForReview" || "$status" == "Merged" || "$status" == "Revoked" ]]; then
-        echo 0
+        echo 0 >"$POLL_FILE"
       else
-        clamp_interval "$poll"
+        clamp_interval "$poll" >"$POLL_FILE"
       fi
       return 0
     fi
@@ -219,9 +219,9 @@ tick_once() {
   write_fallback_status
   render_response "$(python3 -c "import json; print(json.load(open('$STATE_FILE'))['payload'])" 2>/dev/null || echo '{}')"
   if [[ -n "$FIXED_INTERVAL" ]]; then
-    echo "$FIXED_INTERVAL"
+    echo "$FIXED_INTERVAL" >"$POLL_FILE"
   else
-    echo 15
+    echo 15 >"$POLL_FILE"
   fi
 }
 
@@ -261,9 +261,10 @@ if [[ "$OPEN_LIVE" == "1" ]] && [[ "$(uname -s)" == "Darwin" ]]; then
 fi
 
 while true; do
-  sleep_secs="$(tick_once)"
+  tick_once || true
+  sleep_secs="$(tr -d '[:space:]' <"$POLL_FILE" 2>/dev/null || echo 15)"
   [[ "$ONCE" -eq 1 ]] && break
-  if [[ "${sleep_secs:-0}" -le 0 ]]; then
+  if [[ -z "$sleep_secs" || "$sleep_secs" -eq 0 ]] 2>/dev/null; then
     echo ""
     status="$(python3 -c "import json; d=json.load(open('$STATE_FILE')); print((d.get('payload') or {}).get('leaseStatus',''))" 2>/dev/null || true)"
     if [[ "$status" == "ReadyForReview" ]]; then

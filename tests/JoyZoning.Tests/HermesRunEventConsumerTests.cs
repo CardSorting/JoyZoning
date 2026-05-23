@@ -1,5 +1,6 @@
 using JoyZoning.Agents;
 using JoyZoning.ControlPlane.Background;
+using JoyZoning.ControlPlane.Services;
 using JoyZoning.Domain.Agents;
 using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Enums;
@@ -24,11 +25,16 @@ public class HermesRunEventConsumerTests
         var registry = new AgentAdapterRegistry(Array.Empty<IAgentAdapter>());
         var scopeFactory = new Mock<IServiceScopeFactory>();
 
+        var liveRefresh = new LeaseLiveRefreshCoordinator(
+            scopeFactory.Object,
+            NullLogger<LeaseLiveRefreshCoordinator>.Instance);
+
         var consumer = new HermesRunEventConsumer(
             registry,
             scopeFactory.Object,
             env.Object,
             Options.Create(new ExecutorOptions()),
+            liveRefresh,
             NullLogger<HermesRunEventConsumer>.Instance);
 
         var ex = Record.Exception(() => consumer.TrackRun("run-1", AgentKind.DietCode, Guid.NewGuid()));
@@ -46,11 +52,16 @@ public class HermesRunEventConsumerTests
         var registry = new AgentAdapterRegistry(Array.Empty<IAgentAdapter>());
         var scopeFactory = new Mock<IServiceScopeFactory>();
 
+        var liveRefresh = new LeaseLiveRefreshCoordinator(
+            scopeFactory.Object,
+            NullLogger<LeaseLiveRefreshCoordinator>.Instance);
+
         var consumer = new HermesRunEventConsumer(
             registry,
             scopeFactory.Object,
             env.Object,
             Options.Create(new ExecutorOptions()),
+            liveRefresh,
             NullLogger<HermesRunEventConsumer>.Instance);
 
         consumer.TrackRun("run-1", AgentKind.DietCode, Guid.NewGuid());

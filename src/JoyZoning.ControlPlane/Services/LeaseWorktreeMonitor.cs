@@ -68,6 +68,20 @@ public sealed class LeaseWorktreeMonitor
                     "worktree",
                     live?.LiveFilePath),
                 cancellationToken);
+
+            if (live is not null)
+            {
+                await _hub.Clients.All.SendAsync(
+                    "OnTaskLiveUpdated",
+                    new TaskLiveUpdatedDto(
+                        lease.WorkTaskId,
+                        live.LeaseStatus,
+                        live.Presentation.Headline,
+                        live.Presentation.ProgressPercent,
+                        live.FilesCopiedThisTick,
+                        live.UpdatedAt),
+                    cancellationToken);
+            }
         }
 
         return publishedCount;

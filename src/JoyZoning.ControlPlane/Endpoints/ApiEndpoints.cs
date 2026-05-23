@@ -121,6 +121,44 @@ public static class ApiEndpoints
             return session is null ? Results.NotFound() : Results.Ok(session);
         });
 
+        app.MapGet("/api/watch/bootstrap", async (
+            IOperatorSessionRepository sessions,
+            IWorkTaskRepository tasks,
+            IExecutionLeaseRepository leases,
+            CancellationToken cancellationToken) =>
+        {
+            var sessionList = await sessions.ListAsync(cancellationToken);
+            var activeLeases = await leases.ListActiveAsync(cancellationToken);
+            var activeTasks = new List<object>();
+
+            foreach (var lease in activeLeases)
+            {
+                var task = await tasks.GetByIdAsync(lease.WorkTaskId, cancellationToken);
+                activeTasks.Add(new
+                {
+                    taskId = lease.WorkTaskId,
+                    sessionId = lease.OperatorSessionId,
+                    title = task?.Title ?? "Task",
+                    leaseStatus = lease.Status.ToString(),
+                    blockedReason = lease.BlockedReason,
+                    worktreePath = lease.WorktreePath,
+                });
+            }
+
+            return Results.Ok(new
+            {
+                watchUrl = "/",
+                sessions = sessionList.Select(s => new
+                {
+                    s.Id,
+                    s.Name,
+                    s.WorkspaceRoot,
+                    s.HermesProfile,
+                }),
+                activeTasks,
+            });
+        });
+
         app.MapGet("/api/tasks", async (Guid? sessionId, IWorkTaskRepository repo) =>
         {
             if (!sessionId.HasValue) return Results.BadRequest("sessionId required");
