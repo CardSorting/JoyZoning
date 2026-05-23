@@ -27,7 +27,7 @@ public static class OperatorDecisionSafety
         var (summary, approve, revoke) = BuildForWorker(worker, largeChangeSetThreshold);
         var guardrails = action switch
         {
-            OperatorDecisionActions.Approve => approve,
+            OperatorDecisionActions.Accept => approve,
             OperatorDecisionActions.Revoke => revoke,
             OperatorDecisionActions.Inspect => BuildInspectGuardrails(summary),
             _ => approve,
@@ -131,7 +131,7 @@ public static class OperatorDecisionSafety
 
         var blocked = blocks.Count > 0;
         return new OperatorActionGuardrails(
-            OperatorDecisionActions.Approve,
+            OperatorDecisionActions.Accept,
             Blocked: blocked,
             RequiresAcknowledgement: !blocked && warnings.Count > 0,
             Warnings: warnings,

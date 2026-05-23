@@ -225,7 +225,7 @@ function Section({
             onSelect={onSelectTask ? () => onSelectTask(w.taskId) : undefined}
             onApprove={
               authoritativeActions && w.mergeState === "ready_to_merge"
-                ? () => onOpenDecision(w, "approve")
+                ? () => onOpenDecision(w, "accept")
                 : undefined
             }
             onInspect={

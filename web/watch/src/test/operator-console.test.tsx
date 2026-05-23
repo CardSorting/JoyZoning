@@ -102,7 +102,7 @@ vi.mock("@/lib/api", () => {
     }),
     openPath: vi.fn().mockResolvedValue({ ok: true }),
     decisionPreflight: vi.fn().mockResolvedValue({
-      action: "approve",
+      action: "accept",
       summary: readyWorker.decisionSummary,
       guardrails: readyWorker.approveGuardrails,
     }),

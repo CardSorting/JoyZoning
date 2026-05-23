@@ -103,6 +103,8 @@ API path remains `/lease/merge` (stable contract); labels say **Accept result**.
 - `Second_accept_after_merged_fails_with_conflict`
 - `Autopilot_accept_records_system_actor_on_git_convergence`
 - `Reconciliation_does_not_metadata_merge_ready_lease_without_git_evidence`
+- `OperatorDecisionActionsTests` — `accept` canonical; `approve` legacy alias
+- `LeaseRuntimeConfigTests` — shipped appsettings keep `MetadataOnlyAcceptResult` false
 - (Prior) overlap block, evidence dedupe, autopilot low-risk accept, authority policy suite
 
 ---
@@ -112,10 +114,12 @@ API path remains `/lease/merge` (stable contract); labels say **Accept result**.
 - `KanbanExecutionOrchestrator.cs` — actor param, post-git lease check, persist git before `Merged`
 - `LeaseRuntimeService.cs` — repair merge requires git evidence; System actor on reconcile accept
 - `AuthorityAutopilotService.cs` — full git detail on auto-accept
-- `ApiEndpoints.cs` — reconcile uses `System` accept
-- `docs/worker-convergence.md`, `docs/bounded-yolo-coherence-audit.md`
+- `ApiEndpoints.cs` — reconcile uses `System` accept; preflight documents `accept`
+- `OperatorDecisionModels.cs`, `OperatorDecisionSafety.cs` — preflight `accept` canonical; `approve` alias
+- `docs/worker-convergence.md`, `docs/bounded-yolo-coherence-audit.md`, `docs/development.md`, `docs/authority-autopilot.md`
+- `web/watch/src/lib/operator-decision.ts`, `operator-console.ts`, `WorkerDecisionConfirmDialog.tsx`, `OperatorConsole.tsx`
 - `web/watch/src/lib/operator-labels.ts`, `convergence.ts`
-- `tests/.../KanbanExecutionOrchestratorTests.cs`, `LeaseRuntimeServiceTests.cs`
+- `tests/.../KanbanExecutionOrchestratorTests.cs`, `LeaseRuntimeServiceTests.cs`, `OperatorDecisionActionsTests.cs`, `LeaseRuntimeConfigTests.cs`
 
 ---
 
@@ -125,7 +129,7 @@ API path remains `/lease/merge` (stable contract); labels say **Accept result**.
 - **`ApproveMergeAsync`** — alias kept.
 - **`MetadataOnlyAcceptResult`** — dev escape hatch; must stay off in production.
 - **No distributed lock** on accept — single-node control plane assumption.
-- **Preflight `action=approve`** — name legacy; maps to accept-result guardrails.
+- **Preflight `action=accept`** — canonical; `approve` remains a legacy alias. JSON field `approveGuardrails` unchanged for API stability.
 - **Parallel mode tabs** — still say “merge queue” in places; operator console is canonical flat surface.
 
 ---

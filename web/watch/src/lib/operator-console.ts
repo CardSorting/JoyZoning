@@ -36,7 +36,7 @@ export function primaryActionForWorker(
 ): {
   label: string;
   action: OperatorDecisionAction | "open_workspace" | "refresh" | null;
-  kind: "approve" | "conflict" | "revoke" | "open" | "refresh" | "none";
+  kind: "accept" | "conflict" | "revoke" | "open" | "refresh" | "none";
 } {
   if (!worker) {
     if (leaseStatus === "ReadyForReview") {
@@ -47,7 +47,7 @@ export function primaryActionForWorker(
 
   const mergeState = "mergeState" in worker ? worker.mergeState : undefined;
   if (mergeState === "ready_to_merge" && workerNeedsHumanReview(worker)) {
-    return { label: ACCEPT_RESULT_LABEL, action: "approve", kind: "approve" };
+    return { label: ACCEPT_RESULT_LABEL, action: "accept", kind: "accept" };
   }
   if (mergeState === "ready_to_merge" && !workerNeedsHumanReview(worker)) {
     return { label: "Autopilot eligible", action: null, kind: "none" };

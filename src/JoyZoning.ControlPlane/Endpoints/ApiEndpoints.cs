@@ -333,7 +333,7 @@ public static class ApiEndpoints
             CancellationToken cancellationToken) =>
         {
             if (string.IsNullOrWhiteSpace(action))
-                return Results.BadRequest(new { error = "invalid_action", message = "Query action=approve|revoke|inspect is required." });
+                return Results.BadRequest(new { error = "invalid_action", message = "Query action=accept|revoke|inspect is required (approve is a legacy alias for accept)." });
 
             try
             {

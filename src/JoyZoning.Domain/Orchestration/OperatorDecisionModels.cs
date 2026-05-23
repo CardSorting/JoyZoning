@@ -60,13 +60,27 @@ public sealed record OperatorDecisionPreflight(
 
 public static class OperatorDecisionActions
 {
+    /// <summary>Canonical preflight action for accept-result (git convergence + Merged).</summary>
+    public const string Accept = "accept";
+
+    /// <summary>Legacy alias for <see cref="Accept"/>.</summary>
     public const string Approve = "approve";
+
     public const string Revoke = "revoke";
     public const string Inspect = "inspect";
 
     public static bool TryParse(string? value, out string action)
     {
-        action = (value ?? string.Empty).Trim().ToLowerInvariant();
-        return action is Approve or Revoke or Inspect;
+        var raw = (value ?? string.Empty).Trim().ToLowerInvariant();
+        action = raw switch
+        {
+            Approve => Accept,
+            Accept => Accept,
+            Revoke => Revoke,
+            Inspect => Inspect,
+            _ => raw,
+        };
+
+        return action is Accept or Revoke or Inspect;
     }
 }

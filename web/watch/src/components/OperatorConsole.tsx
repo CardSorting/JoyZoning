@@ -160,7 +160,7 @@ export function OperatorConsole({
     }
     if (
       selectedMerge &&
-      (primary.action === "approve" || primary.action === "inspect" || primary.action === "revoke")
+      (primary.action === "accept" || primary.action === "inspect" || primary.action === "revoke")
     ) {
       setDialog({ worker: selectedMerge, action: primary.action });
     }
@@ -228,7 +228,7 @@ export function OperatorConsole({
           disabled={primary.kind === "none"}
           className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-sky-500 disabled:opacity-40"
         >
-          {primary.kind === "approve" && <ShieldCheck className="h-4 w-4" />}
+          {primary.kind === "accept" && <ShieldCheck className="h-4 w-4" />}
           {primary.kind === "conflict" && <AlertTriangle className="h-4 w-4" />}
           {primary.kind === "open" && <ExternalLink className="h-4 w-4" />}
           {primary.kind === "refresh" && <RefreshCw className="h-4 w-4" />}
@@ -416,7 +416,7 @@ export function OperatorConsole({
                   <button
                     type="button"
                     className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"
-                    onClick={() => setDialog({ worker: selectedMerge, action: "approve" })}
+                    onClick={() => setDialog({ worker: selectedMerge, action: "accept" })}
                   >
                     <ShieldCheck className="h-3.5 w-3.5" /> Accept
                   </button>

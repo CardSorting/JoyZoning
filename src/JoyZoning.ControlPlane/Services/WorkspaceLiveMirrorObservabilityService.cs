@@ -64,7 +64,7 @@ public sealed class WorkspaceLiveMirrorObservabilityService
         CancellationToken cancellationToken = default)
     {
         if (!OperatorDecisionActions.TryParse(action, out var parsedAction))
-            throw new InvalidOperationException("action must be approve, revoke, or inspect.");
+            throw new InvalidOperationException("action must be accept, revoke, or inspect (approve is a legacy alias for accept).");
 
         var workers = await GetParallelWorkersAsync(sessionId, cancellationToken);
         var worker = workers.Workers.FirstOrDefault(w => w.ExecutionSessionId == executionSessionId)

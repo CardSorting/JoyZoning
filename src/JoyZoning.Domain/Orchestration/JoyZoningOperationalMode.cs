@@ -123,7 +123,7 @@ public static class JoyZoningOperationalModes
             ApiRouteHints:
             [
                 "GET /api/sessions/{id}/merge-queue",
-                "GET .../decision-preflight?action=approve|revoke|inspect",
+                "GET .../decision-preflight?action=accept|revoke|inspect",
                 "POST /api/tasks/{id}/lease/merge",
                 "POST /api/tasks/{id}/lease/revoke",
             ]),

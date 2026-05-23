@@ -69,17 +69,17 @@ async function main() {
     }
 
     await page.waitForSelector("text=Ready to merge", { timeout: 15_000 });
-    const approveBtn = page.getByRole("button", { name: /^Approve$/i }).first();
-    const hasApprove = (await approveBtn.count()) > 0;
-    if (hasApprove) {
-      await approveBtn.click();
+    const acceptBtn = page.getByRole("button", { name: /^Accept$/i }).first();
+    const hasAccept = (await acceptBtn.count()) > 0;
+    if (hasAccept) {
+      await acceptBtn.click();
       await page.waitForSelector("#worker-decision-title", { timeout: 5000 });
       const title = await page.locator("#worker-decision-title").textContent();
-      record("7. review action works", /approve/i.test(title ?? ""), title ?? "");
+      record("7. review action works", /accept result/i.test(title ?? ""), title ?? "");
       await page.getByLabel("Close").click();
     } else {
       const reviewHtml = await page.locator('[data-joyzoning-mode="review"]').innerText().catch(() => "");
-      record("7. review action works", false, `no Approve in queue (${reviewHtml.slice(0, 120)}…)`);
+      record("7. review action works", false, `no Accept in queue (${reviewHtml.slice(0, 120)}…)`);
     }
 
     // 8. Depart clears session/mode URL

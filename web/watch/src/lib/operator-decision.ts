@@ -38,7 +38,16 @@ export interface OperatorActionGuardrails {
   blockReasons: string[];
 }
 
-export type OperatorDecisionAction = "approve" | "revoke" | "inspect";
+export type OperatorDecisionAction = "accept" | "revoke" | "inspect";
+
+/** Legacy preflight alias still accepted by the API. */
+export type LegacyOperatorDecisionAction = "approve";
+
+export function isAcceptResultAction(
+  action: OperatorDecisionAction | LegacyOperatorDecisionAction,
+): boolean {
+  return action === "accept" || action === "approve";
+}
 
 export interface DecisionPreflightSnapshot {
   sessionId: string;

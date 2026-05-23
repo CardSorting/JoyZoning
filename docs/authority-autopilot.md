@@ -168,3 +168,4 @@ Reconciliation re-runs merge observability + policy and may auto-accept eligible
 
 - [Worker convergence](worker-convergence.md) — worktrees and operator flow
 - [Real git convergence](real-git-convergence.md) — Accept result applies code to main before `Merged`
+- [Coherence audit](bounded-yolo-coherence-audit.md) — authority invariants, races, evidence (May 2026)

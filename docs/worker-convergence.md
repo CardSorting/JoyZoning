@@ -82,7 +82,7 @@ Exposed on merge queue / parallel workers as `mergeReadiness` (`headCommit`, `ba
 
 `POST /api/tasks/{taskId}/lease/merge` → `KanbanExecutionOrchestrator.AcceptResultAsync` (alias `ApproveMergeAsync`).
 
-Preflight (optional): `GET /api/sessions/{sessionId}/workers/{executionSessionId}/decision-preflight?action=approve`.
+Preflight (optional): `GET /api/sessions/{sessionId}/workers/{executionSessionId}/decision-preflight?action=accept` (`approve` is a legacy alias).
 
 Real git convergence runs **before** lease `Merged` unless `LeaseRuntime:MetadataOnlyAcceptResult` is true (dev-only). See [real-git-convergence.md](real-git-convergence.md).
 
@@ -116,7 +116,7 @@ On failure: evidence `git.convergence.failed`, lease stays `ReadyForReview`, API
 ### 8. Where are conflict files surfaced?
 
 - `GET …/merge-queue` → `mergeConflict.conflictFiles` per worker.
-- `GET …/decision-preflight?action=approve|inspect` → `summary.riskFlags`, blocks/warnings.
+- `GET …/decision-preflight?action=accept|inspect` → `summary.riskFlags`, blocks/warnings (`approve` aliases `accept`).
 - Watch **Convergence** panel lists the same paths for the selected worker.
 
 ### 9. After approve, how to verify main workspace changed?

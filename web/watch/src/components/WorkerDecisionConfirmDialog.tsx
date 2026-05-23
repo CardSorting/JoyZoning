@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import type { MergeWorkerEntry } from "@/lib/merge-queue";
 import {
   RISK_FLAG_LABELS,
+  isAcceptResultAction,
   type OperatorActionGuardrails,
   type OperatorDecisionAction,
   type OperatorDecisionSummary,
@@ -144,7 +145,7 @@ function GuardrailMessages({ guardrails }: { guardrails: OperatorActionGuardrail
 }
 
 const TITLES: Record<OperatorDecisionAction, string> = {
-  approve: ACCEPT_RESULT_LABEL,
+  accept: ACCEPT_RESULT_LABEL,
   revoke: "Revoke worker",
   inspect: "Review conflict",
 };
@@ -182,7 +183,7 @@ export function WorkerDecisionConfirmDialog({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Preflight failed");
       setGuardrails(
-        action === "approve"
+        isAcceptResultAction(action)
           ? worker.approveGuardrails ?? null
           : action === "revoke"
             ? worker.revokeGuardrails ?? null
@@ -197,7 +198,7 @@ export function WorkerDecisionConfirmDialog({
     setAcknowledged(false);
     setError(null);
     setGuardrails(
-      action === "approve"
+      isAcceptResultAction(action)
         ? worker.approveGuardrails ?? null
         : action === "revoke"
           ? worker.revokeGuardrails ?? null
@@ -211,7 +212,7 @@ export function WorkerDecisionConfirmDialog({
 
   const g =
     guardrails ??
-    (action === "approve"
+    (isAcceptResultAction(action)
       ? worker.approveGuardrails
       : action === "revoke"
         ? worker.revokeGuardrails
@@ -220,7 +221,7 @@ export function WorkerDecisionConfirmDialog({
   const canConfirm =
     action === "inspect" ||
     (action === "revoke" && (!g?.requiresAcknowledgement || acknowledged)) ||
-    (action === "approve" && !g?.blocked && (!g?.requiresAcknowledgement || acknowledged));
+    (isAcceptResultAction(action) && !g?.blocked && (!g?.requiresAcknowledgement || acknowledged));
 
   async function onConfirm() {
     if (!canConfirm) return;
@@ -240,7 +241,7 @@ export function WorkerDecisionConfirmDialog({
     setBusy(true);
     setError(null);
     try {
-      if (action === "approve") {
+      if (isAcceptResultAction(action)) {
         await api.approveMerge(worker.taskId);
       } else {
         await api.revokeLease(worker.taskId);
@@ -327,7 +328,7 @@ export function WorkerDecisionConfirmDialog({
             className={`rounded-lg px-4 py-2 text-sm font-semibold ${
               action === "revoke"
                 ? "bg-orange-600 text-white disabled:opacity-40"
-                : action === "approve"
+                : isAcceptResultAction(action)
                   ? "bg-emerald-600 text-white disabled:opacity-40"
                   : "bg-campfire-accent text-campfire-bg disabled:opacity-40"
             }`}
