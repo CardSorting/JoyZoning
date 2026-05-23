@@ -183,7 +183,7 @@ public sealed class WorkspaceLiveMirrorService
         sb.AppendLine();
         sb.AppendLine($"**Right now:** {d.Subheadline}");
         sb.AppendLine();
-        sb.AppendLine($"**{d.StepProgressLabel}** — {d.CurrentStepTitle ?? "In progress"}");
+        sb.AppendLine($"**{d.NavigationSummary}** ({d.PhaseLabel})");
         sb.AppendLine();
         if (!string.IsNullOrWhiteSpace(d.TimeGuidance))
             sb.AppendLine($"_{d.TimeGuidance}_");
@@ -310,6 +310,8 @@ public sealed class WorkspaceLiveMirrorService
                 d.ActivityState,
                 d.ProgressPercent,
                 d.StepProgressLabel,
+                d.PhaseLabel,
+                d.NavigationSummary,
                 d.CurrentStepTitle,
                 d.TimeGuidance,
                 d.StaleWarning,

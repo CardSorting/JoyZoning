@@ -30,7 +30,17 @@ public class WorkspaceLivePresentationTests
         Assert.True(vm.RecommendedPollSeconds <= 5);
         Assert.Equal(WorkspaceLivePresentation.PollBurst, vm.PollMode);
         Assert.Equal("Step 2 of 4", vm.StepProgressLabel);
+        Assert.Equal("Build", vm.PhaseLabel);
+        Assert.Contains("Step 2 of 4", vm.NavigationSummary);
         Assert.Contains("Building", vm.Headline);
+    }
+
+    [Fact]
+    public void Navigation_summary_includes_step_and_title()
+    {
+        var summary = WorkspaceLivePresentation.FormatNavigationSummary(
+            "Step 3 of 4", "Running quality checks");
+        Assert.Equal("Step 3 of 4 · Running quality checks", summary);
     }
 
     [Fact]

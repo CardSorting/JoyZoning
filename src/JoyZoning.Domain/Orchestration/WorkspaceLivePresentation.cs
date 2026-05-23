@@ -33,6 +33,8 @@ public static class WorkspaceLivePresentation
         int CurrentStepIndex,
         int StepCount,
         string StepProgressLabel,
+        string PhaseLabel,
+        string NavigationSummary,
         string? CurrentStepTitle,
         string? TimeGuidance,
         string? StaleWarning,
@@ -80,6 +82,8 @@ public static class WorkspaceLivePresentation
         var (poll, pollMode) = RecommendPoll(status, worktreeLastWriteUtc, filesCopiedThisTick, activity, at);
         var stepLabel = FormatStepProgressLabel(currentIndex, steps.Count);
         var currentStepTitle = steps.ElementAtOrDefault(currentIndex)?.Label;
+        var phaseLabel = PhaseLabelForIndex(currentIndex);
+        var navigationSummary = FormatNavigationSummary(stepLabel, currentStepTitle);
         var timeGuidance = BuildTimeGuidance(status, activity);
         var staleWarning = BuildStaleWarning(activity, worktreeLastWriteUtc, at);
         var helpTips = BuildHelpTips(activity, status);
@@ -92,6 +96,8 @@ public static class WorkspaceLivePresentation
             currentIndex,
             steps.Count,
             stepLabel,
+            phaseLabel,
+            navigationSummary,
             currentStepTitle,
             timeGuidance,
             staleWarning,
@@ -155,6 +161,22 @@ public static class WorkspaceLivePresentation
     {
         var human = Math.Clamp(currentIndex + 1, 1, Math.Max(stepCount, 1));
         return $"Step {human} of {Math.Max(stepCount, 1)}";
+    }
+
+    public static string PhaseLabelForIndex(int currentIndex) => currentIndex switch
+    {
+        0 => "Setup",
+        1 => "Build",
+        2 => "Verify",
+        3 => "Review",
+        _ => "Work",
+    };
+
+    public static string FormatNavigationSummary(string stepProgressLabel, string? currentStepTitle)
+    {
+        if (string.IsNullOrWhiteSpace(currentStepTitle))
+            return stepProgressLabel;
+        return $"{stepProgressLabel} · {currentStepTitle}";
     }
 
     private static string? BuildTimeGuidance(string status, string activity) => activity switch

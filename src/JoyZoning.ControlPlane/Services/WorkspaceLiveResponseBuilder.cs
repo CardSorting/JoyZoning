@@ -39,6 +39,8 @@ public static class WorkspaceLiveResponseBuilder
                 currentStepIndex = display.CurrentStepIndex,
                 stepCount = display.StepCount,
                 stepProgressLabel = display.StepProgressLabel,
+                phaseLabel = display.PhaseLabel,
+                navigationSummary = display.NavigationSummary,
                 currentStepTitle = display.CurrentStepTitle,
                 timeGuidance = display.TimeGuidance,
                 staleWarning = display.StaleWarning,
@@ -57,6 +59,12 @@ public static class WorkspaceLiveResponseBuilder
             },
             recentEvidence = snapshot.RecentEvidence,
             updatedAt = snapshot.UpdatedAt,
+            watch = new
+            {
+                command = $"jz task watch {snapshot.TaskId}",
+                statusMarkdown = snapshot.LiveFilePath,
+                statusJson = Path.Combine(snapshot.SessionWorkspaceRoot, ".joyzoning/live.json"),
+            },
         };
     }
 

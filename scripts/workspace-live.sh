@@ -95,6 +95,8 @@ STATE_FILE="$STATE_DIR/${TASK_ID}.json"
 POLL_FILE="$STATE_DIR/${TASK_ID}.poll"
 LIVE_MD="$WORKSPACE/JOYZONING_LIVE.md"
 mkdir -p "$STATE_DIR"
+mkdir -p "$WORKSPACE/.joyzoning"
+echo "$TASK_ID" >"$WORKSPACE/.joyzoning-task-id"
 
 cp_health() {
   curl -sf "${JOYZONING_URL}/api/health" >/dev/null 2>&1
@@ -169,8 +171,11 @@ render_response() {
   [[ "$CLEAR" -eq 1 ]] && args+=(--clear)
   [[ "$SIMPLE" -eq 1 ]] && args+=(--simple)
   [[ "$SHOW_PATHS" -eq 1 ]] && args+=(--paths)
-  JOYZONING_POLL_FILE="$POLL_FILE" printf '%s' "$resp" | \
-    python3 "$FORMAT" --stdin --state "$STATE_FILE" "${args[@]}"
+  JOYZONING_TASK_ID="$TASK_ID" \
+  JOYZONING_URL="$JOYZONING_URL" \
+  JOYZONING_POLL_FILE="$POLL_FILE" \
+  JOYZONING_CP_OK="${JOYZONING_CP_OK:-1}" \
+    printf '%s' "$resp" | python3 "$FORMAT" --stdin --state "$STATE_FILE" "${args[@]}"
 }
 
 clamp_interval() {
@@ -191,6 +196,7 @@ clamp_interval() {
 tick_once() {
   local resp poll status
   if cp_health; then
+    JOYZONING_CP_OK=1
     if resp="$(fetch_live)"; then
       render_response "$resp"
       poll="$(cat "$POLL_FILE" 2>/dev/null || echo 10)"
@@ -204,6 +210,9 @@ tick_once() {
       fi
       return 0
     fi
+    JOYZONING_CP_OK=0
+  else
+    JOYZONING_CP_OK=0
   fi
 
   mirror_fallback || true

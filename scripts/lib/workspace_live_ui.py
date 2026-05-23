@@ -68,6 +68,12 @@ def _normalize_display(d: dict[str, Any], payload: dict[str, Any]) -> dict[str, 
     cur = int(d.get("currentStepIndex") or 0)
     if not d.get("stepProgressLabel"):
         d = {**d, "stepProgressLabel": f"Step {cur + 1} of {step_count}"}
+    if not d.get("phaseLabel"):
+        phases = ["Setup", "Build", "Verify", "Review"]
+        d = {**d, "phaseLabel": phases[min(cur, len(phases) - 1)]}
+    if not d.get("navigationSummary"):
+        title = d.get("currentStepTitle") or ""
+        d = {**d, "navigationSummary": f"{d['stepProgressLabel']} · {title}".rstrip(" · ")}
     if not d.get("currentStepTitle") and steps:
         for s in steps:
             if s.get("state") == STEP_CURRENT:
@@ -138,6 +144,8 @@ def synthesize_display(payload: dict[str, Any]) -> dict[str, Any]:
         "currentStepIndex": idx,
         "stepCount": len(PIPELINE),
         "stepProgressLabel": f"Step {idx + 1} of {len(PIPELINE)}",
+        "phaseLabel": ["Setup", "Build", "Verify", "Review"][min(idx, 3)],
+        "navigationSummary": f"Step {idx + 1} of {len(PIPELINE)} · {current_title or 'In progress'}",
         "currentStepTitle": current_title,
         "timeGuidance": _default_time_guidance(activity, status),
         "staleWarning": None,
@@ -245,7 +253,10 @@ def fmt_ago(iso: str | None) -> str:
         ts = datetime.fromisoformat(iso.replace("Z", "+00:00"))
     except ValueError:
         return iso
-    return fmt_duration(int((datetime.now(timezone.utc) - ts).total_seconds())) + " ago"
+    secs = max(0, int((datetime.now(timezone.utc) - ts).total_seconds()))
+    if secs < 8:
+        return "just now"
+    return fmt_duration(secs) + " ago"
 
 
 def fingerprint(payload: dict[str, Any], display: dict[str, Any]) -> str:
@@ -264,6 +275,33 @@ def fingerprint(payload: dict[str, Any], display: dict[str, Any]) -> str:
             (display.get("recentActivity") or [""])[-1:],
         ]
     )
+
+
+def apply_poll_jitter(seconds: int, *, max_jitter: int = 2) -> int:
+    if seconds <= 0:
+        return 0
+    import random
+
+    return seconds + random.randint(0, min(max_jitter, max(1, seconds // 3)))
+
+
+def detect_milestone(prev_display: dict[str, Any], display: dict[str, Any]) -> str | None:
+    prev_idx = prev_display.get("currentStepIndex")
+    cur_idx = display.get("currentStepIndex")
+    if prev_idx is None or cur_idx is None or prev_idx == cur_idx:
+        return None
+    if cur_idx > prev_idx:
+        title = display.get("currentStepTitle") or display.get("phaseLabel") or "Next step"
+        return f"Advanced to {title}"
+    return None
+
+
+def activity_feed_lines(payload: dict[str, Any], display: dict[str, Any]) -> list[str]:
+    merged = list(display.get("recentActivity") or [])
+    for line in payload.get("liveEventLines") or []:
+        if line and line not in merged:
+            merged.append(str(line))
+    return merged[-6:]
 
 
 def recommend_poll(payload: dict[str, Any], display: dict[str, Any], meta: dict[str, Any]) -> int:
@@ -326,13 +364,17 @@ def render_pulse(
         except ValueError:
             pass
 
+    nav = display.get("navigationSummary") or step_lbl
+    latest = (payload.get("liveEventLines") or [None])[-1]
     if compact:
         parts = [
             spinner(tick),
-            step_lbl,
+            nav,
             f"{pct}%",
             activity_badge(activity),
         ]
+        if latest:
+            parts.append(str(latest)[:40])
         if elapsed:
             parts.append(f"watching {elapsed}")
         if (p.get("filesCopiedThisTick") or 0) > 0:
@@ -432,7 +474,7 @@ def render_dashboard(
         for i, action in enumerate(actions, 1):
             lines.append(f"    {i}. {action}")
 
-    activity_lines = display.get("recentActivity") or []
+    activity_lines = activity_feed_lines(payload, display)
     if activity_lines and not simple:
         lines.append("")
         lines.append(c("1", "  Recent activity"))
@@ -469,4 +511,34 @@ def render_dashboard(
             pass
     lines.append(c("90", "  Tip: open JOYZONING_LIVE.md in your project folder anytime"))
     lines.append(c("1", "═" * 58))
+    return lines
+
+
+def render_simple_card(
+    payload: dict[str, Any],
+    *,
+    display: dict[str, Any],
+    meta: dict[str, Any],
+) -> list[str]:
+    """Single-screen card for --simple (install wizard summary)."""
+    pct = int(display.get("progressPercent") or 0)
+    activity = display.get("activityState", "none")
+    lines = [
+        c("1", "─" * 50),
+        c("1", display.get("headline", "Build progress")),
+        f"  {display.get('navigationSummary', '')}",
+        f"  {render_timeline(display.get('steps') or [])}",
+        "  " + progress_bar(pct),
+    ]
+    eta = estimate_eta(meta, pct)
+    if eta:
+        lines.append(c("90", f"  {eta}"))
+    if display.get("timeGuidance"):
+        lines.append(c("90", f"  {display['timeGuidance']}"))
+    if display.get("staleWarning"):
+        lines.append(c("33", f"  ! {display['staleWarning']}"))
+    actions = display.get("nextActions") or []
+    if actions:
+        lines.append(c("1", f"  → {actions[0]}"))
+    lines.append(c("1", "─" * 50))
     return lines

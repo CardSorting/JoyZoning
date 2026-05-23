@@ -118,6 +118,8 @@ Polling modes (`display.pollMode`): **burst** (~3s) while files are changing, **
 
 On TTY, compact **in-place** status lines appear between full dashboard redraws (like `npm` / CI log tail). Full refresh shows **Step N of M**, timeline `●──◉──○──○`, ETA estimate, and **Good to know** tips.
 
+**Fourth-pass behavior:** background monitor always refreshes `JOYZONING_LIVE.md` / `live.json`; terminal merges **timeline events** from `/api/events`; **milestone** lines when advancing steps; **poll jitter**; periodic full refresh every ~18 ticks; `--simple` shows a one-screen wizard card.
+
 ## Run (development)
 
 | Command | What it does |

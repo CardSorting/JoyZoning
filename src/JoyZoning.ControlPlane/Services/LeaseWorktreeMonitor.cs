@@ -39,6 +39,9 @@ public sealed class LeaseWorktreeMonitor
                 || !Directory.Exists(lease.WorktreePath))
                 continue;
 
+            // Always refresh mirror + JOYZONING_LIVE.md (quiet AI periods still update progress narrative).
+            var live = await _liveMirror.RefreshForLeaseAsync(lease, cancellationToken);
+
             var files = await _workspace.ListChangedFilesAsync(lease.WorktreePath, cancellationToken);
             var sessionId = lease.AssignedSessionId != Guid.Empty
                 ? lease.AssignedSessionId
@@ -50,12 +53,11 @@ public sealed class LeaseWorktreeMonitor
                 sessionId,
                 cancellationToken);
 
-            if (!published)
+            if (published)
+                publishedCount++;
+
+            if (!published && (live?.FilesCopiedThisTick ?? 0) == 0)
                 continue;
-
-            publishedCount++;
-
-            var live = await _liveMirror.RefreshForLeaseAsync(lease, cancellationToken);
 
             await _hub.Clients.All.SendAsync(
                 "OnWorktreeRefreshed",
