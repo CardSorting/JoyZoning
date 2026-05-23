@@ -26,6 +26,10 @@ Runtime Hermes HTTP clients reload from saved config **without** restarting the 
 | Hermes dashboard | `Hermes:DashboardBaseUrl` | `http://127.0.0.1:9119` |
 | Hermes profile | `Hermes:Profile` | `joyzoning` |
 
+Shell override (wins over SQLite on control-plane startup): `JOYZONING_HERMES_PROFILE=default`.
+
+CLI helpers: `jz config hermes`, `jz config hermes sync-model --from default`, `jz config hermes use <profile>`.
+
 ## First-time developer setup
 
 ```bash

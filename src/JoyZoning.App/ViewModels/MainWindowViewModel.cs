@@ -17,6 +17,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _dashboardStatus = "Unknown";
 
     [ObservableProperty]
+    private string _broccoliQStatus = "—";
+
+    [ObservableProperty]
     private string _dietCodeStatus = "Idle";
 
     [ObservableProperty]
@@ -458,6 +461,18 @@ public partial class MainWindowViewModel : ViewModelBase
                 : "Off";
 
         HermesFullyReady = hermes?.State == "Healthy" && dash?.Ready == true;
+
+        var bq = await AppServices.ControlPlane.GetBroccoliQHealthAsync();
+        BroccoliQStatus = bq switch
+        {
+            null => "Unknown",
+            { Enabled: false } => "Off",
+            { Status: "ok", BridgeReady: true } => bq.MirrorDropped > 0
+                ? $"Hive ok ({bq.MirrorDropped} dropped)"
+                : "Hive ok",
+            _ => bq.Message ?? bq.Status,
+        };
+
         await HermesConnection.RefreshStatusAsync();
         await HermesConnection.RefreshChecklistAsync(ActiveSessionId.HasValue);
     }

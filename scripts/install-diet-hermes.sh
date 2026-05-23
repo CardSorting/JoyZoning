@@ -139,7 +139,61 @@ configure_joyzoning_profile() {
   fi
 
   "$hermes_bin" -p "$HERMES_PROFILE" config set API_SERVER_ENABLED true >/dev/null 2>&1 || true
+  sync_model_from_default_profile "$hermes_bin"
   log_status "One Hermes install — Manager and executor roles use separate sessions, synced on the kanban board."
+}
+
+sync_model_from_default_profile() {
+  local hermes_bin="$1"
+  local hermes_home="${HERMES_HOME:-$HOME_DIR/.hermes}"
+  local default_cfg="$hermes_home/config.yaml"
+  local target_cfg="$hermes_home/profiles/$HERMES_PROFILE/config.yaml"
+
+  [ -f "$default_cfg" ] || return 0
+  [ -f "$target_cfg" ] || return 0
+
+  # When default profile has a structured provider model, copy it into joyzoning so
+  # JoyZoning dispatch uses the same model you configured with `hermes setup`.
+  if grep -q '^model:' "$default_cfg" && grep -q 'provider:' "$default_cfg"; then
+    log_status "Aligning $HERMES_PROFILE model with default Hermes profile…"
+    local model provider base_url
+    model="$(HERMES_CFG="$default_cfg" python3 - <<'PY' 2>/dev/null || true
+import os, yaml
+from pathlib import Path
+cfg = yaml.safe_load(Path(os.environ["HERMES_CFG"]).read_text()) or {}
+m = cfg.get("model") or {}
+if isinstance(m, dict):
+    print(m.get("default") or "")
+PY
+)"
+    provider="$(HERMES_CFG="$default_cfg" python3 - <<'PY' 2>/dev/null || true
+import os, yaml
+from pathlib import Path
+cfg = yaml.safe_load(Path(os.environ["HERMES_CFG"]).read_text()) or {}
+m = cfg.get("model") or {}
+if isinstance(m, dict):
+    print(m.get("provider") or "")
+PY
+)"
+    base_url="$(HERMES_CFG="$default_cfg" python3 - <<'PY' 2>/dev/null || true
+import os, yaml
+from pathlib import Path
+cfg = yaml.safe_load(Path(os.environ["HERMES_CFG"]).read_text()) or {}
+m = cfg.get("model") or {}
+if isinstance(m, dict):
+    print(m.get("base_url") or "")
+PY
+)"
+    if [ -n "$model" ]; then
+      "$hermes_bin" -p "$HERMES_PROFILE" config set model.default "$model" >/dev/null 2>&1 || true
+    fi
+    if [ -n "$provider" ]; then
+      "$hermes_bin" -p "$HERMES_PROFILE" config set model.provider "$provider" >/dev/null 2>&1 || true
+    fi
+    if [ -n "$base_url" ]; then
+      "$hermes_bin" -p "$HERMES_PROFILE" config set model.base_url "$base_url" >/dev/null 2>&1 || true
+    fi
+  fi
 }
 
 # --- main ---

@@ -49,6 +49,10 @@ flowchart TB
   DietA --> Runs
 ```
 
+### BroccoliQ hive (embedded)
+
+High-volume timeline mirroring uses a **second SQLite file** (`broccoliq.db`) via a localhost Node worker (`:9471`). See [broccoliq.md](broccoliq.md). EF Core `joyzoning.db` stays authoritative; the hive is audit/index only.
+
 ## Agent roles (one Hermes install)
 
 JoyZoning uses **one** diet-hermes checkout (`Hermes:InstallRoot` in config). There is no second Hermes install for “master” vs “slave” — that split is **session-based** and **kanban-synced**:

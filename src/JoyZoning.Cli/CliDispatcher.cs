@@ -34,6 +34,7 @@ public static class CliDispatcher
             "workspace" => CliOutput.WriteResult(ctx, await DispatchWorkspaceAsync(client, ctx, a)),
             "config" => await DispatchConfigAsync(client, ctx, a),
             "kanban" => CliOutput.WriteResult(ctx, await DispatchKanbanAsync(client, ctx, a)),
+            "broccoliq" or "bq" => await BroccoliQCommand.DispatchAsync(client, ctx, a),
             "tui" => await OperatorTuiRunner.RunAsync(ctx),
             "completion" => DispatchCompletion(ctx, a),
             "agent" => await DispatchAgentAsync(client, ctx, a),
@@ -389,12 +390,15 @@ public static class CliDispatcher
     private static async Task<int> DispatchConfigAsync(
         JoyZoningCliClient client, CliContext ctx, string[] a)
     {
-        RequireArgs(a, 2, "config <get|explain>");
+        RequireArgs(a, 2, "config <get|explain|hermes>");
+        if (a[1].Equals("hermes", StringComparison.OrdinalIgnoreCase))
+            return await HermesConfigCommand.RunAsync(client, ctx, a.Skip(2).ToArray());
+
         return a[1].ToLowerInvariant() switch
         {
             "get" => CliOutput.WriteResult(ctx, await client.GetConfigAsync()),
             "explain" => ConfigExplainCommand.Run(ctx),
-            _ => throw Usage("config get | explain"),
+            _ => throw Usage("config get | explain | hermes [profiles|use|sync-model]"),
         };
     }
 

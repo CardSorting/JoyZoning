@@ -17,6 +17,7 @@ JoyZoning/
 ├── tests/
 │   ├── JoyZoning.Tests/           # API + orchestrator + dogfood (not in .sln — run by path)
 │   └── JoyZoning.Cli.Tests/       # CLI unit tests (in JoyZoning.sln)
+├── broccoliq/                     # Vendored @noorm/broccoliq hive + joy-bridge worker (:9471)
 ├── scripts/                       # Dev, publish, install, examples, dogfood
 ├── docs/                          # Documentation
 ├── global.json                    # SDK 8.0.421
@@ -76,6 +77,10 @@ dotnet run --project src/JoyZoning.App
 | `dotnet run --project src/JoyZoning.ControlPlane` | API only on `:9470` |
 | `dotnet run --project src/JoyZoning.App` | Desktop (auto-starts control plane) |
 | `./scripts/jz doctor` | CLI smoke check without installing `jz` |
+| `./scripts/broccoliq-build.sh` | Build vendored BroccoliQ + joy-bridge worker |
+| `./scripts/broccoliq-verify.sh` | CI check: dist + worker present |
+
+**BroccoliQ:** see [broccoliq.md](broccoliq.md) — event/task mirroring to `broccoliq.db` on `:9471`.
 
 ## Test
 

@@ -51,19 +51,43 @@ If you already use Hermes globally:
 
 ## Pick a model
 
+JoyZoning dispatches through the **`joyzoning`** Hermes profile by default (`Hermes:Profile` in control-plane config). If you configured the model on the **default** profile (`~/.hermes/config.yaml`) instead, JoyZoning will still use a different model until you align them.
+
+**Check what JoyZoning is using:**
+
+```bash
+jz config hermes
+jz doctor   # includes hermes_model_profile check
+```
+
+**Copy your default profile model into joyzoning (recommended):**
+
+```bash
+jz config hermes sync-model --from default
+# restart gateway
+hermes -p joyzoning gateway
+```
+
+**Or point JoyZoning at the default profile entirely:**
+
+```bash
+jz config hermes use default
+```
+
+You can also set the profile in Hermes directly:
+
 ```bash
 .venv/bin/hermes -p joyzoning model
 # or
 .venv/bin/hermes -p joyzoning config set model <provider/model-id>
 ```
 
-Example already used in docs: `google/gemini-3.1-pro-preview`.
-
 | Symptom | Likely fix |
 |---------|------------|
-| “Invalid API key” | Wrong profile — ensure keys in `profiles/joyzoning/.env` |
+| Wrong model / provider | `jz config hermes` then `sync-model --from default` |
+| “Invalid API key” | Wrong profile — ensure keys in `profiles/joyzoning/.env` (or sync from `~/.hermes/.env`) |
 | “Model not found” | Run `hermes -p joyzoning model` to pick supported id |
-| Rate limit | Switch model or provider in config |
+| Rate limit / 402 credits | Fix provider billing; model is correct but account is empty |
 
 ---
 

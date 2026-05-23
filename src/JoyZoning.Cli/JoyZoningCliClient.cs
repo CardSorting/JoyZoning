@@ -27,6 +27,18 @@ public sealed class JoyZoningCliClient : IDisposable
 
     public Task<CliHttpResult> HealthAsync() => GetAsync("api/health");
 
+    public Task<CliHttpResult> BroccoliQHealthAsync() => GetAsync("api/broccoliq/health");
+
+    public Task<CliHttpResult> BroccoliQFlushAsync() => PostEmptyAsync("api/broccoliq/flush");
+
+    public Task<CliHttpResult> BroccoliQBackfillAsync(int? maxEvents = null)
+    {
+        var path = maxEvents.HasValue
+            ? $"api/broccoliq/backfill?maxEvents={maxEvents.Value}"
+            : "api/broccoliq/backfill";
+        return PostEmptyAsync(path);
+    }
+
     public Task<CliHttpResult> ListSessionsAsync() => GetAsync("api/sessions");
 
     public Task<CliHttpResult> GetSessionAsync(Guid id) => GetAsync($"api/sessions/{id}");
@@ -189,6 +201,9 @@ public sealed class JoyZoningCliClient : IDisposable
 
     public Task<CliHttpResult> GetConfigAsync() => GetAsync("api/config");
 
+    public Task<CliHttpResult> SaveConfigAsync(object settings) =>
+        PutJsonAsync("api/config", settings);
+
     public Task<CliHttpResult> KanbanSyncStatusAsync() => GetAsync("api/kanban/sync-status");
 
     public Task<CliHttpResult> RawAsync(HttpMethod method, string path, string? jsonBody)
@@ -213,16 +228,16 @@ public sealed class JoyZoningCliClient : IDisposable
     private Task<CliHttpResult> PostEmptyAsync(string path) =>
         SendAsync(() => _http.PostAsync(path, null));
 
-    private Task<CliHttpResult> PostJsonAsync(string path, object body)
-    {
-        var content = new StringContent(JsonSerializer.Serialize(body, JsonOptions), Encoding.UTF8, "application/json");
-        return SendAsync(() => _http.PostAsync(path, content));
-    }
-
     private Task<CliHttpResult> PutJsonAsync(string path, object body)
     {
         var content = new StringContent(JsonSerializer.Serialize(body, JsonOptions), Encoding.UTF8, "application/json");
         return SendAsync(() => _http.PutAsync(path, content));
+    }
+
+    private Task<CliHttpResult> PostJsonAsync(string path, object body)
+    {
+        var content = new StringContent(JsonSerializer.Serialize(body, JsonOptions), Encoding.UTF8, "application/json");
+        return SendAsync(() => _http.PostAsync(path, content));
     }
 
     private async Task<CliHttpResult> SendAsync(Func<Task<HttpResponseMessage>> send)

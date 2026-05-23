@@ -9,6 +9,8 @@ obj/
 *.db-wal
 .DS_Store
 dist/
+broccoliq/node_modules/
+broccoliq/dist/
 
 # Local developer overrides (copy from appsettings.example.json)
 src/JoyZoning.ControlPlane/appsettings.Development.json

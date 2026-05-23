@@ -13,17 +13,20 @@ public class EventIngestor
 {
     private readonly IEventRepository _events;
     private readonly IHubContext<OperatorHub> _hub;
+    private readonly IBroccoliQBridge _broccoliQ;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<EventIngestor> _logger;
 
     public EventIngestor(
         IEventRepository events,
         IHubContext<OperatorHub> hub,
+        IBroccoliQBridge broccoliQ,
         IHostEnvironment environment,
         ILogger<EventIngestor> logger)
     {
         _events = events;
         _hub = hub;
+        _broccoliQ = broccoliQ;
         _environment = environment;
         _logger = logger;
     }
@@ -52,6 +55,9 @@ public class EventIngestor
                 _logger.LogDebug(ex, "SignalR OnJoyEvent broadcast skipped");
             }
         }
+
+        if (_broccoliQ.IsEnabled)
+            _broccoliQ.EnqueueJoyEvent(evt);
 
         return evt;
     }

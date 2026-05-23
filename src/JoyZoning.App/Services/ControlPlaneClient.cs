@@ -45,6 +45,31 @@ public class ControlPlaneClient
         }
     }
 
+    public async Task<BroccoliQHealthResult?> GetBroccoliQHealthAsync()
+    {
+        try
+        {
+            var r = await _http.GetAsync("api/broccoliq/health");
+            if (!r.IsSuccessStatusCode) return null;
+            var json = await r.Content.ReadFromJsonAsync<JsonElement>();
+            var mirrorDropped = 0L;
+            if (json.TryGetProperty("mirror", out var mirror) &&
+                mirror.TryGetProperty("dropped", out var dropped))
+                mirrorDropped = dropped.GetInt64();
+
+            return new BroccoliQHealthResult(
+                json.TryGetProperty("status", out var st) ? st.GetString() ?? "unknown" : "unknown",
+                json.TryGetProperty("enabled", out var en) && en.GetBoolean(),
+                json.TryGetProperty("bridgeReady", out var ready) && ready.GetBoolean(),
+                json.TryGetProperty("message", out var msg) ? msg.GetString() : null,
+                mirrorDropped);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task<HermesHealthResult?> EnsureHermesAsync()
     {
         try
@@ -521,6 +546,13 @@ public class ControlPlaneClient
             DateTimeOffset.Parse(el.GetProperty("occurredAt").GetString()!));
 
     public record HermesHealthResult(string State, string Message);
+
+    public record BroccoliQHealthResult(
+        string Status,
+        bool Enabled,
+        bool BridgeReady,
+        string? Message,
+        long MirrorDropped);
 
     public record DashboardStatus(
         bool Reachable,

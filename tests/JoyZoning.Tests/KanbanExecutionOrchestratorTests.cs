@@ -56,6 +56,7 @@ public class KanbanExecutionOrchestratorTests : IDisposable
         var mockHub = new Mock<IHubContext<OperatorHub>>();
         mockHub.Setup(h => h.Clients).Returns(mockClients.Object);
         services.AddSingleton(mockHub.Object);
+        services.AddSingleton<IBroccoliQBridge, DisabledBroccoliQBridge>();
 
         services.AddScoped<EventIngestor>();
         services.AddScoped<KanbanExecutionOrchestrator>();

@@ -94,6 +94,7 @@ Before your first **Merge**, read how one kanban card maps to one folder — the
 | Doc | Contents |
 |-----|----------|
 | [architecture.md](architecture.md) | Layers, services |
+| [broccoliq.md](broccoliq.md) | BroccoliQ hive + joy-bridge (:9471) |
 | [control-plane-api.md](control-plane-api.md) | REST `:9470` |
 | [event-catalog.md](event-catalog.md) | SignalR events |
 | [development.md](development.md) | Build, test |

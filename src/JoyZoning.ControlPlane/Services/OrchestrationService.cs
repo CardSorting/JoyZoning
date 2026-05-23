@@ -31,6 +31,7 @@ public class OrchestrationService
     private readonly HermesConnectivityService _hermesConnectivity;
     private readonly HermesRunEventConsumer _runConsumer;
     private readonly ConfigService _config;
+    private readonly IBroccoliQBridge _broccoliQ;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<OrchestrationService> _logger;
     private readonly string _controlPlaneUrl;
@@ -48,6 +49,7 @@ public class OrchestrationService
         HermesConnectivityService hermesConnectivity,
         HermesRunEventConsumer runConsumer,
         ConfigService config,
+        IBroccoliQBridge broccoliQ,
         IHostEnvironment environment,
         ILogger<OrchestrationService> logger,
         IOptions<ControlPlaneOptions> controlPlaneOptions)
@@ -64,9 +66,33 @@ public class OrchestrationService
         _hermesConnectivity = hermesConnectivity;
         _runConsumer = runConsumer;
         _config = config;
+        _broccoliQ = broccoliQ;
         _environment = environment;
         _logger = logger;
         _controlPlaneUrl = controlPlaneOptions.Value.ListenUrl;
+    }
+
+    private void MirrorWorkTaskToBroccoliQ(WorkTask task)
+    {
+        if (!_broccoliQ.IsEnabled)
+            return;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _broccoliQ.MirrorWorkTaskAsync(
+                    task.Id,
+                    task.Title,
+                    task.Description,
+                    task.Status.ToString(),
+                    priority: (int)task.Risk);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "BroccoliQ work-task mirror failed for {TaskId}", task.Id);
+            }
+        });
     }
 
     private async Task<T> DispatchStepAsync<T>(
@@ -170,6 +196,7 @@ public class OrchestrationService
         await _events.IngestAsync(task.Id, EventSource.JoyZoning, EventTypes.TaskCreated,
             new { task.Id, task.Title, task.Status }, cancellationToken);
         await BroadcastSafeAsync("OnTaskChanged", TaskDto.From(task), cancellationToken);
+        MirrorWorkTaskToBroccoliQ(task);
         return task;
     }
 
@@ -189,6 +216,7 @@ public class OrchestrationService
         await _events.IngestAsync(taskId, EventSource.JoyZoning, EventTypes.TaskStatusChanged,
             new { taskId, status }, cancellationToken);
         await BroadcastSafeAsync("OnTaskChanged", TaskDto.From(task), cancellationToken);
+        MirrorWorkTaskToBroccoliQ(task);
         return task;
     }
 
@@ -331,6 +359,7 @@ public class OrchestrationService
             cancellationToken);
 
         task = await _tasks.GetByIdAsync(taskId, cancellationToken) ?? task;
+        MirrorWorkTaskToBroccoliQ(task);
         await DispatchStepAsync(
             "KanbanSync",
             async () =>
@@ -529,6 +558,7 @@ public class OrchestrationService
 
                 await _tasks.CreateAsync(task, cancellationToken);
                 await BroadcastSafeAsync("OnTaskChanged", TaskDto.From(task), cancellationToken);
+                MirrorWorkTaskToBroccoliQ(task);
                 imported++;
             }
             else
@@ -547,6 +577,7 @@ public class OrchestrationService
                 existing.UpdatedAt = DateTimeOffset.UtcNow;
                 await _tasks.UpdateAsync(existing, cancellationToken);
                 await BroadcastSafeAsync("OnTaskChanged", TaskDto.From(existing), cancellationToken);
+                MirrorWorkTaskToBroccoliQ(existing);
                 updated++;
             }
         }

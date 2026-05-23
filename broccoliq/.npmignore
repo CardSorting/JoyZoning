@@ -1,0 +1,24 @@
+# Sovereign Hive Insulation Guard (.npmignore)
+# This file is a fallback for the 'files' field in package.json.
+# It ensures no source leakage occurs in the event of an NPM misconfiguration.
+
+# 1. Source Protection
+infrastructure/
+test/
+scripts/
+
+# 2. Local Environment
+node_modules/
+.git/
+.gitignore
+bun.lock
+tsconfig.json
+
+# 3. Development Artifacts
+broccoliq*.db*
+dist/**/*.ts
+dist/**/*.map
+
+# 4. Sovereign Exclusions
+# Only 'dist/', 'README.md', 'LICENSE', and conduct/security docs 
+# are allowed into the distribution tarball.

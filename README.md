@@ -141,7 +141,7 @@ jz task verify <task-id> --cmd "dotnet test"
 jz task complete <task-id> --yes
 ```
 
-**Prerequisites:** [.NET 8 SDK](https://dotnet.microsoft.com/download) (`global.json`), diet-hermes. **macOS** recommended for `.app` publish; control plane runs on Linux.
+**Prerequisites:** [.NET 8 SDK](https://dotnet.microsoft.com/download) (`global.json`), diet-hermes, Node.js or Bun (for embedded [BroccoliQ](docs/broccoliq.md) — built automatically by `./scripts/run-dev.sh`). **macOS** recommended for `.app` publish; control plane runs on Linux.
 
 **Documentation:** [Onboarding hub](docs/onboarding/README.md) · [5-min quickstart](docs/onboarding/quickstart.md) · [Menu guide (no terminal)](docs/onboarding/desktop-menu-guide.md) · [Setup troubleshooting](docs/onboarding/troubleshooting-setup.md) · [Getting started](docs/getting-started.md)
 

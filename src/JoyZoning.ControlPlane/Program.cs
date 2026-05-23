@@ -27,6 +27,18 @@ builder.Services.Configure<HermesOptions>(builder.Configuration.GetSection(Herme
 builder.Services.Configure<ControlPlaneOptions>(builder.Configuration.GetSection(ControlPlaneOptions.SectionName));
 builder.Services.Configure<LeaseRuntimeOptions>(builder.Configuration.GetSection(LeaseRuntimeOptions.SectionName));
 builder.Services.Configure<ExecutorOptions>(builder.Configuration.GetSection(ExecutorOptions.SectionName));
+builder.Services.Configure<BroccoliQOptions>(builder.Configuration.GetSection(BroccoliQOptions.SectionName));
+builder.Services.PostConfigure<BroccoliQOptions>(opts =>
+{
+    if (string.IsNullOrWhiteSpace(opts.DatabasePath))
+    {
+        var dir = Path.GetDirectoryName(dbPath);
+        if (!string.IsNullOrWhiteSpace(dir))
+            opts.DatabasePath = Path.Combine(dir, "broccoliq.db");
+    }
+
+    JoyZoning.ControlPlane.Services.BroccoliQPaths.EnsureDatabaseDirectory(opts.DatabasePath);
+});
 
 builder.Services.AddJoyZoningPersistence(dbPath);
 builder.Services.AddSingleton<JoyZoning.Agents.Hermes.IDashboardTokenRefresher, DashboardTokenRefresher>();
@@ -48,6 +60,20 @@ builder.Services.AddSingleton<HermesConnectorDiagnostics>();
 builder.Services.AddScoped<HermesDashboardConnectivityService>();
 builder.Services.AddSingleton<HermesRunEventConsumer>();
 builder.Services.AddSingleton<KanbanSyncState>();
+builder.Services.AddSingleton<BroccoliQRuntimeMetrics>();
+builder.Services.AddSingleton<BroccoliQCoordinator>();
+builder.Services.AddScoped<BroccoliQBackfillService>();
+builder.Services.AddHttpClient(BroccoliQBridgeClient.HttpClientName, (sp, client) =>
+{
+    var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<BroccoliQOptions>>().Value;
+    client.BaseAddress = new Uri(opts.BridgeListenUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromMilliseconds(Math.Max(100, opts.EventMirrorTimeoutMs));
+});
+builder.Services.AddSingleton<BroccoliQBridgeClient>();
+builder.Services.AddSingleton<IBroccoliQBridge>(sp => sp.GetRequiredService<BroccoliQBridgeClient>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<BroccoliQBridgeClient>());
+builder.Services.AddSingleton<BroccoliQProcessService>();
+builder.Services.AddHostedService<BroccoliQWorkerHostedService>();
 builder.Services.AddHostedService<KanbanAutoSyncHostedService>();
 builder.Services.AddHostedService<LeaseReconciliationHostedService>();
 builder.Services.AddHostedService<LeaseWorktreeMonitorHostedService>();

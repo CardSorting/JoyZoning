@@ -45,6 +45,7 @@ public class LeaseRuntimeServiceTests : IDisposable
         mockClients.Setup(c => c.All).Returns(Mock.Of<IClientProxy>());
         mockHub.Setup(h => h.Clients).Returns(mockClients.Object);
         services.AddSingleton(mockHub.Object);
+        services.AddSingleton<IBroccoliQBridge, DisabledBroccoliQBridge>();
 
         services.AddScoped<EventIngestor>();
         services.Configure<LeaseRuntimeOptions>(o =>

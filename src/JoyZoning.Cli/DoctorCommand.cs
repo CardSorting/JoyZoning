@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Text.Json;
+using JoyZoning.Agents.Hermes;
 
 namespace JoyZoning.Cli;
 
@@ -36,7 +36,62 @@ public static class DoctorCommand
         {
             var hermes = await client.HermesHealthAsync();
             Add("hermes_api", hermes.IsSuccess ? "ok" : "warn", hermes.Message ?? hermes.RawText);
+
+            var broccoliq = await client.BroccoliQHealthAsync();
+            if (broccoliq.IsSuccess && broccoliq.Body.HasValue)
+            {
+                var body = broccoliq.Body.Value;
+                var enabled = !body.TryGetProperty("enabled", out var en) || en.GetBoolean();
+                if (!enabled)
+                {
+                    Add("broccoliq_bridge", "ok", "BroccoliQ integration disabled in config");
+                }
+                else
+                {
+                    var built = !body.TryGetProperty("bridgeBuilt", out var bb) || bb.GetBoolean();
+                    var bridgeOk = body.TryGetProperty("status", out var st) && st.GetString() == "ok";
+                    long droppedCount = 0;
+                    if (body.TryGetProperty("mirror", out var mir) &&
+                        mir.TryGetProperty("dropped", out var dr))
+                        droppedCount = dr.GetInt64();
+                    var bqStatus = !built ? "fail" : bridgeOk ? (droppedCount > 0 ? "warn" : "ok") : "warn";
+                    var msg = body.TryGetProperty("message", out var m) ? m.GetString() : null;
+                    var detail = !built
+                        ? "Run ./scripts/broccoliq-build.sh (broccoliq/dist missing)"
+                        : bridgeOk
+                            ? droppedCount > 0
+                                ? $"Bridge ok; mirror queue has dropped events ({droppedCount}). See docs/broccoliq.md"
+                                : msg ?? "joy-bridge healthy"
+                            : msg ?? "Start control plane or run joy-bridge manually";
+                    Add("broccoliq_bridge", bqStatus, detail);
+                }
+            }
+            else
+            {
+                Add("broccoliq_bridge", "warn",
+                    broccoliq.Message ?? "Could not read /api/broccoliq/health");
+            }
         }
+
+        var linkedProfile = Environment.GetEnvironmentVariable("JOYZONING_HERMES_PROFILE") ?? "joyzoning";
+        if (health.IsSuccess)
+        {
+            var cfg = await client.GetConfigAsync();
+            if (cfg.IsSuccess && cfg.Body.HasValue && cfg.Body.Value.TryGetProperty("profile", out var profileProp))
+            {
+                var fromApi = profileProp.GetString();
+                if (!string.IsNullOrWhiteSpace(fromApi))
+                    linkedProfile = fromApi;
+            }
+        }
+
+        var modelDiag = HermesProfileCatalog.DiagnoseLink(linkedProfile);
+        Add(
+            "hermes_model_profile",
+            modelDiag.ModelsMatch ? "ok" : "warn",
+            modelDiag.ModelsMatch
+                ? $"Profile '{linkedProfile}' model: {modelDiag.LinkedProfile.Model.Describe()}"
+                : modelDiag.Recommendation ?? "Model mismatch between JoyZoning profile and default Hermes config.");
 
         if (!ctx.Quiet)
         {

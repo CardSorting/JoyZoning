@@ -77,11 +77,14 @@ public class ConfigService
     {
         var stored = await _config.GetAllAsync(cancellationToken);
         var opts = _hermesOptions.Value;
+        var profile = Environment.GetEnvironmentVariable("JOYZONING_HERMES_PROFILE")
+            ?? ReadJsonString(stored, KeyHermesProfile)
+            ?? opts.Profile;
         ReloadHermesCredentials(
             ReadJsonString(stored, KeyHermesInstallRoot) ?? opts.InstallRoot,
             ReadJsonString(stored, KeyHermesApiUrl) ?? opts.ApiBaseUrl,
             ReadJsonString(stored, KeyHermesDashboardUrl) ?? opts.DashboardBaseUrl,
-            ReadJsonString(stored, KeyHermesProfile) ?? opts.Profile,
+            profile,
             opts.ApiKey);
 
         await BootstrapKanbanSyncAsync(cancellationToken);

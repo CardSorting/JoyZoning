@@ -3,8 +3,10 @@ using JoyZoning.Agents.Hermes;
 using JoyZoning.ControlPlane.Background;
 using JoyZoning.ControlPlane.Services;
 using AppSettingsDto = JoyZoning.ControlPlane.Services.AppSettingsDto;
+using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Entities;
 using JoyZoning.Domain.Enums;
+using Microsoft.Extensions.Options;
 using JoyZoning.Domain.Orchestration;
 using JoyZoning.Persistence.Repositories;
 
@@ -15,6 +17,49 @@ public static class ApiEndpoints
     public static void MapJoyZoningApi(this WebApplication app)
     {
         app.MapGet("/api/health", () => Results.Ok(new { status = "ok", service = "joyzoning-control-plane" }));
+
+        app.MapGet("/api/broccoliq/health", async (
+            IBroccoliQBridge bridge,
+            BroccoliQProcessService process,
+            BroccoliQRuntimeMetrics metrics,
+            BroccoliQCoordinator coordinator,
+            IOptions<BroccoliQOptions> bqOpts) =>
+        {
+            var report = await bridge.GetHealthAsync();
+            var mirror = metrics.Snapshot();
+            var status = report.State == HealthState.Healthy ? "ok" : "unavailable";
+            return Results.Ok(new
+            {
+                status,
+                enabled = report.Enabled,
+                workerAutoStart = report.WorkerAutoStart,
+                supervisorEnabled = bqOpts.Value.SupervisorEnabled,
+                backfillOnStartup = bqOpts.Value.BackfillOnStartup,
+                message = report.Message,
+                databasePath = report.DatabasePath,
+                bridgeBuilt = report.BridgeBuilt,
+                bridgeReady = coordinator.BridgeReady,
+                bridgeMirrorCount = report.BridgeMirrorCount,
+                lastBackfillEventId = coordinator.LastBackfillEventId,
+                workerManaged = process.IsManagedWorkerRunning,
+                mirror,
+            });
+        });
+
+        app.MapPost("/api/broccoliq/backfill", async (
+            BroccoliQBackfillService backfill,
+            int? maxEvents,
+            bool? includeTasks) =>
+        {
+            var result = await backfill.RunAsync(maxEvents, includeTasks ?? true);
+            return Results.Ok(result);
+        });
+
+        app.MapPost("/api/broccoliq/flush", async (IBroccoliQBridge bridge) =>
+        {
+            await bridge.FlushBridgeAsync();
+            return Results.Ok(new { flushed = true });
+        });
 
         app.MapGet("/api/sessions", async (IOperatorSessionRepository repo) =>
             Results.Ok(await repo.ListAsync()));
