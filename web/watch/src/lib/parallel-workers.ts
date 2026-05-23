@@ -38,6 +38,17 @@ export interface ParallelWorkerEntry {
     occupyingMirrorRoot?: string | null;
   } | null;
   mergeState?: string;
+  authorityProfile?: string;
+  authority?: {
+    profile: string;
+    riskLevel: string;
+    autoAcceptAllowed: boolean;
+    needsHumanReview: boolean;
+    reasonCodes: string[];
+    humanMessages: string[];
+    autoAcceptedAt?: string | null;
+    wasAutoAccepted: boolean;
+  } | null;
   mergeReadiness?: {
     worktreePath?: string | null;
     liveMirrorPath?: string | null;
@@ -80,6 +91,11 @@ export interface ParallelWorkersSnapshot {
   sessionId: string;
   sessionWorkspaceRoot: string;
   updatedAt?: string;
+  authority?: {
+    profile: string;
+    profileLabel: string;
+    autopilotEnabled: boolean;
+  };
   parallelActive: boolean;
   liveMirrorMode: string;
   disableSharedSessionRootMirrorWhenParallel: boolean;

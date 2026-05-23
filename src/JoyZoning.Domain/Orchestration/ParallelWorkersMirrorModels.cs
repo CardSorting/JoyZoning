@@ -1,5 +1,10 @@
 namespace JoyZoning.Domain.Orchestration;
 
+public sealed record SessionAuthoritySnapshot(
+    string Profile,
+    string ProfileLabel,
+    bool AutopilotEnabled);
+
 public sealed record ParallelWorkersResponse(
     Guid SessionId,
     string SessionWorkspaceRoot,
@@ -11,6 +16,7 @@ public sealed record ParallelWorkersResponse(
     bool SessionRootIsCanonicalLiveState,
     string CanonicalLiveStateHint,
     string? IndexJsonPath,
+    SessionAuthoritySnapshot Authority,
     IReadOnlyList<ParallelWorkerMirrorEntry> Workers,
     IReadOnlyList<MirrorObservabilityWarning> Warnings);
 
@@ -39,7 +45,9 @@ public sealed record ParallelWorkerMirrorEntry(
     OperatorActionGuardrails ApproveGuardrails,
     OperatorActionGuardrails RevokeGuardrails,
     string RecommendedModeSlug,
-    IReadOnlyList<ModeTransitionHint> AvailableModeTransitions);
+    IReadOnlyList<ModeTransitionHint> AvailableModeTransitions,
+    string AuthorityProfileSlug,
+    AuthorityAutopilotDecision? Authority);
 
 public sealed record MirrorCollisionInfo(
     Guid OccupyingLeaseId,

@@ -75,7 +75,9 @@ export function buildConvergenceModel(
   if (codeEnteredMainWorkspace) {
     lastResult = `Code entered main workspace (${gitConv!.strategy}, commit ${shortCommit(gitConv!.destinationNewHead)}).`;
   } else if (mergeState === "merged" || snapshot.leaseStatus === "Merged") {
-    lastResult = "Accepted: lease Merged, task Complete.";
+    lastResult = codeEnteredMainWorkspace
+      ? "Accepted: lease Merged, task Complete."
+      : "Lease Merged in metadata — verify git.convergence.succeeded evidence; code may not be in main workspace.";
   } else if (mergeState === "revoked" || snapshot.leaseStatus === "Revoked") {
     lastResult =
       "Revoked: worktree and mirror paths are kept for inspection (not deleted by JoyZoning).";

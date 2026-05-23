@@ -40,6 +40,13 @@ import { PathActionNotice } from "./PathActionNotice";
 import { WorkerDecisionConfirmDialog } from "./WorkerDecisionConfirmDialog";
 import { MergeQueuePanel } from "./MergeQueuePanel";
 import { ConvergencePanel } from "./ConvergencePanel";
+import { AuthorityAutopilotBar, AutopilotActivityFeed } from "./AuthorityAutopilotBar";
+import {
+  authorityBlockMessage,
+  collectAutopilotActivity,
+  sessionAuthorityFromSnapshot,
+  workerNeedsHumanReview,
+} from "@/lib/authority";
 
 function connVariant(connLabel: string): "live" | "error" | "idle" {
   if (connLabel.startsWith("Live")) return "live";
@@ -166,6 +173,13 @@ export function OperatorConsole({
     return [...byTask.values()];
   }, [parallelList, allMergeWorkers]);
 
+  const sessionAuthority = useMemo(() => sessionAuthorityFromSnapshot(workers), [workers]);
+  const autopilotActivity = useMemo(() => collectAutopilotActivity(workerList), [workerList]);
+  const needsReviewWorkers = useMemo(
+    () => workerList.filter((w) => workerNeedsHumanReview(w)),
+    [workerList],
+  );
+
   return (
     <div
       data-testid="operator-console"
@@ -235,6 +249,19 @@ export function OperatorConsole({
           <span className="text-[10px] text-zinc-500">Mode hints inferred from lease status</span>
         )}
       </div>
+
+      <AuthorityAutopilotBar
+        authority={sessionAuthority}
+        autoAcceptedCount={autopilotActivity.accepted.length}
+        needsReviewCount={needsReviewWorkers.length}
+        sessionId={sessionId}
+        onReconciled={refresh}
+      />
+
+      <AutopilotActivityFeed
+        accepted={autopilotActivity.accepted}
+        blocked={autopilotActivity.blocked}
+      />
 
       <ModeEmphasisBar
         emphasis={emphasis}
@@ -343,6 +370,26 @@ export function OperatorConsole({
                 </div>
               )}
 
+              {selectedWorker.authority && (
+                <div
+                  className={`rounded-lg border px-2 py-2 text-xs ${
+                    selectedWorker.authority.wasAutoAccepted
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                      : selectedWorker.authority.needsHumanReview
+                        ? "border-amber-500/40 bg-amber-500/10 text-amber-100"
+                        : "border-zinc-600 bg-zinc-800/50 text-zinc-300"
+                  }`}
+                >
+                  {selectedWorker.authority.wasAutoAccepted ? (
+                    <p>Auto-accepted by {sessionAuthority.profileLabel}</p>
+                  ) : selectedWorker.authority.needsHumanReview ? (
+                    <p>{authorityBlockMessage(selectedWorker) ?? "Needs human review"}</p>
+                  ) : (
+                    <p>Autopilot eligible — no manual review required</p>
+                  )}
+                </div>
+              )}
+
               {selectedMerge?.mergeConflict && (
                 <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-200">
                   <p className="font-semibold">{selectedMerge.mergeConflict.category}</p>
@@ -364,7 +411,8 @@ export function OperatorConsole({
                 )}
 
               <div className="flex flex-wrap gap-2 pt-2">
-                {selectedMerge?.mergeState === "ready_to_merge" && (
+                {selectedMerge?.mergeState === "ready_to_merge" &&
+                  workerNeedsHumanReview(selectedMerge) && (
                   <button
                     type="button"
                     className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"

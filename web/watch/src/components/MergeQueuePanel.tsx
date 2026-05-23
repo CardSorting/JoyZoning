@@ -6,7 +6,8 @@
  * @see docs/operational-modes.md
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { workerNeedsHumanReview } from "@/lib/authority";
 import { Copy, ExternalLink, GitMerge, RefreshCw, ShieldAlert, ShieldCheck, XCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import {
@@ -322,12 +323,18 @@ export function MergeQueuePanel({
     return () => clearInterval(t);
   }, [load, embedded, externalSnapshot]);
 
-  const hasAny =
-    data &&
-    (data.readyToMerge.length > 0 ||
-      data.mergeConflicts.length > 0 ||
-      data.completedWorkers.length > 0 ||
-      data.revokedAbandoned.length > 0);
+  const reviewReady = useMemo(
+    () => (data?.readyToMerge ?? []).filter((w) => workerNeedsHumanReview(w)),
+    [data?.readyToMerge],
+  );
+
+  const hasAny = embedded
+    ? data && (reviewReady.length > 0 || data.mergeConflicts.length > 0)
+    : data &&
+      (data.readyToMerge.length > 0 ||
+        data.mergeConflicts.length > 0 ||
+        data.completedWorkers.length > 0 ||
+        data.revokedAbandoned.length > 0);
 
   return (
     <section
@@ -342,7 +349,9 @@ export function MergeQueuePanel({
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <GitMerge className="h-4 w-4 text-campfire-accent" />
-          <h3 className="text-sm font-bold text-campfire-text">Merge & reconciliation</h3>
+          <h3 className={`text-sm font-bold ${embedded ? "text-zinc-100" : "text-campfire-text"}`}>
+            {embedded ? "Needs review" : "Merge & reconciliation"}
+          </h3>
         </div>
         <button
           type="button"
@@ -368,14 +377,18 @@ export function MergeQueuePanel({
       )}
 
       {!error && !hasAny && !loading && (
-        <p className="text-xs text-campfire-muted">No workers awaiting merge or reconciliation.</p>
+        <p className={`text-xs ${embedded ? "text-zinc-500" : "text-campfire-muted"}`}>
+          {embedded
+            ? "Nothing blocked by policy — autopilot handled safe workers."
+            : "No workers awaiting merge or reconciliation."}
+        </p>
       )}
 
       {data && (
         <div className="space-y-4">
           <Section
-            title="Ready to merge"
-            workers={data.readyToMerge}
+            title={embedded ? "Blocked by policy" : "Ready to merge"}
+            workers={embedded ? reviewReady : data.readyToMerge}
             emptyHint=""
             selectedTaskId={selectedTaskId}
             onSelectTask={onSelectTask}
@@ -393,26 +406,30 @@ export function MergeQueuePanel({
             authoritativeActions={authoritativeActions}
             onPathNotice={reportPathNotice}
           />
-          <Section
-            title="Completed workers"
-            workers={data.completedWorkers}
-            emptyHint=""
-            selectedTaskId={selectedTaskId}
-            onSelectTask={onSelectTask}
-            onOpenDecision={(w, a) => setDialog({ worker: w, action: a })}
-            authoritativeActions={authoritativeActions}
-            onPathNotice={reportPathNotice}
-          />
-          <Section
-            title="Revoked / abandoned"
-            workers={data.revokedAbandoned}
-            emptyHint=""
-            selectedTaskId={selectedTaskId}
-            onSelectTask={onSelectTask}
-            onOpenDecision={(w, a) => setDialog({ worker: w, action: a })}
-            authoritativeActions={authoritativeActions}
-            onPathNotice={reportPathNotice}
-          />
+          {!embedded && (
+            <>
+              <Section
+                title="Completed workers"
+                workers={data.completedWorkers}
+                emptyHint=""
+                selectedTaskId={selectedTaskId}
+                onSelectTask={onSelectTask}
+                onOpenDecision={(w, a) => setDialog({ worker: w, action: a })}
+                authoritativeActions={authoritativeActions}
+                onPathNotice={reportPathNotice}
+              />
+              <Section
+                title="Revoked / abandoned"
+                workers={data.revokedAbandoned}
+                emptyHint=""
+                selectedTaskId={selectedTaskId}
+                onSelectTask={onSelectTask}
+                onOpenDecision={(w, a) => setDialog({ worker: w, action: a })}
+                authoritativeActions={authoritativeActions}
+                onPathNotice={reportPathNotice}
+              />
+            </>
+          )}
         </div>
       )}
 

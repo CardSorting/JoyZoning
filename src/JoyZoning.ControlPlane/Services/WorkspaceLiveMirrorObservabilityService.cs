@@ -20,6 +20,8 @@ public sealed class WorkspaceLiveMirrorObservabilityService
     private readonly WorkspaceParallelismOptions _parallelism;
     private readonly WorkspaceLiveMirrorRegistry _registry;
     private readonly WorkerMergeObservabilityBuilder _mergeBuilder;
+    private readonly AuthorityAutopilotService _autopilot;
+    private readonly AuthorityOptions _authorityOptions;
 
     public WorkspaceLiveMirrorObservabilityService(
         IOperatorSessionRepository sessions,
@@ -28,8 +30,10 @@ public sealed class WorkspaceLiveMirrorObservabilityService
         IExecutionRepository executions,
         IOptions<WorkspaceOptions> workspace,
         IOptions<WorkspaceParallelismOptions> parallelism,
+        IOptions<AuthorityOptions> authorityOptions,
         WorkspaceLiveMirrorRegistry registry,
-        WorkerMergeObservabilityBuilder mergeBuilder)
+        WorkerMergeObservabilityBuilder mergeBuilder,
+        AuthorityAutopilotService autopilot)
     {
         _sessions = sessions;
         _tasks = tasks;
@@ -37,8 +41,10 @@ public sealed class WorkspaceLiveMirrorObservabilityService
         _executions = executions;
         _workspace = workspace.Value;
         _parallelism = parallelism.Value;
+        _authorityOptions = authorityOptions.Value;
         _registry = registry;
         _mergeBuilder = mergeBuilder;
+        _autopilot = autopilot;
     }
 
     public async Task<ParallelWorkersResponse> GetParallelWorkersAsync(
@@ -196,7 +202,10 @@ public sealed class WorkspaceLiveMirrorObservabilityService
         var readyPathData = new List<(ExecutionLease Lease, IReadOnlyList<string> Paths)>();
         foreach (var lease in workspaceLeases.Where(l => l.Status == ExecutionLeaseStatus.ReadyForReview))
         {
-            var paths = await ResolveChangedPathsForLeaseAsync(lease, sessionRoot, cancellationToken);
+            var paths = await WorkerMergeObservabilityBuilder.ResolveChangedPathsForLeaseAsync(
+                lease,
+                sessionRoot,
+                cancellationToken);
             readyPathData.Add((lease, paths));
         }
 
@@ -211,6 +220,7 @@ public sealed class WorkspaceLiveMirrorObservabilityService
             workers.Add(await BuildWorkerEntryAsync(
                 lease,
                 task,
+                session,
                 sessionRoot,
                 activeCount,
                 readyFileMap,
@@ -248,6 +258,12 @@ public sealed class WorkspaceLiveMirrorObservabilityService
                 null));
         }
 
+        var profile = _autopilot.ResolveProfile(session);
+        var sessionAuthority = new SessionAuthoritySnapshot(
+            profile.ToString(),
+            AuthorityProfileLabels.ToLabel(profile),
+            _authorityOptions.AutopilotEnabled);
+
         return new ParallelWorkersResponse(
             SessionId: session.Id,
             SessionWorkspaceRoot: sessionRoot,
@@ -259,6 +275,7 @@ public sealed class WorkspaceLiveMirrorObservabilityService
             SessionRootIsCanonicalLiveState: sessionRootCanonical,
             CanonicalLiveStateHint: hint,
             IndexJsonPath: Path.Combine(sessionRoot, ".joyzoning", "live", "index.json"),
+            Authority: sessionAuthority,
             Workers: workers.OrderBy(w => w.TaskTitle).ToList(),
             Warnings: warnings);
     }
@@ -266,6 +283,7 @@ public sealed class WorkspaceLiveMirrorObservabilityService
     private async Task<ParallelWorkerMirrorEntry> BuildWorkerEntryAsync(
         ExecutionLease lease,
         WorkTask task,
+        OperatorSession session,
         string sessionRoot,
         int activeLeasesInWorkspace,
         IReadOnlyDictionary<Guid, HashSet<string>> readyFileMap,
@@ -362,37 +380,49 @@ public sealed class WorkspaceLiveMirrorObservabilityService
             readyFileMap,
             cancellationToken);
 
-        return EnrichWorkerEntry(new ParallelWorkerMirrorEntry(
-            TaskId: task.Id,
-            TaskTitle: task.Title,
-            ExecutionSessionId: lease.ExecutionSessionId,
-            LeaseId: lease.Id,
-            HermesSessionId: hermesSessionId,
-            LiveMirrorPath: mirrorPath,
-            LiveMarkdownPath: mirrorPath is null
-                ? null
-                : Path.Combine(mirrorPath, _workspace.LiveStatusFileName),
-            HealthState: LiveMirrorHealthStateNames.ToApiString(health),
-            LifecycleStatus: lifecycle,
-            LastMirroredAt: meta?.LastMirroredAt ?? outcome?.RecordedAt,
-            KanbanRevision: task.KanbanRevision,
-            KanbanPushedRevision: task.KanbanPushedRevision,
-            KanbanStatus: task.Status.ToString(),
-            LeaseStatus: lease.Status.ToString(),
-            WorktreePath: lease.WorktreePath,
-            IsSharedSessionRootMirror: target?.IsSharedSessionRoot == true,
-            RegistryCollision: collision,
-            MergeState: WorkerMergeStateNames.ToApiString(mergeState),
-            MergeReadiness: readiness,
-            MergeConflict: conflict,
-            DecisionSummary: null!,
-            ApproveGuardrails: null!,
-            RevokeGuardrails: null!,
-            RecommendedModeSlug: string.Empty,
-            AvailableModeTransitions: Array.Empty<ModeTransitionHint>()));
+        return EnrichWorkerEntry(
+            readyFileMap.Count,
+            new ParallelWorkerMirrorEntry(
+                TaskId: task.Id,
+                TaskTitle: task.Title,
+                ExecutionSessionId: lease.ExecutionSessionId,
+                LeaseId: lease.Id,
+                HermesSessionId: hermesSessionId,
+                LiveMirrorPath: mirrorPath,
+                LiveMarkdownPath: mirrorPath is null
+                    ? null
+                    : Path.Combine(mirrorPath, _workspace.LiveStatusFileName),
+                HealthState: LiveMirrorHealthStateNames.ToApiString(health),
+                LifecycleStatus: lifecycle,
+                LastMirroredAt: meta?.LastMirroredAt ?? outcome?.RecordedAt,
+                KanbanRevision: task.KanbanRevision,
+                KanbanPushedRevision: task.KanbanPushedRevision,
+                KanbanStatus: task.Status.ToString(),
+                LeaseStatus: lease.Status.ToString(),
+                WorktreePath: lease.WorktreePath,
+                IsSharedSessionRootMirror: target?.IsSharedSessionRoot == true,
+                RegistryCollision: collision,
+                MergeState: WorkerMergeStateNames.ToApiString(mergeState),
+                MergeReadiness: readiness,
+                MergeConflict: conflict,
+                DecisionSummary: null!,
+                ApproveGuardrails: null!,
+                RevokeGuardrails: null!,
+                RecommendedModeSlug: string.Empty,
+                AvailableModeTransitions: Array.Empty<ModeTransitionHint>(),
+                AuthorityProfileSlug: string.Empty,
+                Authority: null),
+            session,
+            lease,
+            task);
     }
 
-    private ParallelWorkerMirrorEntry EnrichWorkerEntry(ParallelWorkerMirrorEntry entry)
+    private ParallelWorkerMirrorEntry EnrichWorkerEntry(
+        int readyForReviewPeerCount,
+        ParallelWorkerMirrorEntry entry,
+        OperatorSession? session,
+        ExecutionLease? lease,
+        WorkTask? task)
     {
         var (summary, approve, revoke) = OperatorDecisionSafety.BuildForWorker(
             entry,
@@ -404,43 +434,38 @@ public sealed class WorkspaceLiveMirrorObservabilityService
             RevokeGuardrails = revoke,
         };
         var modeHints = OperationalModeNavigation.ForWorker(withDecision);
+
+        AuthorityAutopilotDecision? authority = null;
+        var profileSlug = string.Empty;
+        if (session is not null && lease is not null && task is not null)
+        {
+            var profile = _autopilot.ResolveProfile(session);
+            profileSlug = profile.ToString();
+            var fromEvidence = AuthorityEvidence.TryReadLast(lease.EvidenceLogJson);
+            var mergeSnapshot = AuthorityAutopilotMergeContextBuilder.FromMirrorEntry(
+                entry.MergeState,
+                entry.MergeReadiness,
+                entry.MergeConflict,
+                readyForReviewPeerCount);
+            var evaluated = _autopilot.EvaluateLease(lease, task, session, mergeSnapshot);
+            authority = new AuthorityAutopilotDecision(
+                profile,
+                evaluated.RiskLevel,
+                evaluated.AutoAcceptAllowed,
+                fromEvidence?.WasAutoAccepted == true ? false : evaluated.NeedsHumanReview,
+                evaluated.ReasonCodes,
+                evaluated.HumanMessages,
+                fromEvidence?.AutoAcceptedAt,
+                fromEvidence?.WasAutoAccepted ?? false);
+        }
+
         return withDecision with
         {
             RecommendedModeSlug = modeHints.RecommendedModeSlug,
             AvailableModeTransitions = modeHints.AvailableTransitions,
+            AuthorityProfileSlug = profileSlug,
+            Authority = authority,
         };
-    }
-
-    private static async Task<IReadOnlyList<string>> ResolveChangedPathsForLeaseAsync(
-        ExecutionLease lease,
-        string sessionRoot,
-        CancellationToken cancellationToken)
-    {
-        if (lease.Status != ExecutionLeaseStatus.ReadyForReview)
-            return Array.Empty<string>();
-
-        if (!string.IsNullOrWhiteSpace(lease.VerificationReportJson))
-        {
-            try
-            {
-                var report = VerificationReportSerializer.Deserialize(lease.VerificationReportJson);
-                if (report.ChangedFiles.Count > 0)
-                    return report.ChangedFiles.ToList();
-            }
-            catch
-            {
-                // fall through to git
-            }
-        }
-
-        if (string.IsNullOrWhiteSpace(lease.WorktreePath) || !Directory.Exists(lease.WorktreePath))
-            return Array.Empty<string>();
-
-        var git = await GitWorkspaceStatus.TryGetWorktreeSummaryAsync(
-            lease.WorktreePath,
-            sessionRoot,
-            cancellationToken);
-        return git?.ChangedPaths.ToList() ?? (IReadOnlyList<string>)Array.Empty<string>();
     }
 
     private static LiveMirrorHealthState ResolveHealth(
@@ -496,33 +521,40 @@ public sealed class WorkspaceLiveMirrorObservabilityService
                     continue;
 
                 var mergeState = meta.MergeState ?? WorkerMergeStateNames.ToApiString(WorkerMergeState.Stale);
-                workers.Add(EnrichWorkerEntry(new ParallelWorkerMirrorEntry(
-                    TaskId: taskId,
-                    TaskTitle: meta.TaskTitle ?? taskId.ToString(),
-                    ExecutionSessionId: Guid.TryParse(meta.ExecutionSessionId, out var eid) ? eid : null,
-                    LeaseId: Guid.TryParse(meta.LeaseId, out var lid) ? lid : Guid.Empty,
-                    HermesSessionId: meta.HermesSessionId,
-                    LiveMirrorPath: mirrorDir,
-                    LiveMarkdownPath: Path.Combine(mirrorDir, _workspace.LiveStatusFileName),
-                    HealthState: LiveMirrorHealthStateNames.ToApiString(
-                        LiveMirrorHealthStateNames.Parse(meta.LifecycleStatus)),
-                    LifecycleStatus: meta.LifecycleStatus,
-                    LastMirroredAt: meta.LastMirroredAt,
-                    KanbanRevision: meta.KanbanRevision,
-                    KanbanPushedRevision: meta.KanbanPushedRevision,
-                    KanbanStatus: meta.KanbanStatus ?? "Unknown",
-                    LeaseStatus: meta.LeaseStatus ?? "Unknown",
-                    WorktreePath: meta.WorktreePath,
-                    IsSharedSessionRootMirror: false,
-                    RegistryCollision: null,
-                    MergeState: mergeState,
-                    MergeReadiness: null,
-                    MergeConflict: null,
-                    DecisionSummary: null!,
-                    ApproveGuardrails: null!,
-                    RevokeGuardrails: null!,
-                    RecommendedModeSlug: string.Empty,
-                    AvailableModeTransitions: Array.Empty<ModeTransitionHint>())));
+                workers.Add(EnrichWorkerEntry(
+                    0,
+                    new ParallelWorkerMirrorEntry(
+                        TaskId: taskId,
+                        TaskTitle: meta.TaskTitle ?? taskId.ToString(),
+                        ExecutionSessionId: Guid.TryParse(meta.ExecutionSessionId, out var eid) ? eid : null,
+                        LeaseId: Guid.TryParse(meta.LeaseId, out var lid) ? lid : Guid.Empty,
+                        HermesSessionId: meta.HermesSessionId,
+                        LiveMirrorPath: mirrorDir,
+                        LiveMarkdownPath: Path.Combine(mirrorDir, _workspace.LiveStatusFileName),
+                        HealthState: LiveMirrorHealthStateNames.ToApiString(
+                            LiveMirrorHealthStateNames.Parse(meta.LifecycleStatus)),
+                        LifecycleStatus: meta.LifecycleStatus,
+                        LastMirroredAt: meta.LastMirroredAt,
+                        KanbanRevision: meta.KanbanRevision,
+                        KanbanPushedRevision: meta.KanbanPushedRevision,
+                        KanbanStatus: meta.KanbanStatus ?? "Unknown",
+                        LeaseStatus: meta.LeaseStatus ?? "Unknown",
+                        WorktreePath: meta.WorktreePath,
+                        IsSharedSessionRootMirror: false,
+                        RegistryCollision: null,
+                        MergeState: mergeState,
+                        MergeReadiness: null,
+                        MergeConflict: null,
+                        DecisionSummary: null!,
+                        ApproveGuardrails: null!,
+                        RevokeGuardrails: null!,
+                        RecommendedModeSlug: string.Empty,
+                        AvailableModeTransitions: Array.Empty<ModeTransitionHint>(),
+                        AuthorityProfileSlug: string.Empty,
+                        Authority: null),
+                    session: null,
+                    lease: null,
+                    task: null));
 
                 if (meta.LifecycleStatus.Equals("pruned", StringComparison.OrdinalIgnoreCase))
                 {

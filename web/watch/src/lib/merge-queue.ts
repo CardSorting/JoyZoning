@@ -49,6 +49,7 @@ export interface MergeConflict {
 
 export interface MergeWorkerEntry extends ParallelWorkerEntry {
   mergeState: WorkerMergeState;
+  authorityProfile?: string;
   mergeReadiness?: MergeReadiness | null;
   mergeConflict?: MergeConflict | null;
   decisionSummary?: OperatorDecisionSummary | null;

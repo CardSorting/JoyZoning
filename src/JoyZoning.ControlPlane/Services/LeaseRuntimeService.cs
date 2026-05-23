@@ -8,6 +8,7 @@ using JoyZoning.Domain.Events;
 using JoyZoning.Domain.Orchestration;
 using JoyZoning.Persistence.Repositories;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace JoyZoning.ControlPlane.Services;
@@ -21,6 +22,7 @@ public class LeaseRuntimeService
     private readonly EventIngestor _events;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly LeaseRuntimeOptions _options;
+    private readonly ILogger<LeaseRuntimeService> _logger;
 
     public LeaseRuntimeService(
         IExecutionLeaseRepository leases,
@@ -28,7 +30,8 @@ public class LeaseRuntimeService
         IExecutionRepository executions,
         EventIngestor events,
         IServiceScopeFactory scopeFactory,
-        IOptions<LeaseRuntimeOptions> options)
+        IOptions<LeaseRuntimeOptions> options,
+        ILogger<LeaseRuntimeService> logger)
     {
         _leases = leases;
         _tasks = tasks;
@@ -36,6 +39,7 @@ public class LeaseRuntimeService
         _events = events;
         _scopeFactory = scopeFactory;
         _options = options.Value;
+        _logger = logger;
     }
 
     public async Task<string?> ValidateSchedulingForNewLeaseAsync(
@@ -219,7 +223,42 @@ public class LeaseRuntimeService
             }
         }
 
+        report.AuthorityAutopilot = await ReconcileAuthorityAutopilotAsync(cancellationToken);
+
         return report;
+    }
+
+    private async Task<AuthorityReconciliationReport?> ReconcileAuthorityAutopilotAsync(
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var autopilot = scope.ServiceProvider.GetRequiredService<AuthorityAutopilotService>();
+            var orchestrator = scope.ServiceProvider.GetRequiredService<KanbanExecutionOrchestrator>();
+            var report = await autopilot.ReconcileReadyForReviewAsync(
+                (cardId, ct) => orchestrator.AcceptResultAsync(cardId, StatusChangeActor.System, ct),
+                sessionId: null,
+                cancellationToken);
+
+            if (report.Evaluated > 0)
+            {
+                _logger.LogDebug(
+                    "Authority autopilot reconciliation: evaluated={Evaluated} accepted={Accepted} blocked={Blocked} failed={Failed} skipped={Skipped}",
+                    report.Evaluated,
+                    report.AutoAccepted,
+                    report.Blocked,
+                    report.ConvergenceFailed,
+                    report.Skipped);
+            }
+
+            return report;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Authority autopilot reconciliation failed");
+            return null;
+        }
     }
 
     private async Task<bool> TryRepairOrphanedViaHermesPollAsync(
@@ -347,12 +386,39 @@ public class LeaseRuntimeService
         if (lease.Status == ExecutionLeaseStatus.ReadyForReview
             && !string.IsNullOrWhiteSpace(lease.VerificationReportJson))
         {
-            var from = lease.Status;
-            lease.Status = ExecutionLeaseStatus.Merged;
-            lease.MergedAt = DateTimeOffset.UtcNow;
-            AppendEvidence(lease, "reconciliation.merge", StatusChangeActor.System, from,
-                ExecutionLeaseStatus.Merged, summary: "Task already complete; lease merged by reconciliation.");
-            await _leases.UpdateAsync(lease, cancellationToken);
+            var git = GitConvergenceEvidence.TryReadLastSummary(lease.EvidenceLogJson);
+            if (git?.Succeeded == true)
+            {
+                var from = lease.Status;
+                lease.Status = ExecutionLeaseStatus.Merged;
+                lease.MergedAt = DateTimeOffset.UtcNow;
+                AppendEvidence(lease, "reconciliation.merge", StatusChangeActor.System, from,
+                    ExecutionLeaseStatus.Merged,
+                    summary: "Task already complete; lease metadata aligned after prior git convergence.",
+                    detail: GitConvergenceEvidence.ToEvidenceDetail(
+                        new WorkspaceConvergenceResult(
+                            Succeeded: true,
+                            HadConflicts: false,
+                            Strategy: git.Strategy,
+                            ErrorMessage: null,
+                            SourceWorktreePath: lease.WorktreePath,
+                            SourceBranch: lease.BranchName,
+                            SourceHeadCommit: null,
+                            DestinationWorkspaceRoot: string.Empty,
+                            DestinationBranch: null,
+                            DestinationPreviousHead: git.DestinationPreviousHead,
+                            DestinationNewHead: git.DestinationNewHead,
+                            ChangedFiles: git.AppliedFiles,
+                            ConflictFiles: Array.Empty<string>(),
+                            CompletedAt: DateTimeOffset.UtcNow)));
+                await _leases.UpdateAsync(lease, cancellationToken);
+                return;
+            }
+
+            await RepairInvalidAsync(
+                lease,
+                "Task complete but lease ReadyForReview without git.convergence.succeeded; run Accept result.",
+                cancellationToken);
             return;
         }
 
@@ -398,4 +464,5 @@ public sealed class ReconciliationReport
     public int OrphanedRunning { get; set; }
     public int MergedTaskActiveLease { get; set; }
     public int InvalidReadyForReview { get; set; }
+    public AuthorityReconciliationReport? AuthorityAutopilot { get; set; }
 }

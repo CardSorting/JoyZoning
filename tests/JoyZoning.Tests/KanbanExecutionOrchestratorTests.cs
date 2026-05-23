@@ -1,5 +1,6 @@
 using JoyZoning.Adapters.Workspace;
 using JoyZoning.Domain.Configuration;
+using AuthorityProfileKind = JoyZoning.Domain.Configuration.AuthorityProfileKind;
 using JoyZoning.Domain.Entities;
 using JoyZoning.Domain.Enums;
 using JoyZoning.Domain.Orchestration;
@@ -42,6 +43,13 @@ public class KanbanExecutionOrchestratorTests : IDisposable
             o.Stale.LeasedMinutes = 1;
             o.Stale.RunningMinutes = 1;
             o.Duration.CriticalHours = 1;
+            o.MetadataOnlyAcceptResult = false;
+        });
+        services.Configure<AuthorityOptions>(o =>
+        {
+            o.AutopilotEnabled = true;
+            o.DefaultProfile = AuthorityProfileKind.Conservative;
+            o.SessionProfileOverrides["autopilot-yolo"] = AuthorityProfileKind.BalancedAuto;
         });
         services.AddScoped<LeaseRuntimeService>();
         services.AddSingleton<WorkspaceLiveMirrorRegistry>();
@@ -66,6 +74,9 @@ public class KanbanExecutionOrchestratorTests : IDisposable
         services.AddSingleton<IBroccoliQBridge, DisabledBroccoliQBridge>();
 
         services.AddSingleton<IWorkspaceGitMerger, WorkspaceGitMerger>();
+        services.AddLogging();
+        services.AddScoped<AuthorityAutopilotMergeContextBuilder>();
+        services.AddScoped<AuthorityAutopilotService>();
         services.AddScoped<EventIngestor>();
         services.AddScoped<KanbanExecutionOrchestrator>();
 
@@ -329,16 +340,87 @@ public class KanbanExecutionOrchestratorTests : IDisposable
         Assert.Contains(created.WorktreePath, revoked.EvidenceLogJson);
     }
 
-    private static VerificationReport PassingReport(Guid cardId) => new()
+    private static VerificationReport PassingReport(Guid cardId, IReadOnlyList<string>? changedFiles = null) => new()
     {
         CardId = cardId,
         SessionId = Guid.NewGuid(),
+        ChangedFiles = changedFiles ?? ["docs/readme.md"],
         CommandsRun = [new CommandRunSummary { Command = "dotnet build", Passed = true, Summary = "ok" }],
         ReadyForHumanReview = true,
     };
 
-    private Task<(Guid SessionId, Guid CardId)> SeedCardWithGitAsync(RiskLevel risk) =>
-        SeedCardAsync(risk, initGit: true);
+    [Fact]
+    public async Task Second_accept_after_merged_fails_with_conflict()
+    {
+        var (_, cardId) = await SeedCardWithGitAsync(RiskLevel.Low);
+        var orchestrator = _services.GetRequiredService<KanbanExecutionOrchestrator>();
+
+        var (lease, _) = await orchestrator.BeginLeaseAsync(cardId);
+        await WriteWorkerFileAsync(lease.WorktreePath, "once.txt", "once");
+        await orchestrator.MarkLeaseRunningAsync(cardId, Guid.NewGuid());
+        await orchestrator.AgentTransitionLeaseAsync(cardId, ExecutionLeaseStatus.Verifying);
+        await orchestrator.SubmitVerificationAsync(cardId, PassingReport(cardId, ["once.txt"]));
+
+        await orchestrator.AcceptResultAsync(cardId);
+
+        var ex = await Assert.ThrowsAsync<LeaseOrchestrationException>(() =>
+            orchestrator.AcceptResultAsync(cardId));
+        Assert.Equal(404, ex.StatusCode);
+        Assert.Contains("No active lease", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Autopilot_accept_records_system_actor_on_git_convergence()
+    {
+        var (_, cardId) = await SeedCardWithGitAsync(RiskLevel.Low, sessionName: "autopilot-yolo");
+        var orchestrator = _services.GetRequiredService<KanbanExecutionOrchestrator>();
+        var leases = _services.GetRequiredService<IExecutionLeaseRepository>();
+
+        var (lease, _) = await orchestrator.BeginLeaseAsync(cardId);
+        await WriteWorkerFileAsync(lease.WorktreePath, "readme.md", "autopilot");
+
+        await orchestrator.MarkLeaseRunningAsync(cardId, Guid.NewGuid());
+        await orchestrator.AgentTransitionLeaseAsync(cardId, ExecutionLeaseStatus.Verifying);
+        await orchestrator.SubmitVerificationAsync(
+            cardId,
+            PassingReport(cardId, ["readme.md"]));
+
+        var history = await leases.ListByTaskIdAsync(cardId);
+        var merged = history.First(l => l.Status == ExecutionLeaseStatus.Merged);
+        var entries = LeaseEvidenceLog.DeserializeEntries(merged.EvidenceLogJson);
+        Assert.Contains(entries, e => e.Kind == "git.convergence.succeeded" && e.Actor == StatusChangeActor.System);
+        Assert.Contains(entries, e => e.Kind == "authority.auto_accepted");
+        Assert.Contains(entries, e => e.Kind == "lease.merged" && e.Actor == StatusChangeActor.System);
+    }
+
+    [Fact]
+    public async Task Autopilot_auto_accepts_low_risk_after_verification()
+    {
+        var (_, cardId) = await SeedCardWithGitAsync(RiskLevel.Low, sessionName: "autopilot-yolo");
+        var orchestrator = _services.GetRequiredService<KanbanExecutionOrchestrator>();
+        var tasks = _services.GetRequiredService<IWorkTaskRepository>();
+
+        var (lease, _) = await orchestrator.BeginLeaseAsync(cardId);
+        await WriteWorkerFileAsync(lease.WorktreePath, "readme.md", "autopilot");
+
+        await orchestrator.MarkLeaseRunningAsync(cardId, Guid.NewGuid());
+        await orchestrator.AgentTransitionLeaseAsync(cardId, ExecutionLeaseStatus.Verifying);
+        await orchestrator.SubmitVerificationAsync(
+            cardId,
+            PassingReport(cardId, ["readme.md"]));
+
+        var task = await tasks.GetByIdAsync(cardId);
+        Assert.Equal(WorkTaskStatus.Complete, task!.Status);
+
+        var leases = _services.GetRequiredService<IExecutionLeaseRepository>();
+        var history = await leases.ListByTaskIdAsync(cardId);
+        Assert.Contains(history, l => l.EvidenceLogJson.Contains("authority.auto_accepted", StringComparison.Ordinal));
+    }
+
+    private Task<(Guid SessionId, Guid CardId)> SeedCardWithGitAsync(
+        RiskLevel risk,
+        string sessionName = "test") =>
+        SeedCardAsync(risk, initGit: true, sessionName: sessionName);
 
     private static async Task WriteWorkerFileAsync(string worktreePath, string fileName, string content)
     {
@@ -362,7 +444,10 @@ public class KanbanExecutionOrchestratorTests : IDisposable
         await GitCommandRunner.RunAsync(root, "checkout main", default);
     }
 
-    private async Task<(Guid SessionId, Guid CardId)> SeedCardAsync(RiskLevel risk, bool initGit = false)
+    private async Task<(Guid SessionId, Guid CardId)> SeedCardAsync(
+        RiskLevel risk,
+        bool initGit = false,
+        string sessionName = "test")
     {
         var sessions = _services.GetRequiredService<IOperatorSessionRepository>();
         var tasks = _services.GetRequiredService<IWorkTaskRepository>();
@@ -383,7 +468,7 @@ public class KanbanExecutionOrchestratorTests : IDisposable
         var session = new OperatorSession
         {
             Id = Guid.NewGuid(),
-            Name = "test",
+            Name = sessionName,
             WorkspaceRoot = workspace,
             Status = SessionStatus.Idle,
             CreatedAt = now,

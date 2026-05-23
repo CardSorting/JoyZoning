@@ -1,4 +1,5 @@
 import type { MergeWorkerEntry } from "@/lib/merge-queue";
+import { workerNeedsHumanReview } from "@/lib/authority";
 import { ACCEPT_RESULT_LABEL } from "@/lib/operator-labels";
 import type { ParallelWorkerEntry } from "@/lib/parallel-workers";
 import type { OperatorDecisionAction } from "@/lib/operator-decision";
@@ -45,8 +46,11 @@ export function primaryActionForWorker(
   }
 
   const mergeState = "mergeState" in worker ? worker.mergeState : undefined;
-  if (mergeState === "ready_to_merge") {
+  if (mergeState === "ready_to_merge" && workerNeedsHumanReview(worker)) {
     return { label: ACCEPT_RESULT_LABEL, action: "approve", kind: "approve" };
+  }
+  if (mergeState === "ready_to_merge" && !workerNeedsHumanReview(worker)) {
+    return { label: "Autopilot eligible", action: null, kind: "none" };
   }
   if (mergeState === "merge_conflict" || mergeState === "merge_failed") {
     return { label: "Review conflict", action: "inspect", kind: "conflict" };

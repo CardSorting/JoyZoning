@@ -39,6 +39,11 @@ public class WorkspaceLiveMirrorServiceIsolationTests : IDisposable
         services.AddScoped<IExecutionLeaseRepository, ExecutionLeaseRepository>();
         services.AddScoped<IExecutionRepository, ExecutionRepository>();
         services.AddSingleton<WorkspaceLiveMirrorRegistry>();
+        services.AddScoped<WorkerMergeObservabilityBuilder>();
+        services.AddScoped<AuthorityAutopilotMergeContextBuilder>();
+        services.AddScoped<AuthorityAutopilotService>();
+        services.Configure<AuthorityOptions>(_ => { });
+        services.Configure<LeaseRuntimeOptions>(_ => { });
         services.AddScoped<WorkspaceLiveMirrorObservabilityService>();
 
         services.Configure<WorkspaceOptions>(o =>
@@ -119,6 +124,7 @@ public class WorkspaceLiveMirrorServiceIsolationTests : IDisposable
         var leases = _services.GetRequiredService<IExecutionLeaseRepository>();
 
         var registry = new WorkspaceLiveMirrorRegistry();
+        var authorityOptions = Options.Create(new AuthorityOptions());
         var observability = new WorkspaceLiveMirrorObservabilityService(
             sessions,
             tasks,
@@ -126,8 +132,10 @@ public class WorkspaceLiveMirrorServiceIsolationTests : IDisposable
             _services.GetRequiredService<IExecutionRepository>(),
             workspace,
             options,
+            authorityOptions,
             registry,
-            new WorkerMergeObservabilityBuilder());
+            new WorkerMergeObservabilityBuilder(),
+            _services.GetRequiredService<AuthorityAutopilotService>());
         var mirror = new WorkspaceLiveMirrorService(
             sessions,
             tasks,

@@ -16,6 +16,12 @@ internal static class ParallelWorkersApiMapper
         sessionRootIsCanonicalLiveState = model.SessionRootIsCanonicalLiveState,
         canonicalLiveStateHint = model.CanonicalLiveStateHint,
         indexJsonPath = model.IndexJsonPath,
+        authority = new
+        {
+            profile = model.Authority.Profile,
+            profileLabel = model.Authority.ProfileLabel,
+            autopilotEnabled = model.Authority.AutopilotEnabled,
+        },
         warnings = model.Warnings.Select(w => new
         {
             w.Code,
@@ -66,6 +72,20 @@ internal static class ParallelWorkersApiMapper
             t.Reason,
             handoffKind = t.HandoffKind,
         }),
+        authorityProfile = w.AuthorityProfileSlug,
+        authority = w.Authority is null
+            ? null
+            : new
+            {
+                profile = w.Authority.Profile.ToString(),
+                riskLevel = w.Authority.RiskLevel.ToString(),
+                w.Authority.AutoAcceptAllowed,
+                w.Authority.NeedsHumanReview,
+                reasonCodes = w.Authority.ReasonCodes,
+                humanMessages = w.Authority.HumanMessages,
+                w.Authority.AutoAcceptedAt,
+                w.Authority.WasAutoAccepted,
+            },
     };
 
     private static object? MapReadiness(WorkerMergeReadiness? r) =>

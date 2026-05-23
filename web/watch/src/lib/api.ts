@@ -64,6 +64,16 @@ export const api = {
     fetchJson<MergeQueueSnapshot>(
       `/api/sessions/${encodeURIComponent(sessionId)}/merge-queue`,
     ),
+  reconcileAuthority: (sessionId: string) =>
+    fetchJson<{
+      evaluated: number;
+      autoAccepted: number;
+      blocked: number;
+      skipped: number;
+      convergenceFailed: number;
+    }>(`/api/sessions/${encodeURIComponent(sessionId)}/authority/reconcile`, {
+      method: "POST",
+    }),
   decisionPreflight: (
     sessionId: string,
     executionSessionId: string,

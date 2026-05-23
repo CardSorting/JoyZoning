@@ -156,7 +156,9 @@ public class OperatorDecisionSafetyTests
             ApproveGuardrails: null!,
             RevokeGuardrails: null!,
             RecommendedModeSlug: mergeState,
-            AvailableModeTransitions: Array.Empty<ModeTransitionHint>());
+            AvailableModeTransitions: Array.Empty<ModeTransitionHint>(),
+            AuthorityProfileSlug: "BalancedAuto",
+            Authority: null);
 
         var (summary, approve, revoke) = OperatorDecisionSafety.BuildForWorker(entry);
         return entry with

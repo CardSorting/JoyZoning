@@ -27,6 +27,7 @@ public class KanbanExecutionOrchestrator
     private readonly LeaseRuntimeOptions _options;
     private readonly WorkspaceLiveMirrorService _liveMirror;
     private readonly IWorkspaceGitMerger _gitMerger;
+    private readonly AuthorityAutopilotService _autopilot;
 
     public KanbanExecutionOrchestrator(
         IWorkTaskRepository tasks,
@@ -36,7 +37,8 @@ public class KanbanExecutionOrchestrator
         LeaseRuntimeService runtime,
         IOptions<LeaseRuntimeOptions> options,
         WorkspaceLiveMirrorService liveMirror,
-        IWorkspaceGitMerger gitMerger)
+        IWorkspaceGitMerger gitMerger,
+        AuthorityAutopilotService autopilot)
     {
         _tasks = tasks;
         _sessions = sessions;
@@ -46,6 +48,7 @@ public class KanbanExecutionOrchestrator
         _options = options.Value;
         _liveMirror = liveMirror;
         _gitMerger = gitMerger;
+        _autopilot = autopilot;
     }
 
     public async Task<(ExecutionLease Lease, HandoffPacket Handoff)> BeginLeaseAsync(
@@ -339,7 +342,12 @@ public class KanbanExecutionOrchestrator
         await _events.IngestAsync(cardId, EventSource.DietCode, EventTypes.VerificationReportAttached,
             new { lease.Id, passed = true }, cancellationToken);
 
-        return lease;
+        _ = await _autopilot.TryAutoAcceptAsync(
+            cardId,
+            () => AcceptResultAsync(cardId, StatusChangeActor.System, cancellationToken),
+            cancellationToken);
+
+        return await _leases.GetActiveByTaskIdAsync(cardId, cancellationToken) ?? lease;
     }
 
     public async Task<ExecutionLease> SubmitFailedVerificationAsync(
@@ -460,11 +468,17 @@ public class KanbanExecutionOrchestrator
     public Task<AcceptResultResponse> ApproveMergeAsync(
         Guid cardId,
         CancellationToken cancellationToken = default) =>
-        AcceptResultAsync(cardId, cancellationToken);
+        AcceptResultAsync(cardId, StatusChangeActor.Human, cancellationToken);
 
     /// <summary>Accept ReadyForReview worker output into the canonical workspace, then mark Merged/Complete.</summary>
+    public Task<AcceptResultResponse> AcceptResultAsync(
+        Guid cardId,
+        CancellationToken cancellationToken = default) =>
+        AcceptResultAsync(cardId, StatusChangeActor.Human, cancellationToken);
+
     public async Task<AcceptResultResponse> AcceptResultAsync(
         Guid cardId,
+        StatusChangeActor actor,
         CancellationToken cancellationToken = default)
     {
         var lease = await _leases.GetActiveByTaskIdAsync(cardId, cancellationToken)
@@ -487,7 +501,7 @@ public class KanbanExecutionOrchestrator
             if (string.IsNullOrWhiteSpace(lease.WorktreePath))
                 throw LeaseOrchestrationException.Conflict("Worker worktree path is missing.");
 
-            AppendEvidence(lease, "git.convergence.skipped", StatusChangeActor.Human, lease.Status, lease.Status,
+            AppendEvidence(lease, "git.convergence.skipped", actor, lease.Status, lease.Status,
                 summary: "Metadata-only accept (unsafe/dev). Git convergence was not run.",
                 detail: new { metadataOnly = true });
         }
@@ -511,7 +525,7 @@ public class KanbanExecutionOrchestrator
             if (!convergence.Succeeded)
             {
                 lease.BlockedReason = convergence.ErrorMessage;
-                AppendEvidence(lease, GitConvergenceEvidence.FailedKind, StatusChangeActor.Human,
+                AppendEvidence(lease, GitConvergenceEvidence.FailedKind, actor,
                     lease.Status, lease.Status,
                     summary: "Git convergence failed; lease remains ready for review.",
                     detail: GitConvergenceEvidence.ToEvidenceDetail(convergence));
@@ -521,10 +535,23 @@ public class KanbanExecutionOrchestrator
                     convergence.ErrorMessage ?? "Git convergence failed.");
             }
 
-            AppendEvidence(lease, GitConvergenceEvidence.SucceededKind, StatusChangeActor.Human,
+            AppendEvidence(lease, GitConvergenceEvidence.SucceededKind, actor,
                 lease.Status, lease.Status,
                 summary: "Worker changes applied to canonical workspace.",
                 detail: GitConvergenceEvidence.ToEvidenceDetail(convergence));
+
+            await _leases.UpdateAsync(lease, cancellationToken);
+
+            lease = await _leases.GetActiveByTaskIdAsync(cardId, cancellationToken)
+                ?? throw LeaseOrchestrationException.Conflict(
+                    "Lease is no longer active after git convergence. Verify canonical workspace and lease history.");
+
+            if (lease.Status != ExecutionLeaseStatus.ReadyForReview)
+            {
+                throw LeaseOrchestrationException.Conflict(
+                    "Lease is no longer ReadyForReview (another accept may have completed). " +
+                    "Check git.convergence.succeeded evidence and canonical workspace HEAD.");
+            }
         }
 
         var from = lease.Status;
@@ -532,7 +559,7 @@ public class KanbanExecutionOrchestrator
         lease.MergedAt = DateTimeOffset.UtcNow;
         lease.BlockedReason = null;
 
-        AppendEvidence(lease, "lease.merged", StatusChangeActor.Human, from, ExecutionLeaseStatus.Merged,
+        AppendEvidence(lease, "lease.merged", actor, from, ExecutionLeaseStatus.Merged,
             summary: _options.MetadataOnlyAcceptResult
                 ? "Result accepted (metadata only)."
                 : "Result accepted; code converged into canonical workspace.",

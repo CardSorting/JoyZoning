@@ -68,6 +68,7 @@ public class LeaseRuntimeServiceTests : IDisposable
         services.AddSingleton<LeaseLiveRefreshCoordinator>();
         services.AddSingleton<HermesRunEventConsumer>();
         services.Configure<ExecutorOptions>(_ => { });
+        services.AddLogging();
         services.AddScoped<LeaseRuntimeService>();
         services.AddSingleton<WorkspaceLiveMirrorRegistry>();
         services.Configure<WorkspaceOptions>(o => o.MirrorToSessionRoot = false);
@@ -75,7 +76,14 @@ public class LeaseRuntimeServiceTests : IDisposable
         services.AddScoped<WorkerMergeObservabilityBuilder>();
         services.AddScoped<WorkspaceLiveMirrorObservabilityService>();
         services.AddScoped<WorkspaceLiveMirrorService>();
+        services.Configure<AuthorityOptions>(o =>
+        {
+            o.AutopilotEnabled = true;
+            o.DefaultProfile = JoyZoning.Domain.Configuration.AuthorityProfileKind.BalancedAuto;
+        });
         services.AddSingleton<JoyZoning.Domain.Orchestration.IWorkspaceGitMerger, JoyZoning.Adapters.Workspace.WorkspaceGitMerger>();
+        services.AddScoped<AuthorityAutopilotMergeContextBuilder>();
+        services.AddScoped<AuthorityAutopilotService>();
         services.AddScoped<KanbanExecutionOrchestrator>();
 
         _services = services.BuildServiceProvider();
@@ -274,6 +282,44 @@ public class LeaseRuntimeServiceTests : IDisposable
         var lease = await orchestrator.GetActiveLeaseAsync(cardId);
         Assert.Equal(ExecutionLeaseStatus.Verifying, lease!.Status);
         Assert.Contains("execution.completed", lease.EvidenceLogJson);
+    }
+
+    [Fact]
+    public async Task Reconciliation_does_not_metadata_merge_ready_lease_without_git_evidence()
+    {
+        var runtime = _services.GetRequiredService<LeaseRuntimeService>();
+        var tasks = _services.GetRequiredService<IWorkTaskRepository>();
+        var leases = _services.GetRequiredService<IExecutionLeaseRepository>();
+        var (_, cardId) = await SeedCardAsync(RiskLevel.Low);
+        var orchestrator = _services.GetRequiredService<KanbanExecutionOrchestrator>();
+        await orchestrator.BeginLeaseAsync(cardId);
+
+        var task = await tasks.GetByIdAsync(cardId);
+        await tasks.UpdateStatusAsync(cardId, WorkTaskStatus.Complete);
+
+        var lease = await leases.GetActiveByTaskIdAsync(cardId);
+        Assert.NotNull(lease);
+        lease!.Status = ExecutionLeaseStatus.ReadyForReview;
+        lease.VerificationReportJson = VerificationReportSerializer.Serialize(new VerificationReport
+        {
+            CardId = cardId,
+            SessionId = task!.OperatorSessionId,
+            ChangedFiles = ["docs/a.md"],
+            CommandsRun = [new CommandRunSummary { Command = "true", Passed = true, Summary = "ok" }],
+            ReadyForHumanReview = true,
+        });
+        await leases.UpdateAsync(lease);
+
+        var report = await runtime.ReconcileAsync();
+        Assert.Equal(1, report.MergedTaskActiveLease);
+
+        var updated = await leases.GetActiveByTaskIdAsync(cardId);
+        Assert.NotNull(updated);
+        Assert.Equal(ExecutionLeaseStatus.Blocked, updated!.Status);
+        var evidence = LeaseEvidenceLog.DeserializeEntries(updated.EvidenceLogJson);
+        Assert.DoesNotContain(evidence, e => e.Kind == GitConvergenceEvidence.SucceededKind);
+        Assert.Contains("without git.convergence.succeeded", updated.BlockedReason ?? "", StringComparison.Ordinal);
+        Assert.Contains(evidence, e => e.Kind == "reconciliation.repair");
     }
 
     [Fact]

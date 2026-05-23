@@ -80,11 +80,11 @@ Exposed on merge queue / parallel workers as `mergeReadiness` (`headCommit`, `ba
 
 ### 5. What API accepts the result?
 
-`POST /api/tasks/{taskId}/lease/merge` → `KanbanExecutionOrchestrator.ApproveMergeAsync` (name is legacy; behavior is metadata accept).
+`POST /api/tasks/{taskId}/lease/merge` → `KanbanExecutionOrchestrator.AcceptResultAsync` (alias `ApproveMergeAsync`).
 
 Preflight (optional): `GET /api/sessions/{sessionId}/workers/{executionSessionId}/decision-preflight?action=approve`.
 
-**Planned:** [real-git-convergence.md](real-git-convergence.md) — git merge before metadata `Merged`.
+Real git convergence runs **before** lease `Merged` unless `LeaseRuntime:MetadataOnlyAcceptResult` is true (dev-only). See [real-git-convergence.md](real-git-convergence.md).
 
 ### 6. What happens on accept result?
 

@@ -260,6 +260,40 @@ public static class ApiEndpoints
             }
         });
 
+        app.MapPost("/api/sessions/{id:guid}/authority/reconcile", async (
+            Guid id,
+            AuthorityAutopilotService autopilot,
+            KanbanExecutionOrchestrator orchestrator,
+            OrchestrationService orch,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var canonical = await orch.ResolveCanonicalSessionAsync(id, cancellationToken);
+                var report = await autopilot.ReconcileReadyForReviewAsync(
+                    (cardId, ct) => orchestrator.AcceptResultAsync(cardId, StatusChangeActor.System, ct),
+                    canonical.Id,
+                    cancellationToken);
+                return Results.Ok(report);
+            }
+            catch (InvalidOperationException)
+            {
+                return Results.NotFound();
+            }
+        });
+
+        app.MapPost("/api/authority/reconcile-ready", async (
+            AuthorityAutopilotService autopilot,
+            KanbanExecutionOrchestrator orchestrator,
+            CancellationToken cancellationToken) =>
+        {
+            var report = await autopilot.ReconcileReadyForReviewAsync(
+                (cardId, ct) => orchestrator.AcceptResultAsync(cardId, StatusChangeActor.System, ct),
+                sessionId: null,
+                cancellationToken);
+            return Results.Ok(report);
+        });
+
         app.MapGet("/api/operational-modes", () =>
             Results.Ok(new
             {

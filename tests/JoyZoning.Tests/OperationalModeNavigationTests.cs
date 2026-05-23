@@ -120,7 +120,9 @@ public class OperationalModeNavigationTests
             ApproveGuardrails: null!,
             RevokeGuardrails: null!,
             RecommendedModeSlug: string.Empty,
-            AvailableModeTransitions: Array.Empty<ModeTransitionHint>());
+            AvailableModeTransitions: Array.Empty<ModeTransitionHint>(),
+            AuthorityProfileSlug: "BalancedAuto",
+            Authority: null);
 
         var hints = OperationalModeNavigation.ForWorker(worker);
         return worker with

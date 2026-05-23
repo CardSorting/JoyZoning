@@ -40,16 +40,20 @@ public class LeaseReconciliationHostedService : BackgroundService
             using var scope = _scopeFactory.CreateScope();
             var runtime = scope.ServiceProvider.GetRequiredService<LeaseRuntimeService>();
             var report = await runtime.ReconcileAsync(stoppingToken);
+                var authority = report.AuthorityAutopilot;
                 if (report.StaleExpired + report.MissingWorktree + report.OrphanedRunning
-                    + report.MergedTaskActiveLease + report.InvalidReadyForReview > 0)
+                    + report.MergedTaskActiveLease + report.InvalidReadyForReview > 0
+                    || (authority?.Evaluated ?? 0) > 0)
                 {
                     _logger.LogInformation(
-                        "Lease reconciliation: stale={Stale} worktree={Wt} orphan={Orphan} merged={Merged} invalid={Invalid}",
+                        "Lease reconciliation: stale={Stale} worktree={Wt} orphan={Orphan} merged={Merged} invalid={Invalid} authorityEval={AuthEval} authorityAccepted={AuthAccepted}",
                         report.StaleExpired,
                         report.MissingWorktree,
                         report.OrphanedRunning,
                         report.MergedTaskActiveLease,
-                        report.InvalidReadyForReview);
+                        report.InvalidReadyForReview,
+                        authority?.Evaluated ?? 0,
+                        authority?.AutoAccepted ?? 0);
                 }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

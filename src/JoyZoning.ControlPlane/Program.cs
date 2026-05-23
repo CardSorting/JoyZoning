@@ -26,6 +26,7 @@ if (string.IsNullOrWhiteSpace(dbPath))
 builder.Services.Configure<HermesOptions>(builder.Configuration.GetSection(HermesOptions.SectionName));
 builder.Services.Configure<ControlPlaneOptions>(builder.Configuration.GetSection(ControlPlaneOptions.SectionName));
 builder.Services.Configure<LeaseRuntimeOptions>(builder.Configuration.GetSection(LeaseRuntimeOptions.SectionName));
+builder.Services.Configure<AuthorityOptions>(builder.Configuration.GetSection(AuthorityOptions.SectionName));
 builder.Services.Configure<WorkspaceOptions>(builder.Configuration.GetSection(WorkspaceOptions.SectionName));
 builder.Services.Configure<ExecutorOptions>(builder.Configuration.GetSection(ExecutorOptions.SectionName));
 builder.Services.Configure<WorkspaceParallelismOptions>(
@@ -53,11 +54,13 @@ builder.Services.AddJoyZoningAdapters();
 builder.Services.AddScoped<EventIngestor>();
 builder.Services.AddScoped<WorkspaceEventPublisher>();
 builder.Services.AddScoped<WorkerMergeObservabilityBuilder>();
+builder.Services.AddScoped<AuthorityAutopilotMergeContextBuilder>();
 builder.Services.AddScoped<WorkspaceLiveMirrorObservabilityService>();
 builder.Services.AddScoped<WorkspaceLiveMirrorService>();
 builder.Services.AddSingleton<LeaseLiveRefreshCoordinator>();
 builder.Services.AddScoped<LeaseWorktreeMonitor>();
 builder.Services.AddScoped<LeaseRuntimeService>();
+builder.Services.AddScoped<AuthorityAutopilotService>();
 builder.Services.AddScoped<KanbanExecutionOrchestrator>();
 builder.Services.AddScoped<OrchestrationService>();
 builder.Services.AddScoped<WorkspaceSessionConsolidator>();

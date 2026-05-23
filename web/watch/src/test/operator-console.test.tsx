@@ -61,6 +61,15 @@ function buildReadyWorker() {
   },
   approveGuardrails: { blocked: false, blockReasons: [], warnings: [], requiresAcknowledgement: false },
   revokeGuardrails: { blocked: false, blockReasons: [], warnings: [], requiresAcknowledgement: false },
+  authority: {
+    profile: "BalancedAuto",
+    riskLevel: "medium",
+    autoAcceptAllowed: false,
+    needsHumanReview: true,
+    reasonCodes: ["protected_path"],
+    humanMessages: ["Blocked: touched protected path src/auth/login.ts"],
+    wasAutoAccepted: false,
+  },
   };
 }
 
@@ -139,7 +148,10 @@ describe("operator console single screen", () => {
     expect(within(emphasis).getByText(/recommended/i)).toBeInTheDocument();
 
     expect(screen.getByTestId("primary-action")).toHaveTextContent(/Accept result/i);
+    expect(screen.getByTestId("authority-autopilot-bar")).toBeInTheDocument();
+    expect(screen.getByText(/Balanced-Auto/i)).toBeInTheDocument();
     expect(screen.getByTestId("merge-queue-panel")).toBeInTheDocument();
+    expect(within(screen.getByTestId("merge-queue-panel")).getByText(/Needs review/i)).toBeInTheDocument();
     expect(screen.getByTestId("worker-list")).toBeInTheDocument();
     expect(screen.getByTestId("convergence-panel")).toBeInTheDocument();
     expect(screen.getByText(/Main workspace \(canonical\)/i)).toBeInTheDocument();

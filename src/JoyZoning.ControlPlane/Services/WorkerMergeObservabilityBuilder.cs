@@ -122,6 +122,38 @@ public sealed class WorkerMergeObservabilityBuilder
         return (state, readiness, conflict);
     }
 
+    public static async Task<IReadOnlyList<string>> ResolveChangedPathsForLeaseAsync(
+        ExecutionLease lease,
+        string sessionRoot,
+        CancellationToken cancellationToken)
+    {
+        if (lease.Status != ExecutionLeaseStatus.ReadyForReview)
+            return Array.Empty<string>();
+
+        if (!string.IsNullOrWhiteSpace(lease.VerificationReportJson))
+        {
+            try
+            {
+                var report = VerificationReportSerializer.Deserialize(lease.VerificationReportJson);
+                if (report.ChangedFiles.Count > 0)
+                    return report.ChangedFiles.ToList();
+            }
+            catch
+            {
+                // fall through to git
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(lease.WorktreePath) || !Directory.Exists(lease.WorktreePath))
+            return Array.Empty<string>();
+
+        var git = await GitWorkspaceStatus.TryGetWorktreeSummaryAsync(
+            lease.WorktreePath,
+            sessionRoot,
+            cancellationToken);
+        return git?.ChangedPaths.ToList() ?? [];
+    }
+
     public static IReadOnlyDictionary<Guid, HashSet<string>> BuildReadyWorkerFileMap(
         IEnumerable<(ExecutionLease Lease, IReadOnlyList<string> Paths)> readyLeases)
     {
