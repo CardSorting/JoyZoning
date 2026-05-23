@@ -35,15 +35,16 @@ public sealed class WorkerMergeObservabilityBuilder
         var summaryPaths = changedPaths.Take(8).ToList();
 
         var overlapping = false;
+        HashSet<string>? readyFiles = null;
         if (lease.Status == ExecutionLeaseStatus.ReadyForReview
-            && readyWorkerFileMap.TryGetValue(lease.Id, out var myFiles))
+            && readyWorkerFileMap.TryGetValue(lease.Id, out readyFiles))
         {
             foreach (var (otherLeaseId, otherFiles) in readyWorkerFileMap)
             {
                 if (otherLeaseId == lease.Id)
                     continue;
 
-                if (myFiles.Overlaps(otherFiles, StringComparer.OrdinalIgnoreCase))
+                if (readyFiles.Overlaps(otherFiles))
                 {
                     overlapping = true;
                     break;
@@ -63,18 +64,28 @@ public sealed class WorkerMergeObservabilityBuilder
             overlapping,
             gitConflicts.ToList());
 
-        if (overlapping && conflict is null)
+        if (overlapping && readyFiles is not null)
         {
-            conflict = new MergeConflictDetail(
-                "overlapping_files",
-                "Changed files overlap another ready worker.",
-                myFiles?.Intersect(
-                        readyWorkerFileMap
-                            .Where(kv => kv.Key != lease.Id)
-                            .SelectMany(kv => kv.Value),
-                        StringComparer.OrdinalIgnoreCase)
-                    .Take(20)
-                    .ToList() ?? Array.Empty<string>());
+            var overlapFiles = readyFiles
+                .Intersect(
+                    readyWorkerFileMap
+                        .Where(kv => kv.Key != lease.Id)
+                        .SelectMany(kv => kv.Value),
+                    StringComparer.OrdinalIgnoreCase)
+                .Take(20)
+                .ToList();
+
+            if (conflict is { Category: "overlapping_files" } && conflict.ConflictFiles.Count == 0 && overlapFiles.Count > 0)
+            {
+                conflict = conflict with { ConflictFiles = overlapFiles };
+            }
+            else if (conflict is null && overlapFiles.Count > 0)
+            {
+                conflict = new MergeConflictDetail(
+                    "overlapping_files",
+                    "Changed files overlap another ready worker.",
+                    overlapFiles);
+            }
         }
 
         if (state == WorkerMergeState.MergeConflict && conflict is not null && conflict.ConflictFiles.Count == 0 && gitConflicts.Count > 0)
@@ -90,6 +101,8 @@ public sealed class WorkerMergeObservabilityBuilder
                 ? $"{failed.CommandsRun.Count(cmd => !cmd.Passed)} command(s) failed"
                 : null;
 
+        var gitConvergence = GitConvergenceEvidence.TryReadLastSummary(lease.EvidenceLogJson);
+
         var readiness = new WorkerMergeReadiness(
             ExecutionSessionId: lease.ExecutionSessionId,
             WorktreePath: lease.WorktreePath,
@@ -103,7 +116,8 @@ public sealed class WorkerMergeObservabilityBuilder
             ChangedFilesSummary: summaryPaths,
             VerificationPassed: testsRun == true ? verificationPassed : null,
             TestsRun: testsRun,
-            VerificationSummary: verificationSummary);
+            VerificationSummary: verificationSummary,
+            GitConvergence: gitConvergence);
 
         return (state, readiness, conflict);
     }

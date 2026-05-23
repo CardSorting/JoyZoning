@@ -72,7 +72,10 @@ public class LeaseRuntimeServiceTests : IDisposable
         services.AddSingleton<WorkspaceLiveMirrorRegistry>();
         services.Configure<WorkspaceOptions>(o => o.MirrorToSessionRoot = false);
         services.Configure<WorkspaceParallelismOptions>(_ => { });
+        services.AddScoped<WorkerMergeObservabilityBuilder>();
+        services.AddScoped<WorkspaceLiveMirrorObservabilityService>();
         services.AddScoped<WorkspaceLiveMirrorService>();
+        services.AddSingleton<JoyZoning.Domain.Orchestration.IWorkspaceGitMerger, JoyZoning.Adapters.Workspace.WorkspaceGitMerger>();
         services.AddScoped<KanbanExecutionOrchestrator>();
 
         _services = services.BuildServiceProvider();

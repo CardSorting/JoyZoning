@@ -86,6 +86,17 @@ internal static class ParallelWorkersApiMapper
                 r.VerificationPassed,
                 r.TestsRun,
                 r.VerificationSummary,
+                gitConvergence = r.GitConvergence is null
+                    ? null
+                    : new
+                    {
+                        r.GitConvergence.Succeeded,
+                        r.GitConvergence.Strategy,
+                        r.GitConvergence.DestinationPreviousHead,
+                        r.GitConvergence.DestinationNewHead,
+                        appliedFiles = r.GitConvergence.AppliedFiles,
+                        r.GitConvergence.ErrorMessage,
+                    },
             };
 
     private static object? MapConflict(MergeConflictDetail? c) =>

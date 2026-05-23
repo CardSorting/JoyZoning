@@ -15,6 +15,9 @@ import {
   type ParallelWorkersSnapshot,
   type ParallelWorkerEntry,
 } from "@/lib/parallel-workers";
+import { ModeHandoffLink } from "./ModeHandoffLink";
+import type { JoyZoningOperationalMode } from "@/lib/operational-modes";
+import { isOperationalMode } from "@/lib/operational-modes";
 import { PathActionNotice } from "./PathActionNotice";
 
 function shortId(id: string) {
@@ -28,6 +31,8 @@ function WorkerCard({
   inspectOnly,
   onGoToReview,
   onPathNotice,
+  onNavigateMode,
+  activeMode,
 }: {
   worker: ParallelWorkerEntry;
   isSelected: boolean;
@@ -35,6 +40,8 @@ function WorkerCard({
   inspectOnly?: boolean;
   onGoToReview?: () => void;
   onPathNotice: (message: string | null, variant?: "info" | "error") => void;
+  onNavigateMode?: (mode: JoyZoningOperationalMode) => void;
+  activeMode?: JoyZoningOperationalMode;
 }) {
   const showReviewHandoff =
     inspectOnly &&
@@ -139,20 +146,45 @@ function WorkerCard({
             className="inline-flex items-center gap-1 rounded-lg border border-campfire-border px-2 py-1 text-[10px] text-campfire-muted hover:text-campfire-text"
           >
             <ExternalLink className="h-3 w-3" />
-            Open folder
+            Open workspace
           </button>
         </div>
       )}
 
-      {showReviewHandoff && (
+      {showReviewHandoff && onGoToReview && (
         <button
           type="button"
-          onClick={() => onGoToReview?.()}
+          onClick={() => onGoToReview()}
           className="mt-2 text-[10px] font-semibold text-campfire-accent hover:underline"
         >
-          → Review output in Review mode
+          Review merge readiness below
         </button>
       )}
+
+      {isSelected &&
+        onNavigateMode &&
+        worker.availableModeTransitions &&
+        worker.availableModeTransitions.length > 0 && (
+          <div className="mt-2 space-y-1 border-t border-campfire-border/50 pt-2">
+            {worker.availableModeTransitions
+              .filter(
+                (t) =>
+                  isOperationalMode(t.targetMode) &&
+                  t.targetMode !== activeMode,
+              )
+              .slice(0, 2)
+              .map((t) => (
+                <ModeHandoffLink
+                  key={`${t.targetMode}-${t.handoffKind ?? t.label}`}
+                  targetMode={t.targetMode as JoyZoningOperationalMode}
+                  label={t.label}
+                  reason={t.reason}
+                  onNavigate={onNavigateMode}
+                  theme="campfire"
+                />
+              ))}
+          </div>
+        )}
     </div>
   );
 }
@@ -164,6 +196,8 @@ export function ParallelWorkersPanel({
   theme = "campfire",
   inspectOnly = false,
   onGoToReview,
+  onNavigateMode,
+  activeMode = "execution",
 }: {
   sessionId: string | null;
   selectedTaskId?: string | null;
@@ -172,6 +206,8 @@ export function ParallelWorkersPanel({
   /** Execution mode: no merge actions; offer handoff to Review. */
   inspectOnly?: boolean;
   onGoToReview?: () => void;
+  onNavigateMode?: (mode: JoyZoningOperationalMode) => void;
+  activeMode?: JoyZoningOperationalMode;
 }) {
   const [data, setData] = useState<ParallelWorkersSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -315,6 +351,8 @@ export function ParallelWorkersPanel({
             inspectOnly={inspectOnly}
             onGoToReview={onGoToReview}
             onPathNotice={reportPathNotice}
+            onNavigateMode={onNavigateMode}
+            activeMode={activeMode}
           />
         ))}
       </div>

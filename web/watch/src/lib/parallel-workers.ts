@@ -51,6 +51,14 @@ export interface ParallelWorkerEntry {
     verificationPassed?: boolean | null;
     testsRun?: boolean | null;
     verificationSummary?: string | null;
+    gitConvergence?: {
+      succeeded: boolean;
+      strategy: string;
+      destinationPreviousHead?: string | null;
+      destinationNewHead?: string | null;
+      appliedFiles?: string[];
+      errorMessage?: string | null;
+    } | null;
   } | null;
   mergeConflict?: {
     category: string;
@@ -58,12 +66,14 @@ export interface ParallelWorkerEntry {
     conflictFiles: string[];
   } | null;
   recommendedMode?: string;
-  availableModeTransitions?: {
-    targetMode: string;
-    label: string;
-    reason: string;
-    handoffKind?: string | null;
-  }[];
+  availableModeTransitions?: ModeTransitionHint[];
+}
+
+export interface ModeTransitionHint {
+  targetMode: string;
+  label: string;
+  reason: string;
+  handoffKind?: string | null;
 }
 
 export interface ParallelWorkersSnapshot {

@@ -20,6 +20,15 @@ public class LeaseRuntimeOptions
 
     public LeaseDurationOptions Duration { get; set; } = new();
     public LeaseStaleOptions Stale { get; set; } = new();
+
+    /// <summary>
+    /// When true, <c>POST …/lease/merge</c> only updates lease/task metadata (legacy).
+    /// Default false: git convergence must succeed before Merged/Complete.
+    /// </summary>
+    public bool MetadataOnlyAcceptResult { get; set; }
+
+    /// <summary>When false, a dirty canonical workspace blocks accept (no auto-stash).</summary>
+    public bool AllowDirtyDestination { get; set; }
 }
 
 public class LeaseDurationOptions

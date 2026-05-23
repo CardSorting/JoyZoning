@@ -115,7 +115,7 @@ function MergeWorkerCard({
               onApprove();
             }}
           >
-            <ShieldCheck className="h-3 w-3" /> Approve
+            <ShieldCheck className="h-3 w-3" /> Accept
           </button>
         )}
         {onInspect &&
@@ -128,7 +128,7 @@ function MergeWorkerCard({
                 onInspect();
               }}
             >
-              <ShieldAlert className="h-3 w-3" /> Inspect
+              <ShieldAlert className="h-3 w-3" /> Review conflict
             </button>
           )}
         {onRevoke &&
@@ -168,7 +168,7 @@ function MergeWorkerCard({
               );
             }}
             >
-              <ExternalLink className="h-3 w-3" /> Open worktree
+              <ExternalLink className="h-3 w-3" /> Open workspace
             </button>
           </>
         )}
@@ -183,7 +183,7 @@ function MergeWorkerCard({
               );
             }}
           >
-            <ExternalLink className="h-3 w-3" /> Open mirror
+            <ExternalLink className="h-3 w-3" /> Open workspace
           </button>
         )}
       </div>
@@ -257,14 +257,21 @@ export function MergeQueuePanel({
   selectedTaskId,
   onSelectTask,
   authoritativeActions = false,
+  embedded = false,
+  externalSnapshot,
+  onExternalRefresh,
 }: {
   sessionId: string;
   selectedTaskId?: string;
   onSelectTask?: (taskId: string) => void;
-  /** When false, hides approve/revoke (e.g. panel mounted outside Review mode). */
+  /** When false, hides approve/revoke (legacy mode-tab layout only). */
   authoritativeActions?: boolean;
+  /** Single-screen console: shared data, no duplicate mode surface marker. */
+  embedded?: boolean;
+  externalSnapshot?: MergeQueueSnapshot | null;
+  onExternalRefresh?: () => void;
 }) {
-  const [data, setData] = useState<MergeQueueSnapshot | null>(null);
+  const [data, setData] = useState<MergeQueueSnapshot | null>(externalSnapshot ?? null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialog, setDialog] = useState<{
@@ -289,6 +296,10 @@ export function MergeQueuePanel({
   );
 
   const load = useCallback(async () => {
+    if (embedded && onExternalRefresh) {
+      onExternalRefresh();
+      return;
+    }
     try {
       setError(null);
       const snap = await api.mergeQueue(sessionId);
@@ -298,13 +309,18 @@ export function MergeQueuePanel({
     } finally {
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, embedded, onExternalRefresh]);
 
   useEffect(() => {
+    if (embedded) {
+      setData(externalSnapshot ?? null);
+      setLoading(false);
+      return;
+    }
     void load();
     const t = setInterval(() => void load(), 12_000);
     return () => clearInterval(t);
-  }, [load]);
+  }, [load, embedded, externalSnapshot]);
 
   const hasAny =
     data &&
@@ -315,9 +331,13 @@ export function MergeQueuePanel({
 
   return (
     <section
-      data-joyzoning-mode="review"
-      data-canonical-surface="true"
-      className="rounded-2xl border border-campfire-border bg-campfire-surface/40 p-4"
+      {...(!embedded ? { "data-joyzoning-mode": "review", "data-canonical-surface": "true" } : {})}
+      data-testid="merge-queue-panel"
+      className={
+        embedded
+          ? "rounded-2xl border border-zinc-700 bg-zinc-900/50 p-4"
+          : "rounded-2xl border border-campfire-border bg-campfire-surface/40 p-4"
+      }
     >
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -341,9 +361,9 @@ export function MergeQueuePanel({
         variant={pathNotice?.variant ?? "info"}
       />
 
-      {!authoritativeActions && (
+      {!authoritativeActions && !embedded && (
         <p className="mb-3 text-xs text-amber-200/90">
-          Read-only view — switch to Review mode to approve, revoke, or inspect with guardrails.
+          Read-only — approve, revoke, and conflict review are on the operator console.
         </p>
       )}
 

@@ -6,13 +6,18 @@ JoyZoning is **multi-mode** — do not collapse metaphors. See [operational-mode
 
 ## Canonical shell
 
-**`OperatorModeShell`** is the only supported operator composition:
+**`OperatorConsole`** (via `OperatorModeShell`) is the single-screen operator UI:
 
-- `WatchApp` → `OperatorModeShell` (primary entry via `page.tsx`)
-- `WatchDashboard` → delegates to `OperatorModeShell` (`theme="campfire"`) — legacy wrapper, no stacked panels
-- `PetShell` → delegates to `OperatorModeShell` — deprecated alias
+- One task, one selected worker, one primary action
+- All critical surfaces visible without mode tabs (workers, merge/review, status, events, board)
+- Server **recommended mode** is emphasis + scroll only (`ModeEmphasisBar`) — not separate screens
+- Habitat / pet / campfire visuals are not shown in the production console
+- **Convergence** panel + **Accept result** (not “merge”) until git convergence ships — [worker-convergence.md](../../docs/worker-convergence.md), [real-git-convergence.md](../../docs/real-git-convergence.md)
 
-Do not mount `MergeQueuePanel`, `KanbanBoard`, and `ParallelWorkersPanel` on one scroll surface. Use the mode switcher (`?mode=`) instead.
+Entry points:
+
+- `WatchApp` → `OperatorModeShell` → `OperatorConsole` (`page.tsx`)
+- `WatchDashboard` / `PetShell` — legacy wrappers that delegate to the same console
 
 **Live binding (required for legacy wrappers):** build props with `createWatchLiveBinding()` from `useLiveTask` output — never pass empty `connLabel`, missing `sessionId`, or noop handlers. `WatchDashboard` / `PetShell` accept only:
 

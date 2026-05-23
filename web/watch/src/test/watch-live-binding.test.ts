@@ -84,4 +84,13 @@ describe("watch live binding", () => {
         .recommendedMode,
     ).toBe("execution");
   });
+
+  it("inferModeNavigationFromSnapshot supplies handoffs when server hints are missing", () => {
+    const nav = inferModeNavigationFromSnapshot(
+      minimalSnapshot({ leaseStatus: "ReadyForReview" }),
+    );
+    expect(nav.recommendedMode).toBe("review");
+    expect(nav.availableTransitions.some((t) => t.targetMode === "execution")).toBe(true);
+    expect(nav.availableTransitions.some((t) => t.targetMode === "review")).toBe(true);
+  });
 });

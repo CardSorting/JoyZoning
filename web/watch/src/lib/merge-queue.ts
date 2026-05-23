@@ -15,6 +15,15 @@ export type WorkerMergeState =
   | "abandoned"
   | "stale";
 
+export interface GitConvergenceReadiness {
+  succeeded: boolean;
+  strategy: string;
+  destinationPreviousHead?: string | null;
+  destinationNewHead?: string | null;
+  appliedFiles: string[];
+  errorMessage?: string | null;
+}
+
 export interface MergeReadiness {
   executionSessionId?: string | null;
   worktreePath?: string | null;
@@ -29,6 +38,7 @@ export interface MergeReadiness {
   verificationPassed?: boolean | null;
   testsRun?: boolean | null;
   verificationSummary?: string | null;
+  gitConvergence?: GitConvergenceReadiness | null;
 }
 
 export interface MergeConflict {

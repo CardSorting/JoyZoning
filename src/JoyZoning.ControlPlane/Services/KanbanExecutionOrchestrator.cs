@@ -1,3 +1,4 @@
+using JoyZoning.Adapters.Workspace;
 using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Entities;
 using JoyZoning.Domain.Enums;
@@ -25,6 +26,7 @@ public class KanbanExecutionOrchestrator
     private readonly LeaseRuntimeService _runtime;
     private readonly LeaseRuntimeOptions _options;
     private readonly WorkspaceLiveMirrorService _liveMirror;
+    private readonly IWorkspaceGitMerger _gitMerger;
 
     public KanbanExecutionOrchestrator(
         IWorkTaskRepository tasks,
@@ -33,7 +35,8 @@ public class KanbanExecutionOrchestrator
         EventIngestor events,
         LeaseRuntimeService runtime,
         IOptions<LeaseRuntimeOptions> options,
-        WorkspaceLiveMirrorService liveMirror)
+        WorkspaceLiveMirrorService liveMirror,
+        IWorkspaceGitMerger gitMerger)
     {
         _tasks = tasks;
         _sessions = sessions;
@@ -42,6 +45,7 @@ public class KanbanExecutionOrchestrator
         _runtime = runtime;
         _options = options.Value;
         _liveMirror = liveMirror;
+        _gitMerger = gitMerger;
     }
 
     public async Task<(ExecutionLease Lease, HandoffPacket Handoff)> BeginLeaseAsync(
@@ -453,39 +457,99 @@ public class KanbanExecutionOrchestrator
         return lease;
     }
 
-    public async Task<WorkTask> ApproveMergeAsync(
+    public Task<AcceptResultResponse> ApproveMergeAsync(
+        Guid cardId,
+        CancellationToken cancellationToken = default) =>
+        AcceptResultAsync(cardId, cancellationToken);
+
+    /// <summary>Accept ReadyForReview worker output into the canonical workspace, then mark Merged/Complete.</summary>
+    public async Task<AcceptResultResponse> AcceptResultAsync(
         Guid cardId,
         CancellationToken cancellationToken = default)
     {
         var lease = await _leases.GetActiveByTaskIdAsync(cardId, cancellationToken)
-            ?? throw LeaseOrchestrationException.NotFound("No active lease to merge.");
+            ?? throw LeaseOrchestrationException.NotFound("No active lease to accept.");
 
         var error = KanbanExecutionRules.ValidateHumanMerge(lease);
         if (error is not null)
             throw LeaseOrchestrationException.Conflict(error);
 
-        var from = lease.Status;
-        lease.Status = ExecutionLeaseStatus.Merged;
-        lease.MergedAt = DateTimeOffset.UtcNow;
-
-        AppendEvidence(lease, "lease.merged", StatusChangeActor.Human, from, ExecutionLeaseStatus.Merged,
-            summary: "Human approved merge.");
-
-        await _leases.UpdateAsync(lease, cancellationToken);
-
         var task = await _tasks.GetByIdAsync(cardId, cancellationToken)
             ?? throw LeaseOrchestrationException.NotFound($"Task {cardId} not found.");
 
+        var session = await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken)
+            ?? throw LeaseOrchestrationException.NotFound("Operator session not found.");
+
+        WorkspaceConvergenceResult? convergence = null;
+
+        if (_options.MetadataOnlyAcceptResult)
+        {
+            if (string.IsNullOrWhiteSpace(lease.WorktreePath))
+                throw LeaseOrchestrationException.Conflict("Worker worktree path is missing.");
+
+            AppendEvidence(lease, "git.convergence.skipped", StatusChangeActor.Human, lease.Status, lease.Status,
+                summary: "Metadata-only accept (unsafe/dev). Git convergence was not run.",
+                detail: new { metadataOnly = true });
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(lease.WorktreePath))
+                throw LeaseOrchestrationException.Conflict("Worker worktree path is missing.");
+
+            if (string.IsNullOrWhiteSpace(session.WorkspaceRoot) || !Directory.Exists(session.WorkspaceRoot))
+                throw LeaseOrchestrationException.Conflict("Canonical session workspace is missing.");
+
+            var request = new WorkspaceConvergenceRequest(
+                session.WorkspaceRoot,
+                lease.WorktreePath,
+                lease.BranchName,
+                DryRun: false,
+                AllowDirtyDestination: _options.AllowDirtyDestination);
+
+            convergence = await _gitMerger.ConvergeAsync(request, cancellationToken);
+
+            if (!convergence.Succeeded)
+            {
+                lease.BlockedReason = convergence.ErrorMessage;
+                AppendEvidence(lease, GitConvergenceEvidence.FailedKind, StatusChangeActor.Human,
+                    lease.Status, lease.Status,
+                    summary: "Git convergence failed; lease remains ready for review.",
+                    detail: GitConvergenceEvidence.ToEvidenceDetail(convergence));
+
+                await _leases.UpdateAsync(lease, cancellationToken);
+                throw LeaseOrchestrationException.Conflict(
+                    convergence.ErrorMessage ?? "Git convergence failed.");
+            }
+
+            AppendEvidence(lease, GitConvergenceEvidence.SucceededKind, StatusChangeActor.Human,
+                lease.Status, lease.Status,
+                summary: "Worker changes applied to canonical workspace.",
+                detail: GitConvergenceEvidence.ToEvidenceDetail(convergence));
+        }
+
+        var from = lease.Status;
+        lease.Status = ExecutionLeaseStatus.Merged;
+        lease.MergedAt = DateTimeOffset.UtcNow;
+        lease.BlockedReason = null;
+
+        AppendEvidence(lease, "lease.merged", StatusChangeActor.Human, from, ExecutionLeaseStatus.Merged,
+            summary: _options.MetadataOnlyAcceptResult
+                ? "Result accepted (metadata only)."
+                : "Result accepted; code converged into canonical workspace.",
+            detail: convergence is null ? null : GitConvergenceEvidence.ToEvidenceDetail(convergence));
+
+        await _leases.UpdateAsync(lease, cancellationToken);
         await ApplyTaskStatusAsync(task, WorkTaskStatus.Complete, cancellationToken);
 
         await _events.IngestAsync(cardId, EventSource.JoyZoning, EventTypes.ExecutionLeaseMerged,
-            new { lease.Id }, cancellationToken);
+            new { lease.Id, gitConvergence = convergence?.Strategy }, cancellationToken);
 
         await _liveMirror.CompleteMirrorForLeaseAsync(
             lease,
             WorkerMergeState.Merged,
             cancellationToken);
-        return task;
+
+        return new AcceptResultResponse(task, convergence, _options.MetadataOnlyAcceptResult);
     }
 
     public Task ValidateTaskStatusChangeAsync(

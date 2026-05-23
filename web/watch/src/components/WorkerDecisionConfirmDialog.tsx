@@ -11,6 +11,7 @@ import {
   type OperatorDecisionSummary,
 } from "@/lib/operator-decision";
 import { shortCommit } from "@/lib/merge-queue";
+import { ACCEPT_RESULT_LABEL } from "@/lib/operator-labels";
 import { copyPath, openPathInShell } from "@/lib/path-actions";
 
 function RiskFlags({ flags }: { flags: OperatorDecisionSummary["riskFlags"] }) {
@@ -93,7 +94,7 @@ function DecisionSummaryBody({
               });
             }}
           >
-            <ExternalLink className="h-3 w-3" /> Open
+            <ExternalLink className="h-3 w-3" /> Open workspace
           </button>
         </div>
       )}
@@ -109,7 +110,7 @@ function DecisionSummaryBody({
               });
             }}
           >
-            <ExternalLink className="h-3 w-3" /> Open mirror
+            <ExternalLink className="h-3 w-3" /> Open workspace
           </button>
         </div>
       )}
@@ -143,9 +144,9 @@ function GuardrailMessages({ guardrails }: { guardrails: OperatorActionGuardrail
 }
 
 const TITLES: Record<OperatorDecisionAction, string> = {
-  approve: "Approve merge",
+  approve: ACCEPT_RESULT_LABEL,
   revoke: "Revoke worker",
-  inspect: "Inspect conflict",
+  inspect: "Review conflict",
 };
 
 export function WorkerDecisionConfirmDialog({

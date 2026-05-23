@@ -13,7 +13,8 @@ public sealed record WorkerMergeReadiness(
     IReadOnlyList<string> ChangedFilesSummary,
     bool? VerificationPassed,
     bool? TestsRun,
-    string? VerificationSummary);
+    string? VerificationSummary,
+    GitConvergenceSummary? GitConvergence = null);
 
 public sealed record MergeConflictDetail(
     string Category,

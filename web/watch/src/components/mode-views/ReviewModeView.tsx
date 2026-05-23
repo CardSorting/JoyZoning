@@ -41,7 +41,7 @@ export function ReviewModeView({
       <div className="space-y-2">
         <ModeHandoffLink
           targetMode="execution"
-          label="Inspect live worker"
+          label="View worker"
           reason="Open mirrors, Hermes sessions, and lease health"
           onNavigate={onNavigateMode}
         />

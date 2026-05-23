@@ -3,9 +3,19 @@
  * Build via createWatchLiveBinding() from useLiveTask + session state only.
  */
 
-import { isOperationalMode } from "./operational-modes";
+import {
+  isOperationalMode,
+  type JoyZoningOperationalMode,
+} from "./operational-modes";
 import type { WatchOperatorShellProps } from "@/components/watch-operator-shell-props";
 import type { LiveTaskSnapshot } from "./types";
+
+type ModeTransition = {
+  targetMode: JoyZoningOperationalMode;
+  label: string;
+  reason: string;
+  handoffKind?: string | null;
+};
 
 export type WatchLiveBindingInput = WatchOperatorShellProps;
 
@@ -83,10 +93,85 @@ export function isWatchLiveBinding(value: unknown): value is WatchLiveBinding {
   );
 }
 
+function addTransition(
+  list: ModeTransition[],
+  current: JoyZoningOperationalMode,
+  target: JoyZoningOperationalMode,
+  label: string,
+  reason: string,
+  handoffKind: string,
+) {
+  if (current === target) return;
+  if (list.some((t) => t.targetMode === target)) return;
+  list.push({ targetMode: target, label, reason, handoffKind });
+}
+
+function addReviewTransition(
+  list: ModeTransition[],
+  current: JoyZoningOperationalMode,
+  label: string,
+  reason: string,
+  handoffKind: string,
+) {
+  if (list.some((t) => t.targetMode === "review")) return;
+  list.push({
+    targetMode: "review",
+    label: current === "review" ? "Review queue" : label,
+    reason,
+    handoffKind,
+  });
+}
+
+/** Client fallback aligned with OperationalModeNavigation.BuildTransitionsForLive. */
+export function buildInferredLiveTransitions(
+  recommended: JoyZoningOperationalMode,
+  leaseStatus?: string | null,
+): ModeTransition[] {
+  const transitions: ModeTransition[] = [];
+  addTransition(
+    transitions,
+    recommended,
+    "planning",
+    "View on board",
+    "Session kanban and task intent",
+    "planning_task",
+  );
+  addTransition(
+    transitions,
+    recommended,
+    "execution",
+    "Watch execution",
+    "What workers are doing right now",
+    "execution_live",
+  );
+
+  const reviewReady =
+    leaseStatus === "ReadyForReview" || leaseStatus === "Verifying";
+  if (reviewReady) {
+    addReviewTransition(
+      transitions,
+      recommended,
+      "Review for merge",
+      "Changed files and approve/revoke",
+      "review_task",
+    );
+  }
+
+  addTransition(
+    transitions,
+    recommended,
+    "habitat",
+    "Ambient glance",
+    "Workspace atmosphere",
+    "habitat_ambient",
+  );
+  return transitions;
+}
+
 /** Infer mode navigation when backend payload is partial (never silently pretend it was complete). */
 export function inferModeNavigationFromSnapshot(snapshot: LiveTaskSnapshot) {
   const leaseStatus = snapshot.leaseStatus;
-  let recommendedMode = "habitat";
+  let recommendedMode: JoyZoningOperationalMode = "habitat";
   if (leaseStatus === "ReadyForReview" || leaseStatus === "Verifying") {
     recommendedMode = "review";
   } else if (
@@ -102,12 +187,7 @@ export function inferModeNavigationFromSnapshot(snapshot: LiveTaskSnapshot) {
 
   return {
     recommendedMode,
-    availableTransitions: [] as {
-      targetMode: string;
-      label: string;
-      reason: string;
-      handoffKind?: string | null;
-    }[],
+    availableTransitions: buildInferredLiveTransitions(recommendedMode, leaseStatus),
     inferred: true as const,
   };
 }

@@ -60,6 +60,8 @@ export function ExecutionModeView({
         theme={theme}
         inspectOnly
         onGoToReview={() => onNavigateMode("review")}
+        onNavigateMode={onNavigateMode}
+        activeMode="execution"
       />
 
       {readyForReview && (

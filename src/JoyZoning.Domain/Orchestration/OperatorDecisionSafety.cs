@@ -80,8 +80,8 @@ public static class OperatorDecisionSafety
             ConflictStatus: conflictStatus,
             BaseCommit: r?.BaseCommit,
             HeadCommit: r?.HeadCommit,
-            WorktreePath: r?.WorktreePath ?? worker.WorktreePath,
-            LiveMirrorPath: r?.LiveMirrorPath ?? worker.LiveMirrorPath,
+            WorktreePath: worker.WorktreePath ?? r?.WorktreePath,
+            LiveMirrorPath: worker.LiveMirrorPath ?? r?.LiveMirrorPath,
             RiskFlags: flags);
     }
 

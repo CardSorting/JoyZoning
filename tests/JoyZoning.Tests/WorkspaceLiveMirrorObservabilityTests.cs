@@ -167,7 +167,7 @@ public class WorkspaceLiveMirrorObservabilityTests : IDisposable
             Name = "obs",
             WorkspaceRoot = _sessionRoot,
             WorkspaceKey = WorkspacePaths.Normalize(_sessionRoot),
-            Status = SessionStatus.Active,
+            Status = SessionStatus.Executing,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
         });

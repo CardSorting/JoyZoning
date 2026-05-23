@@ -81,7 +81,7 @@ public class WorkerMergeObservabilityTests : IDisposable
         Assert.Equal("passed", worker.DecisionSummary.VerificationStatus);
         Assert.Equal(worktree, worker.DecisionSummary.WorktreePath);
         Assert.NotNull(worker.DecisionSummary.LiveMirrorPath);
-        Assert.Equal("ready_to_merge", worker.RecommendedModeSlug);
+        Assert.Equal(OperationalModeNavigation.SlugReview, worker.RecommendedModeSlug);
         Assert.NotEmpty(worker.AvailableModeTransitions);
     }
 
@@ -203,10 +203,10 @@ public class WorkerMergeObservabilityTests : IDisposable
         await File.WriteAllTextAsync(Path.Combine(worktree, "z.txt"), "z");
 
         var mirror = _services.GetRequiredService<WorkspaceLiveMirrorService>();
-        var path = await mirror.RefreshForLeaseAsync(lease);
-        Assert.NotNull(path);
+        var snapshot = await mirror.RefreshForLeaseAsync(lease);
+        Assert.NotNull(snapshot);
 
-        var metaPath = Path.Combine(path!, ".joyzoning", "mirror-meta.json");
+        var metaPath = Path.Combine(snapshot!.WorktreePath, ".joyzoning", "mirror-meta.json");
         var meta = JsonSerializer.Serialize(new
         {
             status = "completed",
@@ -215,12 +215,13 @@ public class WorkerMergeObservabilityTests : IDisposable
             leaseId = lease.Id,
             taskId = lease.WorkTaskId,
         });
+        Directory.CreateDirectory(Path.GetDirectoryName(metaPath)!);
         await File.WriteAllTextAsync(metaPath, meta);
 
         var session = await _services.GetRequiredService<IOperatorSessionRepository>().GetByIdAsync(sessionId);
         Assert.NotNull(session);
 
-        var pruneTarget = Path.GetFullPath(path!);
+        var pruneTarget = Path.GetFullPath(snapshot.WorktreePath);
         Assert.True(Directory.Exists(pruneTarget));
 
         var mirrorService = _services.GetRequiredService<WorkspaceLiveMirrorService>();
@@ -257,7 +258,7 @@ public class WorkerMergeObservabilityTests : IDisposable
             Name = "merge-obs",
             WorkspaceRoot = _sessionRoot,
             WorkspaceKey = WorkspacePaths.Normalize(_sessionRoot),
-            Status = SessionStatus.Active,
+            Status = SessionStatus.Executing,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
         });

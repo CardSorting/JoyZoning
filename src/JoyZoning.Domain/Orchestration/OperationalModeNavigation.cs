@@ -94,7 +94,7 @@ public static class OperationalModeNavigation
             || worker.LeaseStatus is "ReadyForReview";
         if (reviewReady)
         {
-            AddIfNotCurrent(transitions, recommended, SlugReview, "Review output", "Verification, merge, or conflicts", "review_worker");
+            AddReviewTransition(transitions, recommended, "Review output", "Verification, merge, or conflicts", "review_worker");
         }
 
         AddIfNotCurrent(transitions, recommended, SlugHabitat, "Ambient glance", "Pet atmosphere — links only, not authoritative", "habitat_ambient");
@@ -116,7 +116,7 @@ public static class OperationalModeNavigation
         if (leaseStatus is "ReadyForReview" or "Verifying"
             || mergeState is "ready_to_merge" or "merge_conflict")
         {
-            AddIfNotCurrent(transitions, recommended, SlugReview, "Review for merge", "Changed files and approve/revoke", "review_task");
+            AddReviewTransition(transitions, recommended, "Review for merge", "Changed files and approve/revoke", "review_task");
         }
 
         AddIfNotCurrent(transitions, recommended, SlugHabitat, "Ambient glance", "Workspace atmosphere", "habitat_ambient");
@@ -144,6 +144,23 @@ public static class OperationalModeNavigation
             return;
 
         list.Add(new ModeTransitionHint(target, label, reason, handoffKind));
+    }
+
+    /// <summary>Review handoffs stay visible even when review is already the recommended mode.</summary>
+    private static void AddReviewTransition(
+        List<ModeTransitionHint> list,
+        string current,
+        string label,
+        string reason,
+        string handoffKind)
+    {
+        if (list.Any(t => string.Equals(t.TargetModeSlug, SlugReview, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        var reviewLabel = string.Equals(current, SlugReview, StringComparison.OrdinalIgnoreCase)
+            ? "Review queue"
+            : label;
+        list.Add(new ModeTransitionHint(SlugReview, reviewLabel, reason, handoffKind));
     }
 }
 

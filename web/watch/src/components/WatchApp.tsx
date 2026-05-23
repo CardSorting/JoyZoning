@@ -7,11 +7,12 @@ import type { IntentKind } from "@/lib/pet";
 import { loadIntent } from "@/lib/session-prefs";
 import type { WatchBootstrap } from "@/lib/types";
 import { useLiveTask } from "@/hooks/useLiveTask";
+import { clearModeEmphasisOnDepart } from "@/hooks/useModeEmphasis";
 import { clearWatchSessionOnDepart } from "@/hooks/useWatchMode";
 import { tryCreateWatchLiveBinding } from "@/lib/watch-live-binding";
 import { WatchOperatorDisconnected } from "./WatchOperatorDisconnected";
 import { OperatorModeShell } from "./OperatorModeShell";
-import { PetEntryFlow } from "./pet/PetEntryFlow";
+import { OperatorEntryFlow } from "./OperatorEntryFlow";
 
 export function WatchApp({
   initialTaskId,
@@ -66,9 +67,9 @@ export function WatchApp({
         : "idle";
     const line =
       resting
-        ? "Pet resting"
+        ? "Polling paused"
         : variant === "live"
-          ? "Pet is watching"
+          ? "Live"
           : variant === "error"
             ? "Connection error"
             : "Connecting…";
@@ -130,6 +131,7 @@ export function WatchApp({
     setTaskId("");
     setResting(false);
     clearWatchSessionOnDepart();
+    clearModeEmphasisOnDepart();
     const url = new URL(window.location.href);
     url.searchParams.delete("taskId");
     url.searchParams.delete("mode");
@@ -138,25 +140,25 @@ export function WatchApp({
 
   if (bootError) {
     return (
-      <PetEmpty
-        title="Can't reach the pet shop"
+      <OperatorEmpty
+        title="Control plane unreachable"
         body={bootError}
-        hint="Start the control plane, then refresh."
+        hint="Start JoyZoning control plane on :9470, then refresh."
       />
     );
   }
 
   if (!boot) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-pet-muted">
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-zinc-500">
         <motion.span
-          className="text-3xl font-bold text-pet-mint"
+          className="text-2xl font-bold text-sky-400"
           animate={{ opacity: [0.5, 1, 0.5] }}
           transition={{ repeat: Infinity, duration: 2 }}
         >
-          ◈
+          …
         </motion.span>
-        <p>Hatching connection…</p>
+        <p>Connecting to control plane…</p>
       </div>
     );
   }
@@ -164,19 +166,18 @@ export function WatchApp({
   return (
     <>
       {!watching && (
-        <PetEntryFlow
+        <OperatorEntryFlow
           sessions={boot.sessions}
           activeTasks={boot.activeTasks}
           sessionId={sessionId}
           taskId={taskId}
           taskOptions={taskOptions}
-          initialIntent={intent}
           onSessionChange={(id) => {
             setSessionId(id);
             setTaskId("");
           }}
           onTaskChange={setTaskId}
-          onEnter={handleEnter}
+          onEnter={() => handleEnter(intent)}
         />
       )}
 
@@ -223,8 +224,8 @@ export function WatchApp({
         })()}
 
       {watching && !live.snapshot && !live.error && (
-        <PetEmpty
-          title="Pet is waking up"
+        <OperatorEmpty
+          title="Loading live snapshot"
           body="Pulling the first live snapshot from orchestration."
           hint="Usually just a moment."
           pulse
@@ -232,8 +233,8 @@ export function WatchApp({
       )}
 
       {watching && live.error && (
-        <PetEmpty
-          title="Connection blip"
+        <OperatorEmpty
+          title="Connection error"
           body={live.error}
           hint="Retry or leave and pick another task."
           action={{ label: "Retry", onClick: () => void live.forceRefresh() }}
@@ -243,7 +244,7 @@ export function WatchApp({
   );
 }
 
-function PetEmpty({
+function OperatorEmpty({
   title,
   body,
   hint,
@@ -258,18 +259,16 @@ function PetEmpty({
 }) {
   return (
     <div className="flex min-h-[50vh] items-center justify-center px-4">
-      <div className="pet-panel max-w-md p-8 text-center">
-        <p className={`text-3xl font-bold text-pet-mint ${pulse ? "animate-pet-bob" : ""}`}>
-          ◈
-        </p>
-        <p className="mt-4 text-lg font-semibold text-pet-cream">{title}</p>
-        <p className="mt-2 text-sm text-pet-muted">{body}</p>
-        {hint && <p className="mt-3 text-xs text-pet-muted/80">{hint}</p>}
+      <div className="max-w-md rounded-2xl border border-zinc-700 bg-zinc-900/80 p-8 text-center">
+        <p className={`text-2xl font-bold text-sky-400 ${pulse ? "animate-pulse" : ""}`}>◇</p>
+        <p className="mt-4 text-lg font-semibold text-zinc-100">{title}</p>
+        <p className="mt-2 text-sm text-zinc-400">{body}</p>
+        {hint && <p className="mt-3 text-xs text-zinc-500">{hint}</p>}
         {action && (
           <button
             type="button"
             onClick={action.onClick}
-            className="mt-6 rounded-pet-lg bg-pet-mint/25 px-5 py-2 text-sm font-semibold text-pet-mint"
+            className="mt-6 rounded-xl bg-sky-600/80 px-5 py-2 text-sm font-semibold text-white"
           >
             {action.label}
           </button>
@@ -279,4 +278,4 @@ function PetEmpty({
   );
 }
 
-export { PetHeader as WatchHeader } from "./pet/PetHeader";
+export { WatchHeader } from "./WatchHeader";

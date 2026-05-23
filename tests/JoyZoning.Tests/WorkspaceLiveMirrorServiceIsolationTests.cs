@@ -80,7 +80,7 @@ public class WorkspaceLiveMirrorServiceIsolationTests : IDisposable
             Name = "test",
             WorkspaceRoot = _sessionRoot,
             WorkspaceKey = WorkspacePaths.Normalize(_sessionRoot),
-            Status = SessionStatus.Active,
+            Status = SessionStatus.Executing,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
         });
@@ -126,7 +126,8 @@ public class WorkspaceLiveMirrorServiceIsolationTests : IDisposable
             _services.GetRequiredService<IExecutionRepository>(),
             workspace,
             options,
-            registry);
+            registry,
+            new WorkerMergeObservabilityBuilder());
         var mirror = new WorkspaceLiveMirrorService(
             sessions,
             tasks,
@@ -145,7 +146,7 @@ public class WorkspaceLiveMirrorServiceIsolationTests : IDisposable
             Name = "test",
             WorkspaceRoot = _sessionRoot,
             WorkspaceKey = WorkspacePaths.Normalize(_sessionRoot),
-            Status = SessionStatus.Active,
+            Status = SessionStatus.Executing,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
         });

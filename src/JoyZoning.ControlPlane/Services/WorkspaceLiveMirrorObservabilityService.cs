@@ -440,7 +440,7 @@ public sealed class WorkspaceLiveMirrorObservabilityService
             lease.WorktreePath,
             sessionRoot,
             cancellationToken);
-        return git?.ChangedPaths.ToList() ?? Array.Empty<string>();
+        return git?.ChangedPaths.ToList() ?? (IReadOnlyList<string>)Array.Empty<string>();
     }
 
     private static LiveMirrorHealthState ResolveHealth(
