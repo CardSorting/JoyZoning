@@ -1,5 +1,3 @@
 #!/usr/bin/env bash
-# Deprecated for multi-role sessions — use bounded-dispatch.sh instead.
-#
-# If invoked, dispatches at most one dispatchable role via bounded session plan.
-exec "$(dirname "$0")/bounded-dispatch.sh" --once "$@"
+# Deprecated — use role-chain-dispatch.sh --next for one role at a time.
+exec "$(dirname "$0")/role-chain-dispatch.sh" --once "$@"

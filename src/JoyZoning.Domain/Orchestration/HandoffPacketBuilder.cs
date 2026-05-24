@@ -35,11 +35,8 @@ public static class HandoffPacketBuilder
         if (isJsdp)
         {
             constraints.AddRange(JsdpHandoffCompliance.ScopeGuardrails(session!.DeliverySequence));
-            if (JsdpSessionPolicy.UseCanonicalWorkspace(session))
-            {
-                constraints.Add(
-                    "Work in the canonical session workspace only — do not edit .joyzoning/worktrees or .joyzoning/live.");
-            }
+            constraints.Add(
+                "Work in the canonical session workspace only — do not edit .joyzoning/worktrees or .joyzoning/live.");
 
             foreach (var warning in compliance.Warnings)
                 constraints.Add($"JSDP compliance warning: {warning}");
@@ -60,9 +57,9 @@ public static class HandoffPacketBuilder
             AllowedPaths = allowed,
             ForbiddenPaths = forbidden,
             VerificationCommands = DefaultVerificationCommands(task, risk),
-            RollbackInstructions = isJsdp && JsdpSessionPolicy.UseCanonicalWorkspace(session)
+            RollbackInstructions = isJsdp
                 ? $"Revert uncommitted changes in the canonical workspace and discard branch {branchName} if execution is revoked."
-                : $"Discard branch {branchName} and remove worktree at {worktreePath} if execution is revoked.",
+                : $"Discard branch {branchName} and revert uncommitted changes at {worktreePath} if execution is revoked.",
             RiskLevel = risk,
             WorktreePath = worktreePath,
             BranchName = branchName,

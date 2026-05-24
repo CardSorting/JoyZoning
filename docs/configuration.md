@@ -78,8 +78,7 @@ Optional; defaults come from `LeaseRuntimeOptions` in `JoyZoning.Domain`:
 | `Stale.CriticalLeasedMinutes` | 10 | Shorter for critical cards |
 | `Stale.CriticalRunningMinutes` | 20 | |
 | `Stale.CriticalVerifyingMinutes` | 45 | |
-| `WorktreeMonitorEnabled` | false | Legacy background scan (disabled by default; use `workspace/changed` + SignalR) |
-| `WorktreeMonitorIntervalSeconds` | 45 | Period between scans (minimum 20s enforced) |
+| `WorktreeMonitorEnabled` | *(removed)* | Use `GET /api/tasks/{id}/workspace/changed` + SignalR instead |
 
 Example override in `appsettings.Development.json`:
 
@@ -87,9 +86,7 @@ Example override in `appsettings.Development.json`:
 {
   "LeaseRuntime": {
     "MaxCriticalLeases": 1,
-    "Stale": { "RunningMinutes": 30 },
-    "WorktreeMonitorEnabled": true,
-    "WorktreeMonitorIntervalSeconds": 45
+    "Stale": { "RunningMinutes": 30 }
   }
 }
 ```

@@ -23,9 +23,8 @@ export function workspacePathForWorker(worker: ConsoleWorker | null): string | n
   const merge = worker as MergeWorkerEntry;
   const parallel = worker as ParallelWorkerEntry;
   return (
-    merge.mergeReadiness?.worktreePath ??
     parallel.workspacePath ??
-    worker.worktreePath ??
+    merge.mergeReadiness?.worktreePath ??
     null
   );
 }

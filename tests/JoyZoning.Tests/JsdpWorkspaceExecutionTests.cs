@@ -43,7 +43,7 @@ public class JsdpWorkspaceExecutionTests
     }
 
     [Fact]
-    public void PruneLegacyMirrorArtifacts_removes_worktrees_and_live()
+    public void PruneLegacySandboxArtifacts_removes_worktrees_and_live()
     {
         var root = Path.Combine(Path.GetTempPath(), "jz-jsdp-ws-" + Guid.NewGuid().ToString("N"));
         var worktrees = Path.Combine(root, ".joyzoning", "worktrees", "abc");
@@ -52,7 +52,7 @@ public class JsdpWorkspaceExecutionTests
         Directory.CreateDirectory(live);
         File.WriteAllText(Path.Combine(worktrees, "stale.txt"), "x");
 
-        Assert.Equal(2, JsdpWorkspaceExecution.PruneLegacyMirrorArtifacts(root));
+        Assert.Equal(2, JsdpWorkspaceExecution.PruneLegacySandboxArtifacts(root));
         Assert.False(Directory.Exists(worktrees));
         Assert.False(Directory.Exists(Path.Combine(root, ".joyzoning", "live")));
     }

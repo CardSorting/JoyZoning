@@ -204,7 +204,7 @@ curl -s -X POST http://127.0.0.1:9470/api/delivery-chains \
 - **Canonical workspace:** JSDP bounded roles execute in the **main project folder** (`session.WorkspaceRoot`), not isolated `.joyzoning/worktrees/<id>` sandboxes. Implementation: `JsdpWorkspaceExecution` + `WorktreePlanner` (pass bounded session).
 - **Canonical workspace only:** execution uses the session root directly (`joyzoning/card-*` branch). Legacy `.joyzoning/worktrees/` and `.joyzoning/live/` folders are pruned on merge/revoke.
 - **Legacy lease heal:** Re-dispatch and reconciliation rewrite leases that still point at sandbox paths to the canonical workspace (`TryAlignLeaseToCanonical`).
-- **Post-merge hygiene:** After accept-merge, `PruneLegacyMirrorArtifacts` deletes `.joyzoning/worktrees` and `.joyzoning/live` under the project root.
+- **Post-merge hygiene:** After accept-merge, `PruneLegacySandboxArtifacts` deletes `.joyzoning/worktrees` and `.joyzoning/live` under the project root.
 - **Seeding:** `WorktreeSeeder` never copies `.joyzoning/` into sandboxes (non-JSDP).
 - **Accept-merge:** Git convergence uses branch squash when the worker branch exists, or `canonical_inplace` when worktree equals workspace.
 

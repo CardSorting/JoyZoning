@@ -10,11 +10,6 @@ public class LeaseRuntimeOptions
     public int MaxCriticalLeases { get; set; } = 1;
     public int ReconciliationIntervalSeconds { get; set; } = 30;
 
-    /// <summary>Disabled — JSDP uses canonical workspace; no worktree mirror monitor.</summary>
-    public bool WorktreeMonitorEnabled { get; set; }
-
-    public int WorktreeMonitorIntervalSeconds { get; set; } = 8;
-
     public bool AbsoluteExpirationRevokes { get; set; }
 
     public LeaseDurationOptions Duration { get; set; } = new();

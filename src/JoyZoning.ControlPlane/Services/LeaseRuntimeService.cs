@@ -189,9 +189,7 @@ public class LeaseRuntimeService
 
             if (!Directory.Exists(lease.WorktreePath))
             {
-                if (session is not null
-                    && JsdpSessionPolicy.UseCanonicalWorkspace(session)
-                    && Directory.Exists(session.WorkspaceRoot))
+                if (session is not null && Directory.Exists(session.WorkspaceRoot))
                 {
                     if (JsdpWorkspaceExecution.TryAlignLeaseToCanonical(lease, session, task!, out _))
                         await _leases.UpdateAsync(lease, cancellationToken);

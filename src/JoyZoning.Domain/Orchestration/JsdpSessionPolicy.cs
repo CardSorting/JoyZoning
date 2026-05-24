@@ -17,9 +17,6 @@ public static class JsdpSessionPolicy
     public static bool IsValidChainMember(OperatorSession? session) =>
         session?.IsBoundedRoleSession == true;
 
-    /// <summary>All execution uses the canonical workspace — no isolated sandboxes or live mirrors.</summary>
-    public static bool UseCanonicalWorkspace(OperatorSession? session) => true;
-
     public static string? ValidateSessionIntegrity(OperatorSession session)
     {
         if (!RequiresEnforcement(session))

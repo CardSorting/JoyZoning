@@ -27,7 +27,6 @@ builder.Services.Configure<HermesOptions>(builder.Configuration.GetSection(Herme
 builder.Services.Configure<ControlPlaneOptions>(builder.Configuration.GetSection(ControlPlaneOptions.SectionName));
 builder.Services.Configure<LeaseRuntimeOptions>(builder.Configuration.GetSection(LeaseRuntimeOptions.SectionName));
 builder.Services.Configure<AuthorityOptions>(builder.Configuration.GetSection(AuthorityOptions.SectionName));
-builder.Services.Configure<WorkspaceOptions>(builder.Configuration.GetSection(WorkspaceOptions.SectionName));
 builder.Services.Configure<ExecutorOptions>(builder.Configuration.GetSection(ExecutorOptions.SectionName));
 builder.Services.Configure<WorkspaceParallelismOptions>(
     builder.Configuration.GetSection(WorkspaceParallelismOptions.SectionName));

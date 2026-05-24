@@ -82,10 +82,7 @@ public class KanbanExecutionOrchestrator
                 out var pathError))
             throw LeaseOrchestrationException.BadRequest(pathError!);
 
-        var useCanonicalWorkspace = JsdpSessionPolicy.UseCanonicalWorkspace(session);
-        if (!useCanonicalWorkspace)
-            Directory.CreateDirectory(worktreePath);
-        else if (!JsdpWorkspaceExecution.IsCanonicalWorktree(session.WorkspaceRoot, worktreePath))
+        if (!JsdpWorkspaceExecution.IsCanonicalWorktree(session.WorkspaceRoot, worktreePath))
             throw LeaseOrchestrationException.Conflict(
                 $"{JsdpSessionPolicy.EnforcedSessionCode}: JSDP lease must use canonical workspace, not an isolated sandbox.");
 
@@ -131,9 +128,7 @@ public class KanbanExecutionOrchestrator
         if (boundedError is not null)
             throw LeaseOrchestrationException.Conflict(boundedError);
 
-        var seedResult = useCanonicalWorkspace
-            ? new WorktreeSeeder.SeedResult(0, SkippedExistingContent: true)
-            : WorktreeSeeder.TrySeedFromSession(session.WorkspaceRoot, worktreePath);
+        var seedResult = new WorktreeSeeder.SeedResult(0, SkippedExistingContent: true);
         var handoff = HandoffPacketBuilder.Build(
             task, worktreePath, branchName, session.WorkspaceRoot, seedResult, session);
         var now = DateTimeOffset.UtcNow;
@@ -524,7 +519,7 @@ public class KanbanExecutionOrchestrator
 
         var session = await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken);
         if (session is not null)
-            JsdpWorkspaceExecution.PruneLegacyMirrorArtifacts(session.WorkspaceRoot);
+            JsdpWorkspaceExecution.PruneLegacySandboxArtifacts(session.WorkspaceRoot);
 
         return lease;
     }
@@ -642,7 +637,7 @@ public class KanbanExecutionOrchestrator
         await _events.IngestAsync(cardId, EventSource.JoyZoning, EventTypes.ExecutionLeaseMerged,
             new { lease.Id, gitConvergence = convergence?.Strategy }, cancellationToken);
 
-        JsdpWorkspaceExecution.PruneLegacyMirrorArtifacts(session.WorkspaceRoot);
+        JsdpWorkspaceExecution.PruneLegacySandboxArtifacts(session.WorkspaceRoot);
 
         return new AcceptResultResponse(task, convergence, _options.MetadataOnlyAcceptResult);
     }
@@ -775,9 +770,6 @@ public class KanbanExecutionOrchestrator
             if (!WorktreePlanner.TryPlan(session.WorkspaceRoot, task.Id, task.HermesKanbanTaskId, session, out worktreePath, out branchName, out var pathError))
                 throw LeaseOrchestrationException.BadRequest(pathError!);
         }
-
-        if (!JsdpSessionPolicy.UseCanonicalWorkspace(session) && !Directory.Exists(worktreePath))
-            Directory.CreateDirectory(worktreePath);
 
         var (newLease, _) = await BeginLeaseAsync(
             task.Id,

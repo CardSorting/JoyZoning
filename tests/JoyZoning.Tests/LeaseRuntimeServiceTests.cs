@@ -69,7 +69,6 @@ public class LeaseRuntimeServiceTests : IDisposable
         services.Configure<ExecutorOptions>(_ => { });
         services.AddLogging();
         services.AddScoped<LeaseRuntimeService>();
-        services.Configure<WorkspaceOptions>(_ => { });
         services.Configure<WorkspaceParallelismOptions>(_ => { });
         services.AddScoped<WorkerMergeObservabilityBuilder>();
         services.AddScoped<WorkspaceWorkerObservabilityService>();

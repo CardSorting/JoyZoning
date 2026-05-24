@@ -49,7 +49,7 @@ public static class JsdpWorkspaceExecution
         return true;
     }
 
-    public static int PruneLegacyMirrorArtifacts(string workspaceRoot)
+    public static int PruneLegacySandboxArtifacts(string workspaceRoot)
     {
         if (!WorkspacePaths.TryNormalize(workspaceRoot, out var root))
             return 0;

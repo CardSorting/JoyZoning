@@ -579,14 +579,21 @@ public sealed class WorkspaceGitMerger : IWorkspaceGitMerger
         string strategy) =>
         $"joyzoning-accept-{strategy}-branch-{branch.Replace('/', '-')}-source-{sourceHead ?? "na"}";
 
-    /// <summary>Worker sandboxes under <c>.joyzoning/worktrees/</c> are expected to be dirty before accept.</summary>
+    /// <summary>Legacy sandbox paths under <c>.joyzoning/</c> are ignored for merge blocking.</summary>
     internal static List<string> FilterBlockingDirtyFiles(IReadOnlyList<ChangedFile> files)
     {
-        const string sandboxPrefix = ".joyzoning/worktrees/";
         return files
-            .Where(f => !f.Path.StartsWith(sandboxPrefix, StringComparison.OrdinalIgnoreCase)
-                        && !f.Path.StartsWith(sandboxPrefix.Replace('/', '\\'), StringComparison.OrdinalIgnoreCase))
+            .Where(f => !IsLegacySandboxPath(f.Path))
             .Select(f => f.Path)
             .ToList();
+    }
+
+    private static bool IsLegacySandboxPath(string path)
+    {
+        var normalized = path.Replace('\\', '/');
+        return normalized.Contains("/.joyzoning/worktrees/", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith(".joyzoning/worktrees/", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("/.joyzoning/live/", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith(".joyzoning/live/", StringComparison.OrdinalIgnoreCase);
     }
 }

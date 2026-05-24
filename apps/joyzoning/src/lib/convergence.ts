@@ -53,7 +53,7 @@ export function buildConvergenceModel(
 
   const workerWorktreePath =
     readiness?.worktreePath?.trim() ||
-    worker?.worktreePath?.trim() ||
+    worker?.workspacePath?.trim() ||
     snapshot.worktreePath?.trim() ||
     null;
 
@@ -79,7 +79,7 @@ export function buildConvergenceModel(
       : "Lease Merged in metadata — verify git.convergence.succeeded evidence; code may not be in main workspace.";
   } else if (mergeState === "revoked" || snapshot.leaseStatus === "Revoked") {
     lastResult =
-      "Revoked: worktree and mirror paths are kept for inspection (not deleted by JoyZoning).";
+      "Revoked: git state and evidence preserved for inspection (not deleted by JoyZoning).";
   } else if (mergeState === "merge_conflict" || mergeState === "merge_failed") {
     lastResult = conflict?.reason ?? "Resolve conflicts before accepting.";
   }

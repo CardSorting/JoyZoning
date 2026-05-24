@@ -313,12 +313,6 @@ export function ParallelWorkersPanel({
           />
         ))}
       </div>
-
-      {data?.indexJsonPath && (
-        <p className={`mt-3 text-[10px] ${muted}`}>
-          Index: <span className="font-mono">{data.indexJsonPath}</span>
-        </p>
-      )}
     </section>
   );
 }

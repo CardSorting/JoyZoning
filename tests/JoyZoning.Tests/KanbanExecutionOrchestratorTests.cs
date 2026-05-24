@@ -52,7 +52,6 @@ public class KanbanExecutionOrchestratorTests : IDisposable
             o.SessionProfileOverrides["autopilot"] = AuthorityProfileKind.BalancedAuto;
         });
         services.AddScoped<LeaseRuntimeService>();
-        services.Configure<WorkspaceOptions>(_ => { });
         services.Configure<WorkspaceParallelismOptions>(_ => { });
         services.AddScoped<WorkerMergeObservabilityBuilder>();
         services.AddScoped<WorkspaceWorkerObservabilityService>();

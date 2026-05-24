@@ -51,7 +51,7 @@ JSDP uses the **canonical workspace**:
 
 Branch: `joyzoning/card-{segment}` where `segment` is derived from the card id or Hermes kanban id.
 
-**Code:** `WorktreePlanner.cs`, `JsdpSessionPolicy.UseCanonicalWorkspace`, `KanbanExecutionOrchestrator.cs`.
+**Code:** `WorktreePlanner.cs`, `JsdpWorkspaceExecution`, `KanbanExecutionOrchestrator.cs`.
 
 ### 3. What branch/commit/diff does each worker produce?
 

@@ -7,13 +7,17 @@ import type { ChatAction, ChatMessage, StatusCardKind } from "@/lib/chat-types";
 import type { MergeWorkerEntry } from "@/lib/merge-queue";
 import type { ParallelWorkerEntry } from "@/lib/parallel-workers";
 
-function workerActions(taskId: string, worktreePath?: string | null): ChatAction[] {
+function workerWorkspacePath(worker: ParallelWorkerEntry | MergeWorkerEntry): string | null | undefined {
+  return worker.workspacePath ?? worker.mergeReadiness?.worktreePath ?? null;
+}
+
+function workerActions(taskId: string, workspacePath?: string | null): ChatAction[] {
   const actions: ChatAction[] = [
     { id: "accept", label: "Accept result", variant: "primary" },
     { id: "revoke", label: "Revoke", variant: "danger" },
     { id: "evidence", label: "Show evidence" },
   ];
-  if (worktreePath) {
+  if (workspacePath) {
     actions.splice(1, 0, { id: "open-workspace", label: "Open workspace" });
     actions.splice(2, 0, { id: "view-diff", label: "View diff" });
   }
@@ -33,7 +37,7 @@ function cardFromWorker(
     taskTitle: worker.taskTitle,
     content,
     timestamp: new Date().toISOString(),
-    actions: actions ?? workerActions(worker.taskId, worker.worktreePath),
+    actions: actions ?? workerActions(worker.taskId, workerWorkspacePath(worker)),
   };
 }
 
