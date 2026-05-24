@@ -207,6 +207,130 @@ public class OrchestrationService
         return await _sessionConsolidator.EnsureCanonicalAsync(session, cancellationToken);
     }
 
+    public async Task<RoleDeliveryChainCreateResult> CreateRoleDeliveryChainAsync(
+        string programName,
+        string workspaceRoot,
+        IReadOnlyList<RoleDeliveryChainRoleSpec> roles,
+        string? hermesProfile = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (roles.Count == 0)
+            throw new InvalidOperationException("At least one role is required for a delivery chain.");
+
+        var normalizedRoot = WorkspacePaths.TryNormalize(workspaceRoot, out var norm)
+            ? norm
+            : workspaceRoot;
+
+        var chainId = Guid.NewGuid();
+
+        return await _workspaceIdentity.RunExclusiveAsync(
+            normalizedRoot,
+            async ct =>
+            {
+                var members = new List<RoleDeliveryChainMember>();
+                for (var i = 0; i < roles.Count; i++)
+                {
+                    var role = roles[i];
+                    var sequence = i + 1;
+                    var sessionName = $"{programName} — seq {sequence}/{roles.Count}";
+                    var session = await CreateBoundedRoleSessionCoreAsync(
+                        chainId,
+                        sequence,
+                        sessionName,
+                        normalizedRoot,
+                        hermesProfile,
+                        ct);
+                    var task = await CreateBoundedRoleTaskCoreAsync(session, role, ct);
+                    members.Add(new RoleDeliveryChainMember(
+                        session.Id,
+                        session.Name,
+                        sequence,
+                        task.Id,
+                        task.Title));
+                }
+
+                await _events.IngestAsync(
+                    chainId,
+                    EventSource.JoyZoning,
+                    EventTypes.SessionStarted,
+                    new
+                    {
+                        deliveryChainId = chainId,
+                        programName,
+                        workspaceRoot = normalizedRoot,
+                        roleCount = roles.Count,
+                        model = RoleDeliveryChainGate.ModelName,
+                        protocol = JsdpProtocol.ProtocolId,
+                    },
+                    ct);
+
+                return new RoleDeliveryChainCreateResult(chainId, normalizedRoot, programName, JsdpProtocol.ProtocolId, members);
+            },
+            cancellationToken);
+    }
+
+    private async Task<OperatorSession> CreateBoundedRoleSessionCoreAsync(
+        Guid chainId,
+        int sequence,
+        string name,
+        string normalizedRoot,
+        string? hermesProfile,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var sessionId = Guid.NewGuid();
+        var session = new OperatorSession
+        {
+            Id = sessionId,
+            Name = name,
+            WorkspaceRoot = normalizedRoot,
+            WorkspaceKey = RoleDeliveryChainKeys.WorkspaceKeyForBoundedRole(normalizedRoot, chainId, sequence),
+            HermesProfile = hermesProfile,
+            HermesSessionId = sessionId.ToString(),
+            Status = SessionStatus.Idle,
+            ExecutionMode = SessionExecutionMode.BoundedRole,
+            DeliveryChainId = chainId,
+            DeliverySequence = sequence,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        await _sessions.CreateAsync(session, cancellationToken);
+        return session;
+    }
+
+    private async Task<WorkTask> CreateBoundedRoleTaskCoreAsync(
+        OperatorSession session,
+        RoleDeliveryChainRoleSpec role,
+        CancellationToken cancellationToken)
+    {
+        var existing = await _tasks.ListBySessionAsync(session.Id, cancellationToken);
+        if (existing.Count > 0)
+            throw new InvalidOperationException(
+                $"Bounded role session {session.Id} already has a task.");
+
+        var now = DateTimeOffset.UtcNow;
+        var description = JsdpHandoffCompliance.EnsureRoleDescription(
+            role.Title,
+            role.Description,
+            session.DeliverySequence ?? 0);
+        var task = new WorkTask
+        {
+            Id = Guid.NewGuid(),
+            OperatorSessionId = session.Id,
+            Title = role.Title,
+            Description = description,
+            AssignedAgent = role.AssignedAgent,
+            Risk = role.Risk,
+            Status = WorkTaskStatus.Planned,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        await _tasks.CreateAsync(task, cancellationToken);
+        return task;
+    }
+
     public async Task<OperatorSession> ResolveCanonicalSessionAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default)
@@ -242,16 +366,33 @@ public class OrchestrationService
             {
                 var canonicalSession = await _sessionConsolidator.EnsureCanonicalAsync(opSession, ct);
 
-                var existingByTitle = await _tasks.FindByTitleForWorkspaceAsync(
-                    canonicalSession.WorkspaceRoot, title, ct);
-                if (existingByTitle is not null)
+                if (canonicalSession.IsBoundedRoleSession)
                 {
-                    _logger.LogInformation(
-                        "Reusing existing task {TaskId} with title {Title} in workspace {WorkspaceRoot}",
-                        existingByTitle.Id,
-                        title,
-                        canonicalSession.WorkspaceRoot);
-                    return existingByTitle;
+                    var sessionTasks = await _tasks.ListBySessionAsync(canonicalSession.Id, ct);
+                    if (sessionTasks.Count > 0)
+                    {
+                        var sameTitle = sessionTasks.FirstOrDefault(t =>
+                            string.Equals(t.Title, title, StringComparison.OrdinalIgnoreCase));
+                        if (sameTitle is not null)
+                            return sameTitle;
+
+                        throw new InvalidOperationException(
+                            "Bounded role sessions allow exactly one task. Create a new role session in the delivery chain.");
+                    }
+                }
+                else
+                {
+                    var existingByTitle = await _tasks.FindByTitleForWorkspaceAsync(
+                        canonicalSession.WorkspaceRoot, title, ct);
+                    if (existingByTitle is not null)
+                    {
+                        _logger.LogInformation(
+                            "Reusing existing task {TaskId} with title {Title} in workspace {WorkspaceRoot}",
+                            existingByTitle.Id,
+                            title,
+                            canonicalSession.WorkspaceRoot);
+                        return existingByTitle;
+                    }
                 }
 
                 var board = await _kanbanSync.FetchBoardTasksAsync(ct);

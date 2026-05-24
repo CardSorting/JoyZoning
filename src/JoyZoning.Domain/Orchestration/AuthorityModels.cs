@@ -33,6 +33,7 @@ public static class AuthorityReasonCodes
     public const string CustomDeny = "custom_deny";
     public const string CustomAllowRequired = "custom_allow_required";
     public const string AutoAcceptEligible = "auto_accept_eligible";
+    public const string JsdpHumanMergeRequired = "jsdp_human_merge_required";
 }
 
 public sealed record AuthorityEvaluationInput(
@@ -52,7 +53,8 @@ public sealed record AuthorityEvaluationInput(
     int ChangedFilesCount,
     IReadOnlyList<string> ChangedFiles,
     int LargeChangeSetThreshold,
-    CustomAuthorityRules? CustomRules = null);
+    CustomAuthorityRules? CustomRules = null,
+    bool IsJsdpEnforcedSession = false);
 
 public sealed record AuthorityDecision(
     AuthorityProfileKind Profile,

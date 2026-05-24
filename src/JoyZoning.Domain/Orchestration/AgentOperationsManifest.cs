@@ -23,6 +23,7 @@ public static class AgentOperationsManifest
         "src/JoyZoning.ControlPlane/Endpoints/ApiEndpoints.cs",
         "src/JoyZoning.Domain/Orchestration/JoyZoningRuntimeContext.cs",
         "docs/AGENT.md",
+        "docs/jsdp.md",
         "docs/agent-operations.md",
         "docs/cli.md",
         "AGENTS.md",
@@ -56,6 +57,8 @@ public static class AgentOperationsManifest
         new("inspect", "Return compressed discovery hints for agents.", true),
         new("plan", "Create a task from a goal string or dry-run YOLO policy selection.", true),
         new("run", "Dispatch and run a task lease.", false),
+        new("delivery-chain create", "Create JSDP 8-role sequential delivery chain.", false),
+        new("delivery-chain queue", "Inspect JSDP chain queue and merge gate status.", true),
         new("agent-manifest", "Return the canonical Agent Operations manifest.", true),
         new("agent-context", "Return minimal state an agent needs before acting.", true),
         new("endpoint-map", "Return the typed endpoint registry.", true),
@@ -78,6 +81,8 @@ public static class AgentOperationsManifest
         ["readScope"] = "Only files in importantFiles unless doctor reports stale manifest",
         ["afterEdit"] = "joyzoning verify --manifest --fast && joyzoning snapshot --json",
         ["orchestration"] = "joyzoning plan \"<goal>\" --session <guid> && joyzoning run <task-id>",
+        ["jsdpDelivery"] = "./scripts/role-chain-dispatch.sh --create --workspace <path> --program \"<name>\"; --status; --next",
+        ["jsdpAcceptMerge"] = "jz task complete <taskId> --yes",
         ["httpFallback"] = "GET /api/agent/manifest, GET /api/agent/context, GET /api/agent/endpoints?agentSafe=true",
     };
 
@@ -98,7 +103,8 @@ public static class AgentOperationsManifest
     public static readonly IReadOnlyList<string> WorkspaceAssumptions =
     [
         "The canonical CLI binary may be installed as joyzoning or jz.",
-        "Agents stop at ReadyForReview; humans own merge and Complete.",
+        "Sequential JSDP chains use delivery-chain commands or role-chain-dispatch.sh — not plan/run/YOLO.",
+        "JSDP bounded roles require operator accept-merge (jz task complete) before the next role dispatches.",
         "The endpoint registry is authoritative for agent-safe API discovery.",
         "Use doctor before scanning the repo when manifest assumptions look stale.",
         "HTTP /api/agent/manifest and /api/agent/context mirror agent operations when CLI is unavailable.",
@@ -111,6 +117,7 @@ public static class AgentOperationsManifest
         "joyzoning agent-manifest --json",
         "joyzoning endpoints --json",
         "joyzoning doctor --json",
+        "./scripts/role-chain-dispatch.sh --status --chain <guid>",
     ];
 
     public static object BuildStatic() => new

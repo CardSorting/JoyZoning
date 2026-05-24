@@ -35,6 +35,18 @@ public static class CliSafety
         if (m == "POST" && (p.Contains("/lease/merge") || p.Contains("/lease/revoke")))
             RequireYes(args, $"raw POST {path}");
 
+        if (m == "PUT" && p.Contains("/status") && args.Opt("--body") is { } statusBody)
+        {
+            var text = statusBody == "@stdin" ? Console.In.ReadToEnd() : File.ReadAllText(statusBody);
+            if (text.Contains("\"status\":5", StringComparison.Ordinal)
+                || text.Contains("\"status\": 5", StringComparison.Ordinal)
+                || text.Contains("\"Complete\"", StringComparison.OrdinalIgnoreCase))
+            {
+                RequireYes(args,
+                    "raw PUT status→Complete bypasses accept-merge. Prefer: jz task complete <taskId> --yes");
+            }
+        }
+
         if (m == "POST" && p.Contains("/lease/recover") && args.Opt("--body") is { } bodyFile)
         {
             if (bodyFile != "@stdin" && File.Exists(bodyFile))

@@ -39,10 +39,10 @@ public class WorkTaskRepository : IWorkTaskRepository
         if (sessionIds.Count == 0)
             return null;
 
-        return await _db.WorkTasks.AsNoTracking()
+        var rows = await _db.WorkTasks.AsNoTracking()
             .Where(t => sessionIds.Contains(t.OperatorSessionId) && t.HermesKanbanTaskId == hermesKanbanTaskId)
-            .OrderByDescending(t => t.UpdatedAt)
-            .FirstOrDefaultAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
+        return rows.OrderByDescending(t => t.UpdatedAt).FirstOrDefault();
     }
 
     public async Task<IReadOnlyList<WorkTask>> ListBySessionAsync(

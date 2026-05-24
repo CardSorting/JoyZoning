@@ -147,8 +147,11 @@ public static class ApiEndpoints
 
             try
             {
-                var canonical = await orch.ResolveCanonicalSessionAsync(sessionId.Value);
-                return Results.Ok(await tasks.ListByWorkspaceRootAsync(canonical.WorkspaceRoot));
+                var session = await orch.ResolveCanonicalSessionAsync(sessionId.Value);
+                if (session.IsBoundedRoleSession)
+                    return Results.Ok(await tasks.ListBySessionAsync(session.Id));
+
+                return Results.Ok(await tasks.ListByWorkspaceRootAsync(session.WorkspaceRoot));
             }
             catch (InvalidOperationException)
             {
@@ -275,6 +278,155 @@ public static class ApiEndpoints
             {
                 return Results.NotFound();
             }
+        });
+
+        app.MapGet("/api/sessions/{id:guid}/delivery-plan", async (
+            Guid id,
+            IWorkTaskRepository tasks,
+            IOperatorSessionRepository sessions,
+            IExecutionLeaseRepository leases,
+            IOptions<LeaseRuntimeOptions> leaseOptions,
+            OrchestrationService orch,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var canonical = await orch.ResolveCanonicalSessionAsync(id, cancellationToken);
+                var session = await sessions.GetByIdAsync(canonical.Id, cancellationToken)
+                    ?? throw new InvalidOperationException("Session not found.");
+                var sessionTasks = await tasks.ListBySessionAsync(session.Id, cancellationToken);
+                var activeLeases = (await leases.ListActiveAsync(cancellationToken))
+                    .Where(l => l.OperatorSessionId == session.Id)
+                    .ToList();
+                var plan = BoundedSessionGate.BuildPlan(
+                    session,
+                    sessionTasks,
+                    activeLeases,
+                    leaseOptions.Value);
+
+                string? chainBlockReason = null;
+                object? jsdp = null;
+                if (session.IsBoundedRoleSession && session.DeliveryChainId.HasValue)
+                {
+                    var chainSessions = await sessions.ListByDeliveryChainIdAsync(session.DeliveryChainId.Value, cancellationToken);
+                    var chainTasks = new List<WorkTask>();
+                    foreach (var chainSession in chainSessions)
+                        chainTasks.AddRange(await tasks.ListBySessionAsync(chainSession.Id, cancellationToken));
+
+                    var chainLeases = new List<ExecutionLease>();
+                    foreach (var chainTask in chainTasks)
+                        chainLeases.AddRange(await leases.ListByTaskIdAsync(chainTask.Id, cancellationToken));
+
+                    var queue = RoleDeliveryChainGate.BuildQueue(
+                        session.DeliveryChainId.Value,
+                        session.WorkspaceRoot,
+                        chainSessions,
+                        chainTasks,
+                        chainLeases,
+                        leaseOptions.Value);
+                    chainBlockReason = queue.BlockReason;
+                    jsdp = new
+                    {
+                        protocol = queue.Jsdp.Protocol,
+                        mergeGateStatus = queue.Jsdp.MergeGateStatus,
+                        nextDispatchEligibility = queue.Jsdp.NextDispatchEligibility,
+                        nextHumanAction = queue.Jsdp.NextHumanAction,
+                        blockReason = chainBlockReason,
+                    };
+                }
+
+                return Results.Ok(new
+                {
+                    model = plan.Model,
+                    sessionId = plan.SessionId,
+                    sessionWorkspaceRoot = plan.SessionWorkspaceRoot,
+                    executionMode = session.ExecutionMode.ToString(),
+                    deliveryChainId = session.DeliveryChainId,
+                    deliverySequence = session.DeliverySequence,
+                    maxActiveLeasesPerSession = plan.MaxActiveLeasesPerSession,
+                    activeLeaseCount = plan.ActiveLeaseCount,
+                    inFlightTaskId = plan.InFlightTaskId,
+                    inFlightTaskTitle = plan.InFlightTaskTitle,
+                    inFlightTaskStatus = plan.InFlightTaskStatus?.ToString(),
+                    hasFoundation = plan.HasFoundation,
+                    nextDispatchableTaskId = chainBlockReason is null ? plan.NextDispatchableTaskId : null,
+                    chainBlockReason,
+                    jsdp,
+                    tasks = plan.Tasks.Select(t => new
+                    {
+                        taskId = t.TaskId,
+                        title = t.Title,
+                        role = DeliveryRoleClassifier.RoleLabel(t.Role),
+                        status = t.Status.ToString(),
+                        dispatchable = chainBlockReason is null && t.Dispatchable,
+                        blockReason = chainBlockReason ?? t.BlockReason,
+                    }),
+                });
+            }
+            catch (InvalidOperationException)
+            {
+                return Results.NotFound();
+            }
+        });
+
+        app.MapPost("/api/delivery-chains", async (
+            CreateDeliveryChainRequest req,
+            OrchestrationService orch) =>
+        {
+            try
+            {
+                var roles = req.Roles is { Count: > 0 }
+                    ? req.Roles.Select(r => new RoleDeliveryChainRoleSpec(
+                        r.Title,
+                        r.Description ?? r.Title,
+                        r.AssignedAgent,
+                        r.Risk)).ToList()
+                    : RoleDeliveryChainTemplates.DefaultEightRoles;
+
+                var result = await orch.CreateRoleDeliveryChainAsync(
+                    req.ProgramName,
+                    req.WorkspaceRoot,
+                    roles,
+                    req.HermesProfile);
+
+                return Results.Created(
+                    $"/api/delivery-chains/{result.ChainId}/queue",
+                    result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { error = "delivery_chain_invalid", message = ex.Message });
+            }
+        });
+
+        app.MapGet("/api/delivery-chains/{id:guid}/queue", async (
+            Guid id,
+            IOperatorSessionRepository sessions,
+            IWorkTaskRepository tasks,
+            IExecutionLeaseRepository leases,
+            IOptions<LeaseRuntimeOptions> leaseOptions) =>
+        {
+            var chainSessions = await sessions.ListByDeliveryChainIdAsync(id);
+            if (chainSessions.Count == 0)
+                return Results.NotFound();
+
+            var chainTasks = new List<WorkTask>();
+            foreach (var chainSession in chainSessions)
+                chainTasks.AddRange(await tasks.ListBySessionAsync(chainSession.Id));
+
+            var chainLeases = new List<ExecutionLease>();
+            foreach (var chainTask in chainTasks)
+                chainLeases.AddRange(await leases.ListByTaskIdAsync(chainTask.Id));
+
+            var queue = RoleDeliveryChainGate.BuildQueue(
+                id,
+                chainSessions[0].WorkspaceRoot,
+                chainSessions,
+                chainTasks,
+                chainLeases,
+                leaseOptions.Value);
+
+            return Results.Ok(RoleDeliveryChainApiMapper.ToJson(queue));
         });
 
         app.MapPost("/api/sessions/{id:guid}/authority/reconcile", async (
@@ -1022,6 +1174,16 @@ public record ImportKanbanRequest(Guid SessionId);
 public record EnsureDashboardRequest(bool AlsoEnsureGateway = true);
 
 public record CreateSessionRequest(string Name, string WorkspaceRoot, string? HermesProfile);
+public record CreateDeliveryChainRequest(
+    string ProgramName,
+    string WorkspaceRoot,
+    string? HermesProfile = null,
+    IReadOnlyList<CreateDeliveryChainRoleRequest>? Roles = null);
+public record CreateDeliveryChainRoleRequest(
+    string Title,
+    string? Description = null,
+    AgentKind AssignedAgent = AgentKind.DietCode,
+    RiskLevel Risk = RiskLevel.Low);
 public record CreateTaskRequest(
     Guid SessionId,
     string Title,

@@ -35,13 +35,17 @@ public static class YoloEligibility
         int risk,
         bool hasActiveLease,
         ExecutionLeaseStatus? activeLeaseStatus,
-        YoloPolicy policy)
+        YoloPolicy policy,
+        bool isJsdpEnforcedSession = false)
     {
         var taskStatus = (WorkTaskStatus)status;
         var taskRisk = (RiskLevel)risk;
         var tags = YoloTaskTags.Extract(title, description);
 
         string? skip = null;
+
+        if (isJsdpEnforcedSession)
+            skip = JsdpSessionPolicy.YoloSkipReason;
 
         if (!policy.Enabled)
             skip = "YOLO policy is disabled.";

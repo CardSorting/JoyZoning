@@ -69,8 +69,24 @@ public partial class KanbanView : UserControl
         if (taskIdRaw is null || !Guid.TryParse(taskIdRaw, out var taskId))
             return;
 
-        await AppServices.ControlPlane.UpdateTaskStatusAsync(taskId, col.Status);
-        await vm.RefreshAsync();
+        if (col.Status == WorkTaskStatus.Complete)
+        {
+            var merge = await AppServices.ControlPlane.MergeLeaseDetailedAsync(taskId);
+            if (DataContext is KanbanViewModel vmComplete)
+            {
+                vmComplete.Hint = merge.Success
+                    ? "Merged into canonical workspace."
+                    : merge.Error is not null
+                        ? OperatorApiHints.FormatError(merge.Error)
+                        : "Merge failed.";
+                await vmComplete.RefreshAsync();
+            }
+            return;
+        }
+
+        await AppServices.ControlPlane.UpdateTaskStatusDetailedAsync(taskId, col.Status);
+        if (DataContext is KanbanViewModel vmMove)
+            await vmMove.RefreshAsync();
     }
 
     private async void OnNewTask(object? sender, RoutedEventArgs e)

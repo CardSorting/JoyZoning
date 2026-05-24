@@ -9,6 +9,9 @@ public interface IOperatorSessionRepository
         string normalizedWorkspaceRoot,
         CancellationToken cancellationToken = default);
     Task<IReadOnlyList<OperatorSession>> ListAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<OperatorSession>> ListByDeliveryChainIdAsync(
+        Guid deliveryChainId,
+        CancellationToken cancellationToken = default);
     Task<OperatorSession> CreateAsync(OperatorSession session, CancellationToken cancellationToken = default);
     Task UpdateAsync(OperatorSession session, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);

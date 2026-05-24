@@ -471,6 +471,8 @@ public static class YoloRunner
         if (list.Body.Value.ValueKind != JsonValueKind.Array)
             throw new CliUsageException("Unexpected tasks list response.");
 
+        var sessionJsdp = await IsJsdpEnforcedSessionAsync(client, policy.SessionId, cancellationToken);
+
         var results = new List<YoloTaskCandidate>();
         foreach (var el in list.Body.Value.EnumerateArray())
         {
@@ -496,13 +498,26 @@ public static class YoloRunner
             }
 
             results.Add(YoloEligibility.Evaluate(
-                taskId, title, description, status, risk, hasActive, leaseStatus, policy));
+                taskId, title, description, status, risk, hasActive, leaseStatus, policy, sessionJsdp));
         }
 
         return results
             .OrderBy(c => c.Risk)
             .ThenBy(c => c.TaskId)
             .ToList();
+    }
+
+    private static async Task<bool> IsJsdpEnforcedSessionAsync(
+        IYoloRunClient client,
+        Guid sessionId,
+        CancellationToken cancellationToken)
+    {
+        _ = cancellationToken;
+        var session = await client.GetSessionAsync(sessionId);
+        if (!session.IsSuccess || session.Body is null)
+            return false;
+
+        return JsdpCliGuard.ReadExecutionMode(session.Body.Value) == SessionExecutionMode.BoundedRole;
     }
 
     private static bool IsWorktreeClean(string worktreePath)

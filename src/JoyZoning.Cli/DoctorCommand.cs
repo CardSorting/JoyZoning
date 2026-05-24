@@ -9,13 +9,16 @@ public static class DoctorCommand
     public static async Task<int> RunAsync(CliContext ctx)
     {
         var checks = new List<object>();
-        var ok = true;
+        var failed = false;
+        var warned = false;
 
         void Add(string id, string status, string detail)
         {
             checks.Add(new { id, status, detail });
-            if (status is "fail" or "warn")
-                ok = false;
+            if (status == "fail")
+                failed = true;
+            if (status == "warn")
+                warned = true;
         }
 
         var root = AgentOperationsCommand.FindWorkspaceRoot();
@@ -104,12 +107,12 @@ public static class DoctorCommand
 
         if (!ctx.Quiet)
         {
-            var envelope = new { ok, checks };
+            var envelope = new { ok = !failed, warned, checks };
             var writeCode = CliOutput.WriteEnvelope(ctx, envelope);
-            return writeCode != 0 ? writeCode : ok ? 0 : 1;
+            return writeCode != 0 ? writeCode : failed ? 1 : 0;
         }
 
-        return ok ? 0 : 1;
+        return failed ? 1 : 0;
     }
 
     private static bool HasDotNetSdk()

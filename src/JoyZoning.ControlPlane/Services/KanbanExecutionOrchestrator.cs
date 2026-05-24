@@ -86,7 +86,51 @@ public class KanbanExecutionOrchestrator
 
         Directory.CreateDirectory(worktreePath);
 
-        var handoff = HandoffPacketBuilder.Build(task, worktreePath, branchName);
+        var sessionTasks = await _tasks.ListBySessionAsync(session.Id, cancellationToken);
+        var activeLeases = await _leases.ListActiveAsync(cancellationToken);
+        var sessionActiveLeases = activeLeases
+            .Where(l => l.OperatorSessionId == session.Id)
+            .ToList();
+
+        string? boundedError;
+        if (JsdpSessionPolicy.RequiresEnforcement(session))
+        {
+            var integrityError = JsdpSessionPolicy.ValidateSessionIntegrity(session);
+            if (integrityError is not null)
+            {
+                boundedError = integrityError;
+            }
+            else if (session.DeliveryChainId.HasValue)
+            {
+                var chainSessions = await _sessions.ListByDeliveryChainIdAsync(session.DeliveryChainId.Value, cancellationToken);
+                var chainTasks = new List<WorkTask>();
+                foreach (var chainSession in chainSessions)
+                    chainTasks.AddRange(await _tasks.ListBySessionAsync(chainSession.Id, cancellationToken));
+
+                var chainLeases = new List<ExecutionLease>();
+                foreach (var chainTask in chainTasks)
+                    chainLeases.AddRange(await _leases.ListByTaskIdAsync(chainTask.Id, cancellationToken));
+
+                boundedError = RoleDeliveryChainGate.ValidateDispatch(
+                    session, task, chainSessions, chainTasks, chainLeases, _options);
+            }
+            else
+            {
+                boundedError = JsdpSessionPolicy.ValidateSessionIntegrity(session);
+            }
+        }
+        else
+        {
+            boundedError = BoundedSessionGate.ValidateDispatch(
+                session, task, sessionTasks, sessionActiveLeases, _options);
+        }
+
+        if (boundedError is not null)
+            throw LeaseOrchestrationException.Conflict(boundedError);
+
+        var seedResult = WorktreeSeeder.TrySeedFromSession(session.WorkspaceRoot, worktreePath);
+        var handoff = HandoffPacketBuilder.Build(
+            task, worktreePath, branchName, session.WorkspaceRoot, seedResult, session);
         var now = DateTimeOffset.UtcNow;
         var lease = new ExecutionLease
         {
@@ -322,6 +366,18 @@ public class KanbanExecutionOrchestrator
         if (error is not null)
             throw LeaseOrchestrationException.BadRequest(error);
 
+        var task = await _tasks.GetByIdAsync(cardId, cancellationToken);
+        if (task is not null)
+        {
+            var session = await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken);
+            if (session is not null)
+            {
+                var jsdpError = JsdpHandoffCompliance.ValidateVerificationReport(task, session, report);
+                if (jsdpError is not null)
+                    throw LeaseOrchestrationException.BadRequest(jsdpError);
+            }
+        }
+
         lease.VerificationReportJson = VerificationReportSerializer.Serialize(report);
         lease.Status = ExecutionLeaseStatus.ReadyForReview;
 
@@ -494,6 +550,13 @@ public class KanbanExecutionOrchestrator
         var session = await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken)
             ?? throw LeaseOrchestrationException.NotFound("Operator session not found.");
 
+        if (JsdpSessionPolicy.RequiresEnforcement(session) && _options.MetadataOnlyAcceptResult)
+        {
+            throw LeaseOrchestrationException.Conflict(
+                $"{JsdpSessionPolicy.EnforcedSessionCode}: metadata-only accept is disabled for JSDP bounded-role sessions. "
+                + "Enable real git convergence for accept-merge.");
+        }
+
         WorkspaceConvergenceResult? convergence = null;
 
         if (_options.MetadataOnlyAcceptResult)
@@ -579,7 +642,7 @@ public class KanbanExecutionOrchestrator
         return new AcceptResultResponse(task, convergence, _options.MetadataOnlyAcceptResult);
     }
 
-    public Task ValidateTaskStatusChangeAsync(
+    public async Task ValidateTaskStatusChangeAsync(
         Guid cardId,
         WorkTaskStatus target,
         StatusChangeActor actor,
@@ -595,7 +658,24 @@ public class KanbanExecutionOrchestrator
         if (target == WorkTaskStatus.Complete && actor != StatusChangeActor.Human)
             throw LeaseOrchestrationException.Forbidden("Only a human can mark a card done (merge).");
 
-        return Task.CompletedTask;
+        if (target != WorkTaskStatus.Complete)
+            return;
+
+        var task = await _tasks.GetByIdAsync(cardId, cancellationToken);
+        if (task is null || task.Status == WorkTaskStatus.Complete)
+            return;
+
+        var session = await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken);
+        if (session is null || !JsdpSessionPolicy.RequiresEnforcement(session))
+            return;
+
+        var taskLeases = await _leases.ListByTaskIdAsync(cardId, cancellationToken);
+        if (JsdpMergeGate.IsRoleConverged(task, taskLeases))
+            return;
+
+        throw LeaseOrchestrationException.Forbidden(
+            $"{JsdpMergeGate.ConvergenceRequiredCode}: JSDP bounded role tasks require accept-merge before Complete. "
+            + "Use `jz task complete <taskId>` (merge API), not direct status changes.");
     }
 
     public Task<ExecutionLease?> GetActiveLeaseAsync(Guid cardId, CancellationToken cancellationToken = default) =>

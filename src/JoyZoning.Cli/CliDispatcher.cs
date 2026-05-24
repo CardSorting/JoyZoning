@@ -43,6 +43,7 @@ public static class CliDispatcher
             "completion" => DispatchCompletion(ctx, a),
             "agent" => await DispatchAgentAsync(client, ctx, a),
             "yolo" => await YoloCommand.DispatchAsync(client, ctx, a),
+            "delivery-chain" or "jsdp" => CliOutput.WriteResult(ctx, await DispatchDeliveryChainAsync(client, ctx, a)),
             "raw" => CliOutput.WriteResult(ctx, await DispatchRawAsync(client, ctx, a)),
             _ => throw new CliUsageException($"Unknown command: {cmd}. Run jz --help."),
         };
@@ -301,6 +302,10 @@ public static class CliDispatcher
         if (string.IsNullOrWhiteSpace(goal))
             throw Usage("plan \"<goal>\" | plan --goal \"...\" | plan --policy <file>");
 
+        var sessionOpt = CliArgs.OptStatic(raw, "--session");
+        if (sessionOpt is not null && Guid.TryParse(sessionOpt, out var sessionId))
+            await JsdpCliGuard.EnsureNotJsdpSessionAsync(client, sessionId);
+
         return await DispatchTaskAsync(client, ctx,
         [
             "task", "create",
@@ -325,23 +330,42 @@ public static class CliDispatcher
         JoyZoningCliClient client, CliContext ctx, string[] a)
     {
         RequireArgs(a, 2, "run <task-id>");
+        var taskId = CliArgs.RequireGuid(a, 1, "task id");
+        await JsdpCliGuard.EnsureNotJsdpTaskAsync(client, taskId);
         return await DispatchTaskAsync(client, ctx, ["task", "run", a[1], ..a.Skip(2)]);
+    }
+
+    private static async Task<CliHttpResult> DispatchDeliveryChainAsync(
+        JoyZoningCliClient client, CliContext ctx, string[] a)
+    {
+        RequireArgs(a, 2, "delivery-chain <create|queue> ...");
+        var raw = ctx.Args.Raw;
+        return a[1].ToLowerInvariant() switch
+        {
+            "create" => await client.CreateDeliveryChainAsync(
+                CliArgs.OptStatic(raw, "--program") ?? throw Usage("--program required"),
+                CliArgs.OptStatic(raw, "--workspace") ?? throw Usage("--workspace required")),
+            "queue" => await client.GetDeliveryChainQueueAsync(
+                CliArgs.RequireGuid(a, 2, "chain id")),
+            _ => throw Usage("delivery-chain create | queue <chain-id>"),
+        };
     }
 
     private static async Task<CliHttpResult> DispatchSessionAsync(
         JoyZoningCliClient client, CliContext ctx, string[] a)
     {
-        RequireArgs(a, 2, "session <list|get|create>");
+        RequireArgs(a, 2, "session <list|get|create|delivery-plan>");
         var raw = ctx.Args.Raw;
         return a[1].ToLowerInvariant() switch
         {
             "list" => await client.ListSessionsAsync(),
             "get" => await client.GetSessionAsync(CliArgs.RequireGuid(a, 2, "session id")),
+            "delivery-plan" => await client.GetDeliveryPlanAsync(CliArgs.RequireGuid(a, 2, "session id")),
             "create" => await client.CreateSessionAsync(
                 CliArgs.OptStatic(raw, "--name") ?? throw Usage("--name required"),
                 CliArgs.OptStatic(raw, "--workspace") ?? throw Usage("--workspace required"),
                 CliArgs.OptStatic(raw, "--profile")),
-            _ => throw Usage("session list | get | create"),
+            _ => throw Usage("session list | get | create | delivery-plan"),
         };
     }
 

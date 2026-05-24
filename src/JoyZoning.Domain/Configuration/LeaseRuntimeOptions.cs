@@ -5,8 +5,9 @@ public class LeaseRuntimeOptions
 {
     public const string SectionName = "LeaseRuntime";
 
-    public int MaxGlobalActiveLeases { get; set; } = 16;
-    public int MaxActiveLeasesPerSession { get; set; } = 8;
+    public int MaxGlobalActiveLeases { get; set; } = 4;
+    /// <summary>Hard cap per session — default 1 (single bounded agent).</summary>
+    public int MaxActiveLeasesPerSession { get; set; } = 1;
     public int MaxCriticalLeases { get; set; } = 1;
     public int ReconciliationIntervalSeconds { get; set; } = 30;
 

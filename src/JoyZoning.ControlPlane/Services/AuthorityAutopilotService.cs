@@ -72,7 +72,8 @@ public sealed class AuthorityAutopilotService
             changedFilesCount,
             changedFiles,
             _parallelism.LargeChangeSetFileThreshold,
-            _authority.Custom));
+            _authority.Custom,
+            session.ExecutionMode == SessionExecutionMode.BoundedRole));
     }
 
     public async Task<AuthorityAutopilotAttempt> TryAutoAcceptAsync(

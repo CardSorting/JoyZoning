@@ -17,4 +17,14 @@ public sealed class HandoffPacket
     public LeaseRiskLevel RiskLevel { get; init; }
     public string WorktreePath { get; init; } = string.Empty;
     public string BranchName { get; init; } = string.Empty;
+    public string SessionWorkspaceRoot { get; init; } = string.Empty;
+    public DeliveryRoleKind DeliveryRole { get; init; } = DeliveryRoleKind.Unknown;
+    public int DeliveryWave { get; init; }
+    public int FoundationFilesSeeded { get; init; }
+    public string? Protocol { get; init; }
+    public int? JsdpSequence { get; init; }
+    public Guid? DeliveryChainId { get; init; }
+    public bool MergeGateRequired { get; init; }
+    public IReadOnlyList<string> RequiredOutputSections { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> ComplianceWarnings { get; init; } = Array.Empty<string>();
 }

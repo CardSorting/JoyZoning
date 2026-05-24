@@ -84,6 +84,12 @@ internal sealed class OrchestrationApiClient
         StatusChangeActor actor = StatusChangeActor.Human) =>
         PutJsonAsync($"api/tasks/{taskId}/status", new { status, actor });
 
+    public Task<HttpResponseMessage> CreateDeliveryChainAsync(string programName, string workspaceRoot) =>
+        PostJsonAsync("api/delivery-chains", new { programName, workspaceRoot });
+
+    public Task<HttpResponseMessage> GetDeliveryChainQueueAsync(Guid chainId) =>
+        _http.GetAsync($"api/delivery-chains/{chainId}/queue");
+
     public async Task<(Guid SessionId, Guid TaskId)> SeedTaskAsync(
         string workspaceRoot,
         RiskLevel risk = RiskLevel.Low)

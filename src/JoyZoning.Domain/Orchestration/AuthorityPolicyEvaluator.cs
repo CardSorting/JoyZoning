@@ -26,6 +26,10 @@ public static class AuthorityPolicyEvaluator
         if (!input.AutopilotEnabled)
             Block(AuthorityReasonCodes.AutopilotDisabled, "Autopilot is disabled for this deployment.");
 
+        if (input.IsJsdpEnforcedSession)
+            Block(AuthorityReasonCodes.JsdpHumanMergeRequired,
+                "JSDP bounded role: operator must accept-merge manually; autopilot is disabled for chain roles.");
+
         if (input.Profile == AuthorityProfileKind.Conservative)
             Block(AuthorityReasonCodes.ProfileConservative, "Conservative profile: human review required before accept.");
 

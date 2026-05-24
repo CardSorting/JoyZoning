@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4)](global.json)
 
-**The operator cockpit for multi-agent development** — plan with a Manager, execute in bounded **worktrees**, verify with evidence, and **merge only when you approve**.
+**The operator cockpit for bounded agent development** — sequential **role delivery chains** (one session per role), shared workspace, verify with evidence, and **merge only when you approve**.
 
 Works with one local [diet-hermes](https://github.com/NousResearch/hermes-agent) install. Not a second IDE. Not unattended auto-ship.
 

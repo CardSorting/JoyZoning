@@ -2,6 +2,8 @@
 
 **Do not scan the repo.** JoyZoning is self-describing.
 
+**Execution protocol:** All bounded delivery follows **[JSDP](docs/jsdp.md)** (JoyZoning Sequential Delivery Protocol) — one role per session, sequential chain, mandatory accept-merge between roles.
+
 ## Start here
 
 ```bash
@@ -12,6 +14,7 @@
 
 - **Full docs:** [docs/agent-operations.md](docs/agent-operations.md)
 - **Contract:** [docs/AGENT.md](docs/AGENT.md)
+- **Sequential delivery:** [docs/jsdp.md](docs/jsdp.md) (JSDP)
 
 ## Three ways to learn the repo
 

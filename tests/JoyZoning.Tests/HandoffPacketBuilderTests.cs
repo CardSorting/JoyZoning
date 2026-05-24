@@ -43,4 +43,43 @@ public class HandoffPacketBuilderTests
         Assert.Equal("npm install", packet.VerificationCommands[0]);
         Assert.Equal("npx tsc --noEmit", packet.VerificationCommands[1]);
     }
+
+    [Fact]
+    public void Product_architect_is_docs_only()
+    {
+        var task = new WorkTask
+        {
+            Title = "Role 1 — Product Architect",
+            Description = "docs/product-spec.md, docs/user-flows.md",
+            Risk = RiskLevel.Low,
+        };
+
+        var packet = HandoffPacketBuilder.Build(task, "/tmp/wt", "joyzoning/card-abc", "/tmp/session");
+
+        Assert.Equal(DeliveryRoleKind.ProductArchitect, packet.DeliveryRole);
+        Assert.Contains("docs/", packet.AllowedPaths);
+        Assert.Contains("docs/product-lock.md", packet.AllowedPaths);
+        Assert.Contains("app/", packet.ForbiddenPaths);
+        Assert.Contains("package.json", packet.ForbiddenPaths);
+    }
+
+    [Fact]
+    public void Persistence_role_scopes_storage_only()
+    {
+        var task = new WorkTask
+        {
+            Title = "Role 6 — Persistence / Reliability Engineer",
+            Description = "AsyncStorage layer under shared/storage",
+            Risk = RiskLevel.Low,
+        };
+
+        var packet = HandoffPacketBuilder.Build(
+            task, "/tmp/wt", "joyzoning/card-abc", "/tmp/session",
+            new WorktreeSeeder.SeedResult(12, SkippedExistingContent: false));
+
+        Assert.Equal(DeliveryRoleKind.Persistence, packet.DeliveryRole);
+        Assert.Contains("shared/storage/", packet.AllowedPaths);
+        Assert.Contains("app/", packet.ForbiddenPaths);
+        Assert.Equal(12, packet.FoundationFilesSeeded);
+    }
 }

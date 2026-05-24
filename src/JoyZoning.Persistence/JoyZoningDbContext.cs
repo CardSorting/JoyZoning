@@ -1,4 +1,5 @@
 using JoyZoning.Domain.Entities;
+using JoyZoning.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace JoyZoning.Persistence;
@@ -35,6 +36,8 @@ public class JoyZoningDbContext : DbContext
             e.Property(x => x.HermesProfile).HasMaxLength(128);
             e.Property(x => x.HermesSessionId).HasMaxLength(128);
             e.HasIndex(x => x.Status);
+            e.HasIndex(x => x.DeliveryChainId);
+            e.Property(x => x.ExecutionMode).HasDefaultValue(SessionExecutionMode.Default);
         });
 
         modelBuilder.Entity<WorkTask>(e =>

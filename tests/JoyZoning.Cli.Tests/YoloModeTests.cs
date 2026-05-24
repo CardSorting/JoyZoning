@@ -352,6 +352,13 @@ public class YoloModeTests
                 """{"error":"lease_not_found"}"""));
         }
 
+        public Task<CliHttpResult> GetSessionAsync(Guid sessionId)
+        {
+            Calls.Add("GetSession");
+            var json = """{"executionMode":"Default"}""";
+            return Task.FromResult(CliHttpResult.FromResponse(HttpStatusCode.OK, json));
+        }
+
         public Task<CliHttpResult> DispatchTaskAsync(Guid taskId, bool humanApprovedCritical)
         {
             Calls.Add($"Dispatch:{humanApprovedCritical}");

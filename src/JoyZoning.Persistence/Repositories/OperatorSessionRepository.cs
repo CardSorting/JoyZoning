@@ -17,10 +17,11 @@ public class OperatorSessionRepository : IOperatorSessionRepository
         string normalizedWorkspaceRoot,
         CancellationToken cancellationToken = default)
     {
-        var byKey = await _db.OperatorSessions.AsNoTracking()
+        // SQLite cannot ORDER BY DateTimeOffset — filter in SQL, sort client-side.
+        var byKeyRows = await _db.OperatorSessions.AsNoTracking()
             .Where(s => s.WorkspaceKey == normalizedWorkspaceRoot)
-            .OrderByDescending(s => s.UpdatedAt)
-            .FirstOrDefaultAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
+        var byKey = byKeyRows.OrderByDescending(s => s.UpdatedAt).FirstOrDefault();
         if (byKey is not null)
             return byKey;
 
@@ -36,6 +37,19 @@ public class OperatorSessionRepository : IOperatorSessionRepository
         // SQLite cannot ORDER BY DateTimeOffset — sort client-side after load.
         var rows = await _db.OperatorSessions.AsNoTracking().ToListAsync(cancellationToken);
         return rows.OrderByDescending(s => s.UpdatedAt).ToList();
+    }
+
+    public async Task<IReadOnlyList<OperatorSession>> ListByDeliveryChainIdAsync(
+        Guid deliveryChainId,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await _db.OperatorSessions.AsNoTracking()
+            .Where(s => s.DeliveryChainId == deliveryChainId)
+            .ToListAsync(cancellationToken);
+        return rows
+            .OrderBy(s => s.DeliverySequence)
+            .ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     public async Task<OperatorSession> CreateAsync(OperatorSession session, CancellationToken cancellationToken = default)
@@ -57,6 +71,9 @@ public class OperatorSessionRepository : IOperatorSessionRepository
         tracked.HermesSessionId = session.HermesSessionId;
         tracked.ActiveTaskId = session.ActiveTaskId;
         tracked.Status = session.Status;
+        tracked.ExecutionMode = session.ExecutionMode;
+        tracked.DeliveryChainId = session.DeliveryChainId;
+        tracked.DeliverySequence = session.DeliverySequence;
         tracked.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
     }

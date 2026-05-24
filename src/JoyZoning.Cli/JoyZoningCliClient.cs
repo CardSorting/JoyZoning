@@ -54,6 +54,15 @@ public sealed class JoyZoningCliClient : IDisposable
 
     public Task<CliHttpResult> GetSessionAsync(Guid id) => GetAsync($"api/sessions/{id}");
 
+    public Task<CliHttpResult> GetDeliveryPlanAsync(Guid sessionId) =>
+        GetAsync($"api/sessions/{sessionId}/delivery-plan");
+
+    public Task<CliHttpResult> CreateDeliveryChainAsync(string programName, string workspaceRoot) =>
+        PostJsonAsync("api/delivery-chains", new { programName, workspaceRoot });
+
+    public Task<CliHttpResult> GetDeliveryChainQueueAsync(Guid chainId) =>
+        GetAsync($"api/delivery-chains/{chainId}/queue");
+
     public Task<CliHttpResult> CreateSessionAsync(string name, string workspaceRoot, string? hermesProfile) =>
         PostJsonAsync("api/sessions", new { name, workspaceRoot, hermesProfile });
 

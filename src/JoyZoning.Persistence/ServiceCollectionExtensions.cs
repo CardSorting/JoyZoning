@@ -77,6 +77,9 @@ public static class ServiceCollectionExtensions
         TryAddColumn(db, "execution_sessions", "HermesSessionId", "TEXT NULL");
         TryAddColumn(db, "work_tasks", "KanbanRevision", "INTEGER NOT NULL DEFAULT 0");
         TryAddColumn(db, "work_tasks", "KanbanPushedRevision", "INTEGER NOT NULL DEFAULT 0");
+        TryAddColumn(db, "operator_sessions", "ExecutionMode", "INTEGER NOT NULL DEFAULT 0");
+        TryAddColumn(db, "operator_sessions", "DeliveryChainId", "TEXT NULL");
+        TryAddColumn(db, "operator_sessions", "DeliverySequence", "INTEGER NULL");
 
         db.Database.ExecuteSqlRaw("""
              CREATE UNIQUE INDEX IF NOT EXISTS UX_execution_leases_one_active_per_card

@@ -18,7 +18,9 @@ public static class LeaseSchedulingRules
             return $"Scheduler at capacity ({options.MaxGlobalActiveLeases} global active leases).";
 
         if (sessionActiveCount >= options.MaxActiveLeasesPerSession)
-            return "Too many active leases for this operator session.";
+            return options.MaxActiveLeasesPerSession <= 1
+                ? "Single-agent session: another lease is already active. Finish or revoke before dispatching."
+                : "Too many active leases for this operator session.";
 
         if (newLeaseRisk == LeaseRiskLevel.Critical)
         {

@@ -1,4 +1,5 @@
 using JoyZoning.Domain.Entities;
+using JoyZoning.Domain.Enums;
 using JoyZoning.Domain.Orchestration;
 using JoyZoning.Persistence.Repositories;
 using Microsoft.Extensions.Logging;
@@ -31,6 +32,9 @@ public sealed class WorkspaceSessionConsolidator
         OperatorSession session,
         CancellationToken cancellationToken = default)
     {
+        if (session.IsBoundedRoleSession)
+            return session;
+
         var all = await _sessions.ListAsync(cancellationToken);
         var canonical = WorkspaceSessionCatalog.FindCanonicalForWorkspace(all, session.WorkspaceRoot)
             ?? session;
@@ -48,7 +52,9 @@ public sealed class WorkspaceSessionConsolidator
     public async Task ConsolidateAllAsync(CancellationToken cancellationToken = default)
     {
         var all = await _sessions.ListAsync(cancellationToken);
-        foreach (var group in all.GroupBy(WorkspaceSessionCatalog.WorkspaceKey, StringComparer.OrdinalIgnoreCase))
+        foreach (var group in all
+                     .Where(s => !s.IsBoundedRoleSession)
+                     .GroupBy(WorkspaceSessionCatalog.WorkspaceKey, StringComparer.OrdinalIgnoreCase))
             await ConsolidateGroupAsync(group.ToList(), cancellationToken);
 
         await BackfillWorkspaceKeysAsync(cancellationToken);
@@ -59,6 +65,9 @@ public sealed class WorkspaceSessionConsolidator
         var all = await _sessions.ListAsync(cancellationToken);
         foreach (var session in all)
         {
+            if (session.IsBoundedRoleSession || RoleDeliveryChainKeys.IsBoundedRoleWorkspaceKey(session.WorkspaceKey))
+                continue;
+
             if (!WorkspacePaths.TryNormalize(session.WorkspaceRoot, out var key))
                 continue;
 
@@ -79,6 +88,7 @@ public sealed class WorkspaceSessionConsolidator
     {
         var group = all
             .Where(s => WorkspacePaths.EqualsNormalized(s.WorkspaceRoot, workspaceRoot))
+            .Where(s => s.ExecutionMode != SessionExecutionMode.BoundedRole)
             .ToList();
         if (group.Count <= 1)
             return;
@@ -90,10 +100,13 @@ public sealed class WorkspaceSessionConsolidator
         IReadOnlyList<OperatorSession> group,
         CancellationToken cancellationToken)
     {
-        if (group.Count <= 1)
+        var mergeable = group
+            .Where(s => s.ExecutionMode != SessionExecutionMode.BoundedRole)
+            .ToList();
+        if (mergeable.Count <= 1)
             return;
 
-        var canonical = group.OrderByDescending(s => s.UpdatedAt).First();
+        var canonical = mergeable.OrderByDescending(s => s.UpdatedAt).First();
         var normalizedRoot = WorkspacePaths.TryNormalize(canonical.WorkspaceRoot, out var norm)
             ? norm
             : canonical.WorkspaceRoot;
@@ -103,7 +116,7 @@ public sealed class WorkspaceSessionConsolidator
         canonical.UpdatedAt = DateTimeOffset.UtcNow;
         await _sessions.UpdateAsync(canonical, cancellationToken);
 
-        foreach (var duplicate in group.Where(s => s.Id != canonical.Id))
+        foreach (var duplicate in mergeable.Where(s => s.Id != canonical.Id))
             await MergeDuplicateSessionAsync(canonical, duplicate, cancellationToken);
     }
 
