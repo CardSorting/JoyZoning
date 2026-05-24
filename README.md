@@ -5,13 +5,13 @@
 
 > ### Supervise AI coding on your machine.
 
-**JoyZoning** is a local cockpit for agent work:
+JoyZoning is a local cockpit for agent work:
 
-- **Plan** in chat
-- **Track** work as kanban cards
-- **Run** changes in your real repo
-- **Verify** with tests and builds
-- **Merge** only when you approve
+- Plan in chat
+- Track work as kanban cards
+- Run changes in your real repo
+- Verify with tests and builds
+- Merge only when you approve
 
 > **What it is not**
 >
@@ -21,9 +21,7 @@
 
 **For operators who want evidence before completion.**
 
-> One local [diet-hermes](https://github.com/NousResearch/hermes-agent). Not a second IDE. Not “the agent said it’s finished.”
-
-> **Anchor —** Chat plans; Workspace is truth.
+> Chat plans; Workspace is truth.
 
 > **New here?** [What's next](docs/onboarding/whats-next.md) (~20 min after install) · [Onboarding hub](docs/onboarding/README.md)
 
@@ -45,6 +43,8 @@ flowchart LR
 | **2 — First merge** | One card: dispatch → verify → merge → Complete | ~20 min | **[What's next](docs/onboarding/whats-next.md)** ← main walkthrough |
 | **3 — Scale** | Daily habits, CLI, or multi-role JSDP | ongoing | [Setup checklist](docs/onboarding/setup-checklist.md) · [JSDP](docs/jsdp.md) |
 
+> One local [diet-hermes](https://github.com/NousResearch/hermes-agent). Not “the agent said it’s finished.”
+
 ---
 
 ## Phase 0 — Is JoyZoning for you?
@@ -60,7 +60,7 @@ flowchart LR
 
 ### Mental model (read once — used in every step)
 
-1. **Chat plans; Workspace is truth** — Manager Chat = thinking; **Workspace** = files on disk (like a PR “Files changed” tab).  
+1. **Chat plans; Workspace is truth** — Manager Chat = thinking; **Workspace** = files on disk (like a PR “Files changed” tab). Trust Workspace, not chat, for sign-off.  
 2. **One card → one branch** — You open one project folder. After **Dispatch**, work is on `joyzoning/card-<task-id>` in that folder (no hidden sandbox copy).  
 3. **Only you merge** — Agents stop at `ready_for_review`; **Complete** is yours after review (and verification if you run it).
 
