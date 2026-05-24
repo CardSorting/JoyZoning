@@ -38,6 +38,64 @@ public sealed class AgentOperationsCommandTests
     }
 
     [Fact]
+    public async Task Agent_manifest_writes_cache_file()
+    {
+        var root = FindRepoRoot();
+        var cachePath = Path.Combine(root, AgentOperationsManifestCache.RelativePath);
+        if (File.Exists(cachePath))
+            File.Delete(cachePath);
+
+        try
+        {
+            var previous = Console.Out;
+            using var writer = new StringWriter();
+            Console.SetOut(writer);
+            try
+            {
+                var code = await AgentOperationsCommand.DispatchAsync(
+                    new JoyZoningCliClient(CliContext.DefaultBaseUrl),
+                    CliContext.FromArgs(["agent-manifest", "--json"]),
+                    ["agent-manifest", "--json"]);
+                Assert.Equal(0, code);
+            }
+            finally
+            {
+                Console.SetOut(previous);
+            }
+
+            Assert.True(File.Exists(cachePath));
+            using var doc = JsonDocument.Parse(File.ReadAllText(cachePath));
+            Assert.True(doc.RootElement.TryGetProperty("fingerprint", out _));
+            Assert.True(doc.RootElement.TryGetProperty("manifest", out _));
+        }
+        finally
+        {
+            if (File.Exists(cachePath))
+                File.Delete(cachePath);
+        }
+    }
+
+    [Fact]
+    public void Manifest_fingerprint_changes_when_endpoint_count_changes()
+    {
+        var fp = AgentOperationsManifestCache.ComputeStaticFingerprint();
+        Assert.Contains("endpoints=", fp);
+        Assert.StartsWith("1|", fp);
+    }
+
+    private static string FindRepoRoot()
+    {
+        var dir = new DirectoryInfo(Environment.CurrentDirectory);
+        for (var current = dir; current is not null; current = current.Parent)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "JoyZoning.sln")))
+                return current.FullName;
+        }
+
+        throw new InvalidOperationException("JoyZoning.sln not found from test working directory.");
+    }
+
+    [Fact]
     public async Task Agent_manifest_command_returns_valid_json()
     {
         var json = await CaptureStdoutAsync(() =>

@@ -199,5 +199,8 @@ public static class JoyZoningEndpointRegistry
         new("agent-endpoints-http", "GET", "/api/agent/endpoints",
             "Return the typed endpoint registry; use ?agentSafe=true for agent-safe routes only.",
             null, "JoyZoningEndpointDescriptor[]", true),
+        new("agent-context-http", "GET", "/api/agent/context",
+            "Return control-plane runtime state for agents (sessions, leases, approvals).",
+            null, "AgentOperationsContextResponse", true),
     ];
 }

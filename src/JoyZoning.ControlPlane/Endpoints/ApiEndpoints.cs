@@ -190,6 +190,17 @@ public static class ApiEndpoints
             return Results.Ok(new
             {
                 watchUrl = "/",
+                agentOps = new
+                {
+                    manifestVersion = AgentOperationsManifest.ManifestVersion,
+                    fingerprint = AgentOperationsManifestCache.ComputeStaticFingerprint(),
+                    manifestUrl = "/api/agent/manifest",
+                    contextUrl = "/api/agent/context",
+                    endpointsUrl = "/api/agent/endpoints?agentSafe=true",
+                    contractPath = AgentOperationsManifest.AgentContractRelativePath,
+                    agentsEntry = "AGENTS.md",
+                    manifestCache = AgentOperationsManifestCache.RelativePath,
+                },
                 sessions = sessionList.Select(s => new
                 {
                     s.Id,
@@ -959,6 +970,36 @@ public static class ApiEndpoints
 
         app.MapGet("/api/agent/manifest", () =>
             Results.Ok(AgentOperationsManifest.BuildStatic()));
+
+        app.MapGet("/api/agent/context", async (
+            IOperatorSessionRepository sessions,
+            ApprovalService approvals,
+            IExecutionLeaseRepository leases,
+            CancellationToken cancellationToken) =>
+        {
+            var sessionList = await sessions.ListAsync(cancellationToken);
+            var pending = await approvals.ListPendingAsync(cancellationToken);
+            var activeLeases = await leases.ListActiveAsync(cancellationToken);
+            var blockedLeases = activeLeases.Count(l => l.Status == ExecutionLeaseStatus.Blocked);
+
+            return Results.Ok(new
+            {
+                manifestVersion = AgentOperationsManifest.ManifestVersion,
+                fingerprint = AgentOperationsManifestCache.ComputeStaticFingerprint(),
+                generatedAt = DateTimeOffset.UtcNow,
+                service = "joyzoning-control-plane",
+                health = "ok",
+                sessions = new { total = sessionList.Count },
+                leases = new { active = activeLeases.Count, blocked = blockedLeases },
+                pendingApprovals = new { count = pending.Count, available = true },
+                entrypoints = AgentOperationsManifest.Entrypoints,
+                importantFiles = AgentOperationsManifest.ImportantFiles,
+                protectedPaths = AgentOperationsManifest.ProtectedPaths,
+                workflow = AgentOperationsManifest.AgentWorkflow,
+                http = AgentOperationsManifest.HttpSurfaces,
+                manifestCache = AgentOperationsManifestCache.RelativePath,
+            });
+        });
 
         app.MapGet("/api/agent/endpoints", (bool? agentSafe) =>
         {

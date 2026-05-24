@@ -17,6 +17,7 @@ public static class AgentOperationsManifest
         "src/JoyZoning.Cli/JoyZoningCliClient.cs",
         "src/JoyZoning.Cli/AgentOperationsCommand.cs",
         "src/JoyZoning.Domain/Orchestration/AgentOperationsManifest.cs",
+        "src/JoyZoning.Domain/Orchestration/AgentOperationsManifestCache.cs",
         "src/JoyZoning.Domain/Orchestration/JoyZoningEndpointRegistry.cs",
         "src/JoyZoning.Domain/Orchestration/JoyZoningEndpointRegistrySync.cs",
         "src/JoyZoning.ControlPlane/Endpoints/ApiEndpoints.cs",
@@ -76,7 +77,16 @@ public static class AgentOperationsManifest
         ["readScope"] = "Only files in importantFiles unless doctor reports stale manifest",
         ["afterEdit"] = "joyzoning verify --manifest --fast && joyzoning snapshot --json",
         ["orchestration"] = "joyzoning plan \"<goal>\" --session <guid> && joyzoning run <task-id>",
-        ["httpFallback"] = "GET /api/agent/manifest and GET /api/agent/endpoints?agentSafe=true",
+        ["httpFallback"] = "GET /api/agent/manifest, GET /api/agent/context, GET /api/agent/endpoints?agentSafe=true",
+    };
+
+    public static readonly IReadOnlyDictionary<string, string> HttpSurfaces = new Dictionary<string, string>
+    {
+        ["manifest"] = "/api/agent/manifest",
+        ["context"] = "/api/agent/context",
+        ["endpoints"] = "/api/agent/endpoints",
+        ["endpointsAgentSafe"] = "/api/agent/endpoints?agentSafe=true",
+        ["watchBootstrap"] = "/api/watch/bootstrap",
     };
 
     public static readonly IReadOnlyList<string> AvailableSurfaces =
@@ -90,7 +100,8 @@ public static class AgentOperationsManifest
         "Agents stop at ReadyForReview; humans own merge and Complete.",
         "The endpoint registry is authoritative for agent-safe API discovery.",
         "Use doctor before scanning the repo when manifest assumptions look stale.",
-        "HTTP /api/agent/manifest mirrors static manifest fields when CLI is unavailable.",
+        "HTTP /api/agent/manifest and /api/agent/context mirror agent operations when CLI is unavailable.",
+        "Cached manifest lives at .joyzoning/agent-manifest.json after agent-manifest or passing doctor.",
     ];
 
     public static readonly IReadOnlyList<string> Entrypoints =
@@ -104,6 +115,7 @@ public static class AgentOperationsManifest
     public static object BuildStatic() => new
     {
         manifestVersion = ManifestVersion,
+        fingerprint = AgentOperationsManifestCache.ComputeStaticFingerprint(),
         app = "joyzoning",
         generatedBy = GeneratedBy,
         cliBinaries = CliBinaries,
@@ -124,6 +136,8 @@ public static class AgentOperationsManifest
         assumptions = WorkspaceAssumptions,
         entrypoints = Entrypoints,
         agentContract = AgentContractRelativePath,
+        manifestCache = AgentOperationsManifestCache.RelativePath,
+        http = HttpSurfaces,
     };
 
     public static object BuildEndpointSummary(bool? syncedWithApi)

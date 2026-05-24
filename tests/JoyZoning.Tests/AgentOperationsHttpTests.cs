@@ -9,6 +9,35 @@ namespace JoyZoning.Tests;
 public sealed class AgentOperationsHttpTests
 {
     [Fact]
+    public async Task Agent_context_http_returns_runtime_state()
+    {
+        using var factory = new JoyZoningApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/agent/context");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"manifestVersion\":\"1\"", json.Replace(" ", ""));
+        Assert.Contains("/api/agent/manifest", json);
+        Assert.Contains("pendingApprovals", json);
+    }
+
+    [Fact]
+    public async Task Watch_bootstrap_includes_agent_ops()
+    {
+        using var factory = new JoyZoningApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/watch/bootstrap");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Contains("agentOps", json);
+        Assert.Contains("/api/agent/context", json);
+    }
+
+    [Fact]
     public async Task Agent_manifest_http_returns_manifest_version()
     {
         using var factory = new JoyZoningApiFactory();

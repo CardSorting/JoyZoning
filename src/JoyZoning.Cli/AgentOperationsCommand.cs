@@ -20,7 +20,7 @@ public static class AgentOperationsCommand
         var cmd = a[0].ToLowerInvariant();
         return cmd switch
         {
-            "agent-manifest" => CliOutput.WriteEnvelope(ctx, await BuildManifestAsync(ctx)),
+            "agent-manifest" => await WriteManifestAsync(client, ctx),
             "agent-context" => CliOutput.WriteEnvelope(ctx, await BuildAgentContextAsync(ctx)),
             "inspect" => CliOutput.WriteEnvelope(ctx, BuildInspect(FindWorkspaceRoot())),
             "status" => CliOutput.WriteEnvelope(ctx, await BuildStatusAsync(ctx)),
@@ -46,7 +46,34 @@ public static class AgentOperationsCommand
         agentsEntry = "AGENTS.md",
         workspaceRoot = root,
         endpointSummary = BuildEndpointSummary(root),
+        manifestCache = AgentOperationsManifestCache.RelativePath,
+        http = AgentOperationsManifest.HttpSurfaces,
     };
+
+    private static async Task<int> WriteManifestAsync(JoyZoningCliClient client, CliContext ctx)
+    {
+        var manifest = await BuildManifestAsync(ctx);
+        TryWriteManifestCache(FindWorkspaceRoot(), manifest);
+        return CliOutput.WriteEnvelope(ctx, manifest);
+    }
+
+    public static void TryWriteManifestCache(string root, object manifest)
+    {
+        try
+        {
+            AgentOperationsManifestCache.Write(root, new
+            {
+                fingerprint = AgentOperationsManifestCache.ComputeWorkspaceFingerprint(root),
+                importantFilesHash = AgentOperationsManifestCache.HashImportantFiles(root),
+                generatedAt = DateTimeOffset.UtcNow,
+                manifest,
+            });
+        }
+        catch
+        {
+            // Best-effort cache for offline agents.
+        }
+    }
 
     public static async Task<object> BuildManifestAsync(CliContext ctx)
     {
@@ -58,6 +85,8 @@ public static class AgentOperationsCommand
         return new
         {
             manifestVersion = ManifestVersion,
+            fingerprint = AgentOperationsManifestCache.ComputeWorkspaceFingerprint(root),
+            importantFilesHash = AgentOperationsManifestCache.HashImportantFiles(root),
             app = "joyzoning",
             version = ResolveAppVersion(root),
             generatedAt = DateTimeOffset.UtcNow,
@@ -86,6 +115,9 @@ public static class AgentOperationsCommand
             protectedPaths = ProtectedPaths,
             generatedBy = AgentOperationsManifest.GeneratedBy,
             httpManifest = $"{ctx.BaseUrl.TrimEnd('/')}/api/agent/manifest",
+            httpContext = $"{ctx.BaseUrl.TrimEnd('/')}/api/agent/context",
+            manifestCache = AgentOperationsManifestCache.RelativePath,
+            http = AgentOperationsManifest.HttpSurfaces,
             doctor = new
             {
                 ok = local.Ok,
@@ -226,6 +258,8 @@ public static class AgentOperationsCommand
             "Registry includes POST /api/sessions.");
         Check("agent_http_manifest", JoyZoningEndpointRegistry.Endpoints.Any(e => e.Path == "/api/agent/manifest"),
             "Registry includes GET /api/agent/manifest for HTTP fallback.");
+        Check("agent_http_context", JoyZoningEndpointRegistry.Endpoints.Any(e => e.Path == "/api/agent/context"),
+            "Registry includes GET /api/agent/context for HTTP runtime state.");
         Check("protected_paths", ProtectedPaths.Contains(".next/") &&
                                  ProtectedPaths.Contains("node_modules/") &&
                                  ProtectedPaths.Contains("generated/"),
@@ -256,6 +290,14 @@ public static class AgentOperationsCommand
                                 File.ReadAllText(Path.Combine(root, AgentOperationsManifest.AgentContractRelativePath))
                                     .Contains("manifestVersion", StringComparison.Ordinal),
             "Agent contract references canonical commands and manifest version.");
+        var expectedFingerprint = AgentOperationsManifestCache.ComputeWorkspaceFingerprint(root);
+        var cacheCurrent = AgentOperationsManifestCache.TryReadFingerprint(root, out var cachedFingerprint) &&
+                           cachedFingerprint == expectedFingerprint;
+        Check("manifest_cache", cacheCurrent,
+            cacheCurrent
+                ? $"Cached manifest at {AgentOperationsManifestCache.RelativePath} matches current fingerprint."
+                : $"Refresh cache: joyzoning agent-manifest --json (writes {AgentOperationsManifestCache.RelativePath}).",
+            "warn");
         Check("watch_package_scripts", WatchPackageHasScripts(root),
             "apps/joyzoning/package.json has build, typecheck, and test scripts.", "warn");
 
@@ -338,14 +380,31 @@ public static class AgentOperationsCommand
     {
         try
         {
-            using var process = Process.Start(new ProcessStartInfo("/bin/bash", $"-lc {QuoteShell(command)}")
+            ProcessStartInfo psi;
+            if (OperatingSystem.IsWindows())
             {
-                WorkingDirectory = workingDirectory,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            });
+                psi = new ProcessStartInfo("cmd.exe", $"/c {command}")
+                {
+                    WorkingDirectory = workingDirectory,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+            }
+            else
+            {
+                psi = new ProcessStartInfo("/bin/bash", $"-lc {QuoteShell(command)}")
+                {
+                    WorkingDirectory = workingDirectory,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+            }
+
+            using var process = Process.Start(psi);
             if (process is null)
                 return (-1, "", "process did not start");
 

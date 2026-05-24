@@ -29,6 +29,7 @@ Self-describing control surface so agents never need to spelunk `src/`, routes, 
 ./scripts/joyzoning agent-context --json
 ./scripts/joyzoning endpoints --json
 ./scripts/joyzoning doctor --json
+curl -s http://127.0.0.1:9470/api/agent/context | jq .
 curl -s http://127.0.0.1:9470/api/agent/manifest | jq .
 ```
 

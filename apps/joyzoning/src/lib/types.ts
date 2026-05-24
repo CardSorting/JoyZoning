@@ -93,6 +93,16 @@ export interface ActiveTaskSummary {
 
 export interface WatchBootstrap {
   watchUrl: string;
+  agentOps?: {
+    manifestVersion: string;
+    fingerprint: string;
+    manifestUrl: string;
+    contextUrl: string;
+    endpointsUrl: string;
+    contractPath: string;
+    agentsEntry: string;
+    manifestCache: string;
+  };
   sessions: WatchSession[];
   activeTasks: ActiveTaskSummary[];
 }

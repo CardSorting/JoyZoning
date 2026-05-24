@@ -21,9 +21,14 @@ joyzoning doctor --json            # validate assumptions; scan repo only if thi
 When the CLI is unavailable but the control plane is up:
 
 ```bash
+curl -s http://127.0.0.1:9470/api/agent/context | jq .
 curl -s http://127.0.0.1:9470/api/agent/manifest | jq .
 curl -s 'http://127.0.0.1:9470/api/agent/endpoints?agentSafe=true' | jq .
 ```
+
+### Offline cache
+
+`joyzoning agent-manifest --json` writes `.joyzoning/agent-manifest.json` with a `fingerprint`. Re-run when `doctor` reports `manifest_cache: warn`.
 
 If `doctor` reports `endpoint_registry_sync: fail`, the typed registry drifted from live API routes — fix the registry before trusting `endpoints --json`.
 

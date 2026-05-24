@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using JoyZoning.Agents.Hermes;
+using JoyZoning.Domain.Orchestration;
 
 namespace JoyZoning.Cli;
 
@@ -18,8 +19,12 @@ public static class DoctorCommand
         }
 
         var root = AgentOperationsCommand.FindWorkspaceRoot();
-        foreach (var check in AgentOperationsCommand.BuildLocalDoctor(root).Checks)
+        var localDoctor = AgentOperationsCommand.BuildLocalDoctor(root);
+        foreach (var check in localDoctor.Checks)
             Add(check.Id, check.Status, check.Detail);
+
+        if (localDoctor.Ok)
+            AgentOperationsCommand.TryWriteManifestCache(root, AgentOperationsManifest.BuildStatic());
 
         if (!HasDotNetSdk())
             Add("dotnet_sdk", "fail", ".NET 8 SDK not found on PATH. Install from https://dot.net");
