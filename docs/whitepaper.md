@@ -5,7 +5,8 @@
 **Version:** 1.5 (May 2026)  
 **License:** MIT  
 **Audit:** [whitepaper-framework-audit.md](whitepaper-framework-audit.md)  
-**Summary:** [whitepaper-summary.md](whitepaper-summary.md)
+**Summary:** [whitepaper-summary.md](whitepaper-summary.md)  
+**Research companion:** [research-companion.md](research-companion.md) (arXiv-style narrative; this spec remains authoritative)
 
 ---
 

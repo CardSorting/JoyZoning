@@ -43,6 +43,7 @@ flowchart TD
 |-----|----------|
 | **[whitepaper.md](whitepaper.md)** | Framework v1.5: core invariants C1–C8, boundaries B1–B4, closure map, coordination vs implementation complexity, governance durability—embodiment Annex A only |
 | [whitepaper-summary.md](whitepaper-summary.md) | One-page digest (C1–C8) |
+| [research-companion.md](research-companion.md) | arXiv-style research narrative: history, related work adjacency, comparisons, limitations, empirical agenda (spec is authoritative) |
 | [whitepaper-framework-audit.md](whitepaper-framework-audit.md) | Stabilization audit: invariant minimization, scope boundaries, adversarial reading, v1.4→v1.5 migration |
 
 ### Two execution paths (same merge gate)

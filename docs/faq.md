@@ -162,7 +162,7 @@ Default profile name: **`joyzoning`** (API enabled on 8642). Configurable per se
 
 ### Where is the delivery-systems framework paper?
 
-[whitepaper.md](whitepaper.md) (v1.5) — implementation-independent; JoyZoning is one embodiment (Annex A). Start with [whitepaper-summary.md](whitepaper-summary.md) for invariants **C1–C8** and boundaries **B1–B4**.
+[whitepaper.md](whitepaper.md) (v1.5) — implementation-independent; JoyZoning is one embodiment (Annex A). Start with [whitepaper-summary.md](whitepaper-summary.md) for invariants **C1–C8** and boundaries **B1–B4**. For historical context, comparisons, and research directions, see [research-companion.md](research-companion.md).
 
 ### What does “Chat plans. The repo is truth. You merge.” mean?
 
