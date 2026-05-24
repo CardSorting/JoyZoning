@@ -60,6 +60,8 @@ public sealed class JoyZoningCliClient : IDisposable
     public Task<CliHttpResult> ListTasksAsync(Guid sessionId) =>
         GetAsync($"api/tasks?sessionId={sessionId}");
 
+    public Task<CliHttpResult> GetTaskAsync(Guid taskId) => GetAsync($"api/tasks/{taskId}");
+
     public Task<CliHttpResult> CreateTaskAsync(
         Guid sessionId,
         string title,

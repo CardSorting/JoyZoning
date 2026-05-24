@@ -17,6 +17,10 @@ public static class DoctorCommand
                 ok = false;
         }
 
+        var root = AgentOperationsCommand.FindWorkspaceRoot();
+        foreach (var check in AgentOperationsCommand.BuildLocalDoctor(root).Checks)
+            Add(check.Id, check.Status, check.Detail);
+
         if (!HasDotNetSdk())
             Add("dotnet_sdk", "fail", ".NET 8 SDK not found on PATH. Install from https://dot.net");
         else
@@ -96,7 +100,8 @@ public static class DoctorCommand
         if (!ctx.Quiet)
         {
             var envelope = new { ok, checks };
-            return CliOutput.WriteEnvelope(ctx, envelope);
+            var writeCode = CliOutput.WriteEnvelope(ctx, envelope);
+            return writeCode != 0 ? writeCode : ok ? 0 : 1;
         }
 
         return ok ? 0 : 1;

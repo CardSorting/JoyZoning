@@ -35,16 +35,20 @@ public static class TaskWatchCommand
             psi.ArgumentList.Add("--paths");
         if (ctx.Args.Has("--notify"))
             psi.Environment["JOYZONING_LIVE_NOTIFY"] = "1";
-        if (ctx.Args.OptStatic(ctx.Args.Raw, "--interval") is { } interval)
+        if (CliArgs.OptStatic(ctx.Args.Raw, "--interval") is { } interval)
             psi.Environment["JOYZONING_LIVE_INTERVAL"] = interval;
 
-        var url = ctx.Args.OptStatic(ctx.Args.Raw, "--base-url")
+        var url = CliArgs.OptStatic(ctx.Args.Raw, "--base-url")
             ?? Environment.GetEnvironmentVariable("JOYZONING_URL")
             ?? "http://127.0.0.1:9470";
         psi.Environment["JOYZONING_URL"] = url;
 
         using var proc = Process.Start(psi);
-        return proc is null ? 1 : proc.WaitForExit();
+        if (proc is null)
+            return 1;
+
+        proc.WaitForExit();
+        return proc.ExitCode;
     }
 
     internal static string? FindWorkspaceLiveScript()

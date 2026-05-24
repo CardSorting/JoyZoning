@@ -156,6 +156,12 @@ public static class ApiEndpoints
             }
         });
 
+        app.MapGet("/api/tasks/{id:guid}", async (Guid id, IWorkTaskRepository tasks) =>
+        {
+            var task = await tasks.GetByIdAsync(id);
+            return task is null ? Results.NotFound() : Results.Ok(task);
+        });
+
         app.MapGet("/api/watch/bootstrap", async (
             IOperatorSessionRepository sessions,
             IWorkTaskRepository tasks,

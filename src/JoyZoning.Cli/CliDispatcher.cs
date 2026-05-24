@@ -21,6 +21,8 @@ public static class CliDispatcher
         {
             "health" => CliOutput.WriteResult(ctx, await client.HealthAsync()),
             "doctor" => await DoctorCommand.RunAsync(ctx),
+            "status" or "inspect" or "agent-manifest" or "agent-context" or "endpoints" or "endpoint-map" or "snapshot" =>
+                await AgentOperationsCommand.DispatchAsync(client, ctx, a),
             "lease" => await DispatchLeaseShortcutAsync(client, ctx, a),
             "heartbeat" => await DispatchHeartbeatShortcutAsync(client, ctx, a),
             "verify" => await DispatchVerifyShortcutAsync(client, ctx, a),
@@ -149,6 +151,9 @@ public static class CliDispatcher
                 var runId = CliArgs.RequireGuid(a, 2, "task id");
                 return CliOutput.WriteResult(ctx, await OperatorWorkflows.RunTaskAsync(client, args, runId));
 
+            case "read":
+                return CliOutput.WriteResult(ctx, await client.GetTaskAsync(CliArgs.RequireGuid(a, 2, "task id")));
+
             case "verify":
                 return await RunVerifyAsync(client, ctx, CliArgs.RequireGuid(a, 2, "task id"));
 
@@ -173,9 +178,10 @@ public static class CliDispatcher
                     args.RequireSessionId(CliArgs.ParseGuidOpt(raw, "--session"))));
 
             case "create":
+                var title = CliArgs.OptStatic(raw, "--title") ?? CliArgs.OptStatic(raw, "--goal");
                 return CliOutput.WriteResult(ctx, await client.CreateTaskAsync(
                     args.RequireSessionId(CliArgs.ParseGuidOpt(raw, "--session")),
-                    CliArgs.OptStatic(raw, "--title") ?? throw Usage("--title required"),
+                    title ?? throw Usage("--title or --goal required"),
                     CliArgs.OptStatic(raw, "--description"),
                     (AgentKind)CliArgs.ParseIntOpt(raw, "--agent", (int)AgentKind.DietCode),
                     (RiskLevel)CliArgs.ParseIntOpt(raw, "--risk", (int)RiskLevel.Low)));
