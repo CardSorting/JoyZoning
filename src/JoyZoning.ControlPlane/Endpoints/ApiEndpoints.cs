@@ -956,6 +956,23 @@ public static class ApiEndpoints
             await orch.MarkExecutionCancelledAsync(id);
             return Results.Ok(execution);
         });
+
+        app.MapGet("/api/agent/manifest", () =>
+            Results.Ok(AgentOperationsManifest.BuildStatic()));
+
+        app.MapGet("/api/agent/endpoints", (bool? agentSafe) =>
+        {
+            var endpoints = agentSafe == true
+                ? JoyZoningEndpointRegistry.Endpoints.Where(e => e.AgentSafe).ToList()
+                : JoyZoningEndpointRegistry.Endpoints;
+            return Results.Ok(new
+            {
+                manifestVersion = AgentOperationsManifest.ManifestVersion,
+                agentSafeOnly = agentSafe == true,
+                count = endpoints.Count,
+                endpoints,
+            });
+        });
     }
 }
 

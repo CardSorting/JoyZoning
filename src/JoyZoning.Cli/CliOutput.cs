@@ -139,10 +139,13 @@ public static class CliOutput
               agent-context --json   Minimal state before acting (session, git, health)
               inspect --json           Compressed discovery: important files, protected paths
               endpoints --json         Typed endpoint registry (agent-safe flags)
+              endpoints --agent-safe   Agent-safe endpoints only
               endpoints --markdown     Endpoint map for docs
               snapshot --json          Git, tests, sessions, approvals snapshot
               plan "<goal>"            Create task from goal (--session required)
               run <task-id>            Dispatch and run a task lease
+              verify --manifest        Run manifest verification commands in workspace root
+              verify --manifest --fast Run fast verification (typecheck + build only)
 
             See docs/AGENT.md — do not scan the repo unless doctor fails.
 

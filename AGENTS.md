@@ -1,0 +1,26 @@
+# JoyZoning — Agent Entry
+
+**Do not scan the repo.** JoyZoning is self-describing.
+
+## Start here
+
+```bash
+./scripts/joyzoning agent-context --json
+./scripts/joyzoning agent-manifest --json
+./scripts/joyzoning doctor --json
+```
+
+Read [docs/AGENT.md](docs/AGENT.md) for the full contract.
+
+## HTTP fallback (control plane running)
+
+```bash
+curl -s http://127.0.0.1:9470/api/agent/manifest | jq .
+curl -s 'http://127.0.0.1:9470/api/agent/endpoints?agentSafe=true' | jq .
+```
+
+## Rules
+
+1. Read only `importantFiles` from manifest output unless `doctor` reports stale assumptions.
+2. Use `endpoints --json` or `/api/agent/endpoints` for API discovery — not repo search.
+3. After edits: `joyzoning verify --manifest --fast` then `joyzoning snapshot --json`.

@@ -288,11 +288,14 @@ Target framework: **net8.0**, Avalonia **12**, terminal widget: **SvcSystems.UI.
 ## Adding API endpoints
 
 1. Add route in `ApiEndpoints.MapJoyZoningApi`
-2. Implement in `OrchestrationService` or `KanbanExecutionOrchestrator`
-3. Map exceptions via `LeaseApiResults` for lease operations
-4. Add integration test in `JoyZoning.Tests`
-5. Document in [control-plane-api.md](control-plane-api.md) and/or [execution-orchestration-api.md](execution-orchestration-api.md)
-6. Optional: expose via `JoyZoningCliClient` + `jz raw` or first-class `jz` subcommand
+2. Add matching entry in `JoyZoning.Domain/Orchestration/JoyZoningEndpointRegistry.cs` (set `AgentSafe` correctly)
+3. Implement in `OrchestrationService` or `KanbanExecutionOrchestrator`
+4. Map exceptions via `LeaseApiResults` for lease operations
+5. Add integration test in `JoyZoning.Tests`
+6. Document in [control-plane-api.md](control-plane-api.md) and/or [execution-orchestration-api.md](execution-orchestration-api.md)
+7. Optional: expose via `JoyZoningCliClient` + `jz raw` or first-class `jz` subcommand
+
+Registry sync is enforced by `JoyZoningEndpointRegistrySyncTests` and `JoyZoningLiveEndpointRegistrySyncTests`. `joyzoning doctor --json` includes an `endpoint_registry_sync` check.
 
 ## Migrations
 

@@ -8,6 +8,36 @@ namespace JoyZoning.Cli.Tests;
 public sealed class AgentOperationsCommandTests
 {
     [Fact]
+    public void Manifest_static_core_matches_domain_source()
+    {
+        var json = System.Text.Json.JsonSerializer.SerializeToElement(
+            AgentOperationsManifest.BuildStatic(),
+            JoyZoningCliClient.JsonOptions);
+
+        Assert.Equal("1", json.GetProperty("manifestVersion").GetString());
+        Assert.True(json.GetProperty("endpointSummary").GetProperty("total").GetInt32() >= 60);
+        Assert.Contains("AGENTS.md", AgentOperationsManifest.ImportantFiles);
+    }
+
+    [Fact]
+    public async Task Endpoints_agent_safe_filter_returns_subset()
+    {
+        var json = await CaptureStdoutAsync(() =>
+            AgentOperationsCommand.DispatchAsync(
+                new JoyZoningCliClient(CliContext.DefaultBaseUrl),
+                CliContext.FromArgs(["endpoints", "--json", "--agent-safe"]),
+                ["endpoints", "--json", "--agent-safe"]));
+
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.GetProperty("agentSafeOnly").GetBoolean());
+        var endpoints = doc.RootElement.GetProperty("endpoints");
+        Assert.True(endpoints.GetArrayLength() > 0);
+        Assert.True(endpoints.GetArrayLength() < JoyZoningEndpointRegistry.Endpoints.Count);
+        foreach (var endpoint in endpoints.EnumerateArray())
+            Assert.True(endpoint.GetProperty("agentSafe").GetBoolean());
+    }
+
+    [Fact]
     public async Task Agent_manifest_command_returns_valid_json()
     {
         var json = await CaptureStdoutAsync(() =>
@@ -18,7 +48,10 @@ public sealed class AgentOperationsCommandTests
 
         using var doc = JsonDocument.Parse(json);
         Assert.Equal("joyzoning", doc.RootElement.GetProperty("app").GetString());
+        Assert.Equal("1", doc.RootElement.GetProperty("manifestVersion").GetString());
         Assert.True(doc.RootElement.TryGetProperty("verification", out var verification));
+        Assert.True(doc.RootElement.TryGetProperty("endpointSummary", out var summary));
+        Assert.True(summary.GetProperty("syncedWithApi").GetBoolean());
         Assert.True(verification.TryGetProperty("typecheck", out _));
         Assert.True(doc.RootElement.TryGetProperty("protectedPaths", out var paths));
         Assert.Contains(".next/", paths.EnumerateArray().Select(e => e.GetString()));
@@ -35,7 +68,9 @@ public sealed class AgentOperationsCommandTests
 
         using var doc = JsonDocument.Parse(json);
         Assert.Equal("joyzoning", doc.RootElement.GetProperty("app").GetString());
+        Assert.Equal("1", doc.RootElement.GetProperty("manifestVersion").GetString());
         Assert.True(doc.RootElement.TryGetProperty("git", out _));
+        Assert.True(doc.RootElement.TryGetProperty("endpointSummary", out _));
         Assert.True(doc.RootElement.TryGetProperty("importantFiles", out _));
         Assert.True(doc.RootElement.TryGetProperty("nextCommands", out _));
     }
@@ -69,6 +104,7 @@ public sealed class AgentOperationsCommandTests
             Assert.True(doc.RootElement.TryGetProperty("checks", out var checks));
             Assert.Equal(JsonValueKind.Array, checks.ValueKind);
             Assert.Contains(checks.EnumerateArray(), c => c.GetProperty("id").GetString() == "endpoint_registry");
+            Assert.Contains(checks.EnumerateArray(), c => c.GetProperty("id").GetString() == "endpoint_registry_sync");
             Assert.True(code is 0 or 1);
         }
         finally

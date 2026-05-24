@@ -16,9 +16,12 @@ Self-describing control surface so agents never need to spelunk `src/`, routes, 
 | `agent-context --json` | Minimal current state: session, git, health, approvals, tasks, last verification |
 | `inspect --json` | Compressed discovery: mode, surfaces, important files, do-not-edit paths |
 | `endpoints --json` | Typed endpoint registry with agent-safe flags and schema names |
+| `endpoints --agent-safe` | Agent-safe endpoints only |
 | `endpoints --markdown` | Human-readable endpoint map |
 | `snapshot --json` | Git dirty state, last verification, active session, pending approvals |
 | `doctor --json` | Validate files, scripts, endpoint registry, manifest freshness |
+| `verify --manifest --fast` | Fast verification (typecheck + build) |
+| `verify --manifest` | Full manifest verification |
 | `plan "<goal>"` | Create a task from a goal (`--session` required) |
 | `run <task-id>` | Dispatch and run a task lease |
 
@@ -26,9 +29,11 @@ Self-describing control surface so agents never need to spelunk `src/`, routes, 
 ./scripts/joyzoning agent-context --json
 ./scripts/joyzoning endpoints --json
 ./scripts/joyzoning doctor --json
+curl -s http://127.0.0.1:9470/api/agent/manifest | jq .
 ```
 
 Endpoint registry source of truth: `src/JoyZoning.Domain/Orchestration/JoyZoningEndpointRegistry.cs`.
+Static manifest source: `src/JoyZoning.Domain/Orchestration/AgentOperationsManifest.cs`.
 
 ## Interactive operator TUI (Hermes-style)
 

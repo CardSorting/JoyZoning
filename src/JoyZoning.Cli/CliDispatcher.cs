@@ -67,8 +67,13 @@ public static class CliDispatcher
     }
 
     private static async Task<int> DispatchVerifyShortcutAsync(
-        JoyZoningCliClient client, CliContext ctx, string[] a) =>
-        await RunVerifyAsync(client, ctx, ParseOptionalTaskId(a, 1));
+        JoyZoningCliClient client, CliContext ctx, string[] a)
+    {
+        if (ctx.Args.Has("--manifest"))
+            return await AgentOperationsCommand.RunManifestVerificationAsync(ctx);
+
+        return await RunVerifyAsync(client, ctx, ParseOptionalTaskId(a, 1));
+    }
 
     private static Guid? ParseOptionalTaskId(string[] a, int index)
     {
