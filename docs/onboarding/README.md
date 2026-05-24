@@ -5,6 +5,7 @@ Welcome to JoyZoning. This section is the **guided path** from zero to your firs
 | | |
 |---|---|
 | **In a hurry?** | [5-minute quickstart](quickstart.md) |
+| **Cursor / IDE-first (no Hermes dispatch)?** | [External-agent JSDP](../external-agent-jsdp.md) |
 | **Something broken?** | [Setup troubleshooting](troubleshooting-setup.md) |
 | **Never used a terminal?** | [Desktop menu guide](desktop-menu-guide.md) |
 | **Big picture first?** | [What is JoyZoning?](../what-is-joyzoning.md) → [Before you begin](before-you-begin.md) → [concepts.md](../concepts.md) |

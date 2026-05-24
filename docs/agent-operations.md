@@ -168,6 +168,18 @@ Re-run `agent-manifest` when `doctor` reports `manifest_cache: warn`.
 Use `joyzoning verify --cmd "..."` or `joyzoning task verify <id> --cmd "..."`.  
 Agents stop at **ReadyForReview**; humans own merge and Complete.
 
+### JSDP delivery (manifest `workflow` keys)
+
+| Key | When |
+|-----|------|
+| `jsdpDeliveryManaged` | Hermes dispatch per role (`jz task dispatch` / `run`) |
+| `jsdpDeliveryExternal` | Cursor / manual per role (`delivery-chain next --external`) |
+| `jsdpDeliveryLegacy` | Shell `role-chain-dispatch.sh` |
+| `externalSingleTask` | One card without a chain (`task start-external`) |
+| `jsdpAcceptMerge` | Always: `jz task complete <taskId> --yes` |
+
+External agents: read `jz task prompt`; **never** set task status to Complete via API. See [external-agent-jsdp.md](external-agent-jsdp.md).
+
 ---
 
 ## Manifest fields (key)

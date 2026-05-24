@@ -68,6 +68,24 @@ jz task complete <task-id> --yes
 
 Multi-role programs (product lock → architecture → ship): [JSDP](docs/jsdp.md) · [External-agent JSDP](docs/external-agent-jsdp.md)
 
+### Lifecycle (same gates, different engine)
+
+```mermaid
+flowchart LR
+  subgraph managed [Managed — Hermes]
+    M1[Dispatch / task run] --> M2[Agent works in lease]
+    M2 --> M3[ready_for_review]
+  end
+  subgraph external [External — Cursor / manual]
+    E1[start-external] --> E2[Edit on card branch]
+    E2 --> E3[mark-ready]
+  end
+  M3 --> V[verify]
+  E3 --> V
+  V --> C[complete --yes]
+  C --> N[Next JSDP role eligible]
+```
+
 ---
 
 ## Onboarding in four steps

@@ -17,6 +17,9 @@ public sealed class AgentOperationsCommandTests
         Assert.Equal("1", json.GetProperty("manifestVersion").GetString());
         Assert.True(json.GetProperty("endpointSummary").GetProperty("total").GetInt32() >= 60);
         Assert.Contains("AGENTS.md", AgentOperationsManifest.ImportantFiles);
+        Assert.Contains("docs/external-agent-jsdp.md", AgentOperationsManifest.ImportantFiles);
+        Assert.True(AgentOperationsManifest.AgentWorkflow.ContainsKey("jsdpDeliveryExternal"));
+        Assert.Contains(AgentOperationsManifest.Commands, c => c.Name == "task start-external");
     }
 
     [Fact]

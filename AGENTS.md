@@ -12,9 +12,18 @@
 ./scripts/joyzoning doctor --json
 ```
 
+**External JSDP (you edit files; JoyZoning owns state):**
+
+```bash
+jz delivery-chain next <chain-id> --external --agent cursor
+jz task prompt <task-id>    # read handoff — do not mark Complete via API
+jz task mark-ready <task-id>   # operator only
+```
+
 - **Full docs:** [docs/agent-operations.md](docs/agent-operations.md)
 - **Contract:** [docs/AGENT.md](docs/AGENT.md)
 - **Sequential delivery:** [docs/jsdp.md](docs/jsdp.md) (JSDP)
+- **External path:** [docs/external-agent-jsdp.md](docs/external-agent-jsdp.md)
 
 ## Three ways to learn the repo
 

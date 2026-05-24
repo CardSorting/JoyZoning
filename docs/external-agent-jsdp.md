@@ -12,6 +12,25 @@ JoyZoning supervises **JSDP delivery** even when it does not run the agent. Herm
 | Why this exists | [philosophy.md](philosophy.md) |
 | Plain language | [what-is-joyzoning.md](what-is-joyzoning.md) |
 
+### 60-second start (single task)
+
+```bash
+jz task start-external <task-id> --agent cursor   # branch + prompt stored
+jz task prompt <task-id>                          # paste into Cursor
+# edit only on joyzoning/card-<short-id> in your workspace
+jz task mark-ready <task-id>
+jz task verify <task-id> --cmd "npm test"
+jz task complete <task-id> --yes
+```
+
+### 60-second start (8-role JSDP chain)
+
+```bash
+jz delivery-chain create --program "My App" --workspace /path/to/repo
+jz delivery-chain next <chain-id> --external --agent cursor
+# repeat prompt → edit → mark-ready → verify → complete for each role
+```
+
 ---
 
 ## Why external-agent JSDP exists

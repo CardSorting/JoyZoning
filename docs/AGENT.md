@@ -44,9 +44,25 @@ Cursor entry: [../AGENTS.md](../AGENTS.md)
 
 ## Task workflow
 
+**Managed (Hermes lease):**
+
 ```bash
 joyzoning plan "fix broken verification panel" --session <guid>
 joyzoning task list --session <guid>
 joyzoning run <id>
 joyzoning task verify <id> --cmd "dotnet build JoyZoning.sln"
+# operator: jz task complete <id> --yes
 ```
+
+**External (Cursor / manual — no lease):**
+
+```bash
+jz task start-external <id> --agent cursor
+jz task prompt <id>
+# edit on joyzoning/card-<id> only
+jz task mark-ready <id>
+jz task verify <id> --cmd "dotnet build JoyZoning.sln"
+jz task complete <id> --yes
+```
+
+**JSDP chain (external):** `jz delivery-chain next <chain-id> --external --agent cursor` — see [external-agent-jsdp.md](external-agent-jsdp.md).

@@ -10,19 +10,20 @@ Answer these questions **before** installing. Saves time if JoyZoning is not the
 
 | Your goal | JoyZoning helps? | Alternative |
 |-----------|------------------|-------------|
-| Chat with an AI about code | Partially — use **Manager Chat**, but Cursor/Copilot may be simpler | IDE copilot |
+| Chat with an AI about code | Partially — **Manager Chat**, or supervise **Cursor** via [external-agent JSDP](../external-agent-jsdp.md) | IDE copilot alone |
 | Run one script and forget it | No — JoyZoning adds review and merge gates | Plain Hermes CLI |
+| **Cursor-first** with branch + merge discipline | **Yes** — [external-agent-jsdp.md](../external-agent-jsdp.md) | Cursor without JoyZoning |
 | **Supervise agents** on a real repo with audit trail | **Yes** | — |
 | **Approve** what ships (tests + human sign-off) | **Yes** | — |
 | Team kanban synced with Hermes | **Yes** (with dashboard connected) | Hermes kanban alone |
 
-JoyZoning is an **operator cockpit** — like a flight deck, not the airplane engine. The engine is **diet-hermes** (Hermes Agent).
+JoyZoning is an **operator cockpit** — like a flight deck, not the airplane engine. The engine can be **Hermes** (managed dispatch), **Cursor**, **Claude Code**, or **you** ([external-agent JSDP](../external-agent-jsdp.md)). Hermes is optional.
 
 ---
 
 ## The one-sentence version
 
-You **plan** with a Manager agent, **assign** work on a board, agents **work on a card branch in your real project folder**, you **run checks**, then **you approve** before the task is truly done.
+You **track** work on a board, **edit on a card branch** in your real project folder (via Hermes *or* your IDE), **run checks**, then **you approve** before the task is truly done. Optional Manager Chat helps you plan — it does not replace the merge gate.
 
 ---
 
