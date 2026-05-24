@@ -22,7 +22,7 @@ JoyZoning is an **operator cockpit** — like a flight deck, not the airplane en
 
 ## The one-sentence version
 
-You **plan** with a Manager agent, **assign** work on a board, agents **work in a sandbox folder**, you **run checks**, then **you approve** before the task is truly done.
+You **plan** with a Manager agent, **assign** work on a board, agents **work on a card branch in your real project folder**, you **run checks**, then **you approve** before the task is truly done.
 
 ---
 
