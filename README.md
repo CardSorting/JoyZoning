@@ -3,6 +3,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4)](global.json)
 
+**Operator cockpit** · **Hermes optional** · **Cursor-ready JSDP**
+
+| I want to… | Start here |
+|------------|------------|
+| Understand the strategy in one page | [Execution paths](docs/execution-paths.md) |
+| Use **Cursor** with branch + merge discipline | [External-agent JSDP](docs/external-agent-jsdp.md) |
+| Use **Hermes** dispatch in JoyZoning | [What's next](docs/onboarding/whats-next.md) |
+| Run an **8-role** delivery chain | [JSDP](docs/jsdp.md) · `jz delivery-chain next --external` |
+
 ## Supervise AI coding on your machine.
 
 JoyZoning is a **local operator cockpit** for agent-assisted software work:
@@ -94,7 +103,7 @@ flowchart LR
 |------|------|------|--------|
 | **0 — Decide** | Is this the workflow you want? | ~5 min | [Before you begin](docs/onboarding/before-you-begin.md) |
 | **1 — Install** | App running, repo opened | ~15 min | [Quickstart](docs/onboarding/quickstart.md) |
-| **2 — First merge** | Dispatch → verify → merge → Complete | ~20 min | **[What's next](docs/onboarding/whats-next.md)** |
+| **2 — First merge** | Start work → verify → merge → Complete | ~20 min | **[What's next](docs/onboarding/whats-next.md)** (managed) · **[External JSDP](docs/external-agent-jsdp.md)** (Cursor) |
 | **3 — Daily use** | Desktop, CLI, or both | ongoing | [Setup checklist](docs/onboarding/setup-checklist.md) |
 
 ---
@@ -240,6 +249,7 @@ Legacy shell: `./scripts/role-chain-dispatch.sh --create --workspace … --progr
 
 | Topic | Link |
 |-------|------|
+| **Execution paths (decision guide)** | [execution-paths.md](docs/execution-paths.md) |
 | All onboarding | [onboarding/README.md](docs/onboarding/README.md) |
 | **External-agent JSDP** | [external-agent-jsdp.md](docs/external-agent-jsdp.md) |
 | **JSDP protocol** | [jsdp.md](docs/jsdp.md) |

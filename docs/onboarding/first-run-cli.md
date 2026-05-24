@@ -4,7 +4,9 @@ Run JoyZoning **without the desktop** — same governance rules, scriptable inte
 
 **Familiar pattern:** Like `gh pr create` or `docker compose up` talking to a local daemon.
 
-**Prerequisites:** [installation.md](installation.md) (control plane + diet-hermes)
+**Prerequisites:** [installation.md](installation.md) (control plane; diet-hermes only for **managed** `task run`)
+
+> **Cursor-only?** Skip Hermes gateway steps below. Use [external-agent JSDP](../external-agent-jsdp.md) — you still need the control plane and `jz`.
 
 ---
 
@@ -112,7 +114,9 @@ echo "TASK=$TASK"
 
 ---
 
-## Dispatch and poll (operator)
+## Start work (pick one)
+
+### Managed — Hermes lease
 
 ```bash
 jz task run "$TASK" --poll 10 --timeout 600
@@ -120,6 +124,17 @@ jz task run "$TASK" --poll 10 --timeout 600
 
 **You should see:** JSON status transitions (`leased` → `running` → …).  
 If Hermes is down: exit `1` and JSON `message` on stderr — start gateway.
+
+### External — Cursor / manual (no lease)
+
+```bash
+jz task start-external "$TASK" --agent cursor
+jz task prompt "$TASK"
+# edit on joyzoning/card-* in your workspace
+jz task mark-ready "$TASK"
+```
+
+See [external-agent-jsdp.md](../external-agent-jsdp.md).
 
 ---
 
@@ -160,6 +175,7 @@ Examples: `scripts/examples/agent-happy-path.sh`
 | Getting Started health | `jz doctor` |
 | Open workspace | `session create --workspace` |
 | Kanban dispatch | `task run` |
+| Cursor / external start | `task start-external` · `task prompt` · `task mark-ready` |
 | Merge button | `task complete --yes` |
 | Copy health report | `jz raw GET api/health` + curls |
 
@@ -178,6 +194,7 @@ Examples: `scripts/examples/agent-happy-path.sh`
 
 ## Next
 
+- [Execution paths](../execution-paths.md) — managed vs external decision guide  
 - [CLI reference](../cli.md)  
 - [whats-next.md](whats-next.md)  
 - [choose-your-path.md](choose-your-path.md)

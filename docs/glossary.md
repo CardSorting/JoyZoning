@@ -36,8 +36,8 @@ Terms used across JoyZoning docs, UI, and APIs. For the product story, see [phil
 
 ## Status enums (quick reference)
 
-**Kanban column (`WorkTaskStatus`):** Backlog → Planned → In Progress → Needs Approval → Verifying → Blocked → Complete.
+**Kanban column (`WorkTaskStatus`):** Backlog → Planned → In Progress → … → Complete. External work adds **ExternalInProgress**, **ReadyForReview**, **Verified** on the task (no lease row).
 
-**Lease (`ExecutionLeaseStatus`):** Leased → Running → Verifying → ReadyForReview → Merged; or Blocked / Revoked on failure paths.
+**Lease (`ExecutionLeaseStatus`, managed only):** Leased → Running → Verifying → ReadyForReview → Merged; or Blocked / Revoked on failure paths. External tasks: use task status + `ExternalMergeCompleted`, not lease `Merged`.
 
 See [control-plane-api.md](control-plane-api.md) for numeric values.

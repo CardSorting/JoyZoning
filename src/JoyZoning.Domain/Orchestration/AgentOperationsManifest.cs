@@ -25,6 +25,7 @@ public static class AgentOperationsManifest
         "docs/AGENT.md",
         "docs/jsdp.md",
         "docs/external-agent-jsdp.md",
+        "docs/execution-paths.md",
         "docs/agent-operations.md",
         "docs/cli.md",
         "AGENTS.md",

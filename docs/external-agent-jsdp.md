@@ -6,6 +6,7 @@ JoyZoning supervises **JSDP delivery** even when it does not run the agent. Herm
 
 | Read first | Link |
 |------------|------|
+| **Managed vs external (decision)** | [execution-paths.md](execution-paths.md) |
 | Repo overview | [README.md](../README.md) |
 | JSDP protocol (8 roles, gates) | [jsdp.md](jsdp.md) |
 | CLI commands | [cli.md](cli.md) |

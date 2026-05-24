@@ -35,7 +35,7 @@ flowchart TD
 | 4 | [What's next](onboarding/whats-next.md) | 20 min |
 | — | **Cursor-first?** [external-agent-jsdp.md](external-agent-jsdp.md) | 15 min |
 
-**Big picture:** [philosophy.md](philosophy.md) · [what-is-joyzoning.md](what-is-joyzoning.md) · [concepts.md](concepts.md) · [jsdp.md](jsdp.md) · **[external-agent-jsdp.md](external-agent-jsdp.md)** · [operational-modes.md](operational-modes.md) · [faq.md](faq.md)
+**Big picture:** [execution-paths.md](execution-paths.md) · [philosophy.md](philosophy.md) · [what-is-joyzoning.md](what-is-joyzoning.md) · [concepts.md](concepts.md) · [jsdp.md](jsdp.md) · **[external-agent-jsdp.md](external-agent-jsdp.md)** · [operational-modes.md](operational-modes.md) · [faq.md](faq.md)
 
 ### Two execution paths (same merge gate)
 

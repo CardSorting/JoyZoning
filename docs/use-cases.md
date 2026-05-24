@@ -1,6 +1,8 @@
 # Use cases
 
-Concrete scenarios showing how JoyZoning’s **operator + lease** model plays out. Each maps to UI, `jz`, or API paths documented elsewhere.
+Concrete scenarios showing how JoyZoning’s **operator cockpit** plays out — managed (lease) or **external** (Cursor, no lease). Each maps to UI, `jz`, or API paths documented elsewhere.
+
+**Pick a path:** [execution-paths.md](execution-paths.md)
 
 ---
 
@@ -143,19 +145,51 @@ Replay API: `GET /api/events?since=&correlationId=`. [event-catalog.md](event-ca
 
 ---
 
+## 10. Cursor-first task (external-agent JSDP)
+
+**You want:** Stay in Cursor; JoyZoning owns branch, status, verify, and merge — no Hermes lease.
+
+```bash
+jz task start-external "$TASK" --agent cursor
+jz task prompt "$TASK"              # paste handoff into Cursor
+# edit on joyzoning/card-<short-id> only
+jz task mark-ready "$TASK"
+jz task verify "$TASK" --cmd "npm test"
+jz task complete "$TASK" --yes
+```
+
+**Desktop:** Parallel Workers shows `External: Cursor`, branch, changed files. [external-agent-jsdp.md](external-agent-jsdp.md)
+
+---
+
+## 11. Eight-role JSDP program in Cursor
+
+**You want:** Product lock → architecture → … → release on one repo, one role at a time, no Hermes per role.
+
+```bash
+CHAIN=$(jz --field .id delivery-chain create --program "My App" --workspace "$REPO")
+jz delivery-chain next "$CHAIN" --external --agent cursor
+# per role: prompt → edit → mark-ready → verify → complete --yes
+jz delivery-chain queue "$CHAIN"   # Role 2 blocked until Role 1 Complete
+```
+
+See [jsdp.md](jsdp.md) and [external-agent-jsdp.md](external-agent-jsdp.md).
+
+---
+
 ## Choosing a path
 
 ```mermaid
 flowchart TD
-  Q1{Need GUI supervision?}
-  Q1 -->|Yes| UI[Desktop: Manager + Kanban + Execution]
-  Q1 -->|No| CLI[jz + control plane only]
-  UI --> Q2{Agent coding in worktree?}
-  CLI --> Q2
-  Q2 -->|Yes| AG[jz agent in worktree]
-  Q2 -->|No| OP[jz task run / verify / complete]
-  AG --> MERGE[Human merge only]
-  OP --> MERGE
+  Q0{Where do you edit?}
+  Q0 -->|Cursor / Claude / manual| EXT[jz task start-external or delivery-chain next --external]
+  Q0 -->|Hermes in JoyZoning| MAN[jz task run or dispatch]
+  EXT --> MERGE[verify then jz task complete --yes]
+  MAN --> MERGE
+  Q1{Need GUI?}
+  MERGE --> Q1
+  Q1 -->|Yes| UI[Desktop Kanban + Workspace]
+  Q1 -->|No| CLI[jz only]
 ```
 
-Start from [getting-started.md](getting-started.md) for install, then [concepts.md](concepts.md) for the why.
+Start from [execution-paths.md](execution-paths.md), then [getting-started.md](getting-started.md) for install.

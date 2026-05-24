@@ -58,15 +58,16 @@ Collapsing these into a single “dashboard” or a single card type creates the
 
 ## 2. Execution Mode
 
-**Mental model:** JSDP worker orchestration — leases, isolated Hermes sessions, canonical workspace, runtime activity.
+**Mental model:** JSDP worker orchestration — **managed leases** *or* **external agents** (no lease), canonical workspace, runtime activity.
 
 **Owns:**
 
-- `ExecutionLease` status machine (leased → running → verifying → ready_for_review)
-- Per-run `ExecutionSession.HermesSessionId` (parallel workers do not share one chat)
+- **Managed:** `ExecutionLease` status machine (leased → running → verifying → ready_for_review)
+- **External:** `WorkTask` external fields (`ExternalInProgress` → `ReadyForReview` / `Verified` → `Complete` after operator merge)
+- Per-run `ExecutionSession.HermesSessionId` when managed (parallel workers do not share one chat)
 - Canonical workspace execution (`workspacePath` = session root, branch `joyzoning/card-<id>`)
-- Parallel worker observability (`/parallel-workers`, `protocol: jsdp`)
-- Workspace polling (`/api/tasks/{id}/workspace/changed`, SignalR activity stream)
+- Parallel worker observability (`/parallel-workers` — lease rows *and* external worker entries)
+- Workspace polling (`/api/tasks/{id}/workspace/changed`, `/api/tasks/{id}/external/*`, SignalR activity stream)
 
 **Does not own:**
 
@@ -79,11 +80,14 @@ Collapsing these into a single “dashboard” or a single card type creates the
 |---------|------|
 | Desktop **Execution viewport** | Canonical run observation |
 | Desktop **Timeline** | Event audit |
-| Watch **Parallel Workers** | Per-worker lease + workspace path |
+| Watch **Parallel Workers** | Per-worker lease *or* external driver + branch |
 | Watch **workspace snapshot / stream** | Single-task runtime |
-| `jz agent` | Worker-side lease transitions |
+| `jz agent` | Worker-side lease transitions (managed only) |
+| `jz task start-external` | External path — branch + prompt, no lease |
 
-**API hints:** `/api/tasks/{id}/workspace/changed`, `/api/sessions/{id}/parallel-workers`, dispatch, heartbeat, verify.
+**API hints:** `/api/tasks/{id}/workspace/changed`, `/api/tasks/{id}/external/*`, `/api/sessions/{id}/parallel-workers`, dispatch (managed), heartbeat (managed), verify (both).
+
+See [execution-paths.md](execution-paths.md) · [external-agent-jsdp.md](external-agent-jsdp.md).
 
 ---
 

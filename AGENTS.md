@@ -23,6 +23,7 @@ jz task mark-ready <task-id>   # operator only
 - **Full docs:** [docs/agent-operations.md](docs/agent-operations.md)
 - **Contract:** [docs/AGENT.md](docs/AGENT.md)
 - **Sequential delivery:** [docs/jsdp.md](docs/jsdp.md) (JSDP)
+- **Execution paths:** [docs/execution-paths.md](docs/execution-paths.md) (managed vs external)
 - **External path:** [docs/external-agent-jsdp.md](docs/external-agent-jsdp.md)
 
 ## Three ways to learn the repo
