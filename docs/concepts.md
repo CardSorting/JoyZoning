@@ -179,7 +179,7 @@ JoyZoning **orchestrates**; Hermes **executes**. Neither duplicates the other.
 
 | Question | Doc |
 |----------|-----|
-| Why mutation needs convergence governance (C1–C8)? | [whitepaper-summary.md](whitepaper-summary.md) |
+| Why mutation needs convergence governance (C1–C7)? | [whitepaper-summary.md](whitepaper-summary.md) |
 | Why canonical workspace + JSDP? | [philosophy.md](philosophy.md) |
 | How does one card map to one folder? | [workspace-state.md](workspace-state.md) |
 | Sequential role delivery | [jsdp.md](jsdp.md) |

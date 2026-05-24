@@ -162,7 +162,7 @@ Default profile name: **`joyzoning`** (API enabled on 8642). Configurable per se
 
 ### Where is the delivery-systems framework paper?
 
-[whitepaper.md](whitepaper.md) (v1.5) — implementation-independent; JoyZoning is one embodiment (Annex A). Start with [whitepaper-summary.md](whitepaper-summary.md) for invariants **C1–C8** and boundaries **B1–B4**. For historical context, comparisons, and research directions, see [research-companion.md](research-companion.md).
+[whitepaper.md](whitepaper.md) (v1.6) — implementation-independent; JoyZoning is one embodiment (Annex A). Start with [whitepaper-summary.md](whitepaper-summary.md) for invariants **C1–C7** and boundaries **B1–B4**. Theory hardening: [theory-hardening-audit.md](theory-hardening-audit.md). Narrative: [research-companion.md](research-companion.md).
 
 ### What does “Chat plans. The repo is truth. You merge.” mean?
 
@@ -170,7 +170,7 @@ Framework shorthand: narrative advises; **inspectable repository state** grounds
 
 ### Is the framework tied to Hermes or Cursor?
 
-No. **C8:** governance disciplines (stable coordinates, merge authority, gates) outlive mutation-engine implementations. Managed and external JSDP paths are embodiments, not definitions.
+No. **Constraint persistence (§1.3):** acceptance disciplines (coordinates, merge authority, gates) have outlasted recent mutation-engine churn in observed environments—contingent mechanisms, persistent requirement. Managed and external JSDP paths are embodiments, not definitions.
 
 ---
 

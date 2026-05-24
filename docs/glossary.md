@@ -34,11 +34,12 @@ Terms used across JoyZoning docs, UI, and APIs. For the product story, see [phil
 | **Dashboard token** | Session token from `hermes dashboard` — required for kanban plugin API and TUI PTY WebSocket. |
 | **Profile `joyzoning`** | Hermes config profile JoyZoning enables (API server on **8642**). |
 
-## Framework terms (v1.5 — see [whitepaper-summary.md](whitepaper-summary.md))
+## Framework terms (v1.6 — see [whitepaper-summary.md](whitepaper-summary.md))
 
 | Term | Meaning |
 |------|---------|
-| **C1–C8** | Core invariants in the framework paper (asymmetry, acceptance/delivery, reviewability, informational debt, local/global comprehensibility, correctness vs comprehensibility, stable coordinates, governance durability). |
+| **C1–C7** | Core invariants in the framework paper (asymmetry, acceptance/delivery, reviewability, informational debt, local/global comprehensibility, correctness vs comprehensibility, stable coordinates). |
+| **Constraint persistence** | Observed: mutation substrates churn faster than inspectable acceptance disciplines (§1.3; not a separate invariant). |
 | **B1–B4** | Boundary conditions (tests ≠ stabilization; narrative ≠ acceptance; etc.). |
 | **Informational debt** | Cumulative cost of maintaining an accurate accepted-vs-proposed model when propose-rate exceeds reviewability. |
 | **Stable review surface** | Fixed coordinates: unit → branch → diff → evidence → acceptance (maps to 1:1 card workspace in product). |

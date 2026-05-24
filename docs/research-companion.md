@@ -2,7 +2,7 @@
 
 ## Human-Supervised Convergence Under Generative Repository Mutation
 
-*Research companion to the framework specification v1.5 — May 2026*
+*Research companion to the framework specification v1.6 — May 2026*
 
 **Author note:** This document contextualizes and interprets the compressed framework in [whitepaper.md](whitepaper.md). The specification remains authoritative for invariants, terminology, and closure mappings. This companion is a systems-oriented research narrative suitable for independent reading, citation, and empirical follow-up.
 
@@ -12,7 +12,7 @@
 
 ## Abstract
 
-Generative and highly automated edit systems increase the rate at which software repositories *may* change. Field observation under elevated propose-rates suggests that **acceptance throughput**—the rate at which proposals become inspectable, evidenced, accepted, and comprehensible operational baselines—does not scale with compute in the same manner as **mutation throughput**. We describe this **mutation–convergence asymmetry** and its operational consequences: **reviewability** as a bounded bridge between proposal and acceptance; **informational debt** as accumulated cost of maintaining an accurate accepted-vs-proposed model; **coordination complexity** as work distinct from **implementation complexity**; and **repository comprehensibility** as a property independent of mechanical **correctness**. We further discuss **stable review surfaces** as cognitive infrastructure that bounds **context-reconstruction cost**, and **governance durability** as the persistence of convergence disciplines across mutation-engine turnover. Claims are bounded to inspectable-repository environments with human merge authority and policy-declared review units. Quantitative validation, multi-operator theory, and cross-organizational generalization remain open research. A reference deployment under high mutation load exhibited coordination-dominant effort on a modest domain implementation, consistent with the proposed degradation chain when stabilization is insufficient.
+Generative and highly automated edit systems increase the rate at which software repositories *may* change. Field observation under elevated propose-rates suggests that **acceptance throughput**—the rate at which proposals become inspectable, evidenced, accepted, and comprehensible operational baselines—does not scale with compute in the same manner as **mutation throughput**. We describe this **mutation–convergence asymmetry** and its operational consequences: **reviewability** as a bounded bridge between proposal and acceptance; **informational debt** as accumulated cost of maintaining an accurate accepted-vs-proposed model; **coordination complexity** as work distinct from **implementation complexity**; and **repository comprehensibility** as a property independent of mechanical **correctness**. We further discuss **stable review surfaces** as cognitive infrastructure that bounds **context-reconstruction cost**, and **constraint persistence** as the observed survival of inspectable acceptance disciplines across recent mutation-engine turnover (not a separate invariant in v1.6). Claims are bounded to inspectable-repository environments with human merge authority and policy-declared review units. Quantitative validation, multi-operator theory, and cross-organizational generalization remain open research. A reference deployment under high mutation load exhibited coordination-dominant effort on a modest domain implementation, consistent with the proposed degradation chain when stabilization is insufficient.
 
 **Keywords:** software evolution; code review; human-in-the-loop systems; repository governance; mutation throughput; convergence; reviewability; informational debt; coordination complexity; socio-technical systems
 
@@ -92,7 +92,7 @@ Continuous integration provides **mechanical evidence** on scoped trees. Framewo
 
 ### 2.4 Intensification thesis
 
-**Thesis (interpretive):** Mutation acceleration shifts engineering economics toward **coordination complexity** (§5.2) while leaving **governance requirements** (explicit acceptance, accountability, inspectable truth) largely persistent (**C8**, constraint persistence). Tooling substrates turn over; bounded reviewability and merge authority do not.
+**Thesis (interpretive):** Mutation acceleration shifts engineering economics toward **coordination complexity** (§5.2) while leaving **governance requirements** (explicit acceptance, accountability, inspectable truth) largely persistent (constraint persistence, §1.3 of spec). Tooling substrates turn over; bounded reviewability and the need for explicit acceptance do not.
 
 ---
 
@@ -248,13 +248,13 @@ Human factors research discusses workload, interruption, and context switching c
 
 ---
 
-## 7. Governance durability
+## 7. Constraint persistence (observed)
 
 ### 7.1 Engine churn
 
 Mutation substrates—batch editors, assistants, autonomous runners—exhibit **high turnover** relative to governance concepts. Organizations routinely replace tools while retaining git, review norms, and accountability expectations.
 
-**C8:** Governance mechanisms (merge authority, stable coordinates, scoped verification, epoch gates) **outlive** mutation-engine implementations.
+**Observation (v1.6):** Inspectable acceptance disciplines (merge authority, stable coordinates, scoped verification, epoch gates) have **persisted across recent substrate churn** in observed environments. This is not a claim that diff-based review is eternal—only that acceptance scarcity and synchronization remain binding.
 
 ### 7.2 Accountability layers
 
@@ -374,13 +374,13 @@ Adversarial readers who prefer maximum autonomy may still accept **C4** degradat
 
 ## 13. Conclusion
 
-Accelerated generative mutation changes **coordination economics** more than it changes the enduring need for **acceptance, accountability, and comprehensible accepted state**. Mutation throughput scales with compute; convergence throughput scales with bounded cognition and governance discipline (**C1**). Under sufficient propose-rate, systems exhibit reviewability bound failure, informational debt, and decoupling of correctness from comprehensibility (**C4–C6**). Stable review surfaces and convergence gates reduce reconstruction cost and debt accrual (**C7**, **B3–B4**); durable governance layers outlive mutation engines (**C8**).
+Accelerated generative mutation changes **coordination economics** more than it changes the enduring need for **acceptance, accountability, and comprehensible accepted state**. Mutation throughput scales with compute; convergence throughput scales with bounded cognition and governance discipline (**C1**). Under sufficient propose-rate, systems exhibit reviewability bound failure, informational debt, and decoupling of correctness from comprehensibility (**C4–C6**). Stable review surfaces and convergence gates reduce reconstruction cost and debt accrual (**C7**, **B3–B4**). Constraint persistence (§1.3 of spec) describes observed survival of acceptance disciplines across engine turnover—not invariant **C8** (removed in v1.6 hardening).
 
 The framework specification compresses these claims into invariants and closure maps for practitioners building supervision systems. This companion situates them historically, compares adjacent patterns, and delineates where evidence remains open. The central practical implication is measured: **invest in convergence infrastructure** when mutation is cheap—not because automation failed, but because acceptance and comprehension remain the rate limiters of trustworthy delivery.
 
 ---
 
-## Appendix A — Terminology alignment with framework v1.5
+## Appendix A — Terminology alignment with framework v1.6
 
 | Research companion term | Framework term | Invariant |
 |-------------------------|----------------|-----------|
@@ -391,7 +391,7 @@ The framework specification compresses these claims into invariants and closure 
 | Local vs global comprehensibility | Stabilization taxonomy | C5 |
 | Correctness vs comprehensibility | Independent properties | C6 |
 | Stable review surface; reconstruction cost | C7 | C7 |
-| Governance durability | C8 | C8 |
+| Constraint persistence | §1.3 observation | (not C8; demoted v1.6) |
 | Tests ≠ stabilization | B1 | B1 |
 | Narrative ≠ acceptance | B2 | B2 |
 | Maximize convergence not propose-rate | B3 | B3 |
@@ -423,7 +423,7 @@ The framework specification compresses these claims into invariants and closure 
 | C4 degradation mode inevitability | Mechanistic narrative | Causal tracing studies |
 | C6 independence frequency | Observed correlate | Large-sample CI + narrative surveys |
 | C7 reconstruction cost dominance | Plausible mechanism | Time-on-task measurement |
-| C8 durability across engine generations | Historical argument | Multi-year tool churn cohorts |
+| Constraint persistence across engine generations | Historical argument | Multi-year tool churn cohorts |
 | B4 superlinear debt on shared surfaces | Stated; informal | Controlled parallel mutation experiments |
 | Coordination dominance on modest domains | Single reference observation | Replication |
 
@@ -439,7 +439,8 @@ One local supervision stack and sequential delivery protocol have been used as *
 
 | Artifact | Role |
 |----------|------|
-| [whitepaper.md](whitepaper.md) | Authoritative compressed specification (C1–C8, B1–B4) |
+| [whitepaper.md](whitepaper.md) | Authoritative compressed specification (C1–C7, B1–B4) |
+| [theory-hardening-audit.md](theory-hardening-audit.md) | Sixth-pass pressure test and freeze recommendation |
 | [whitepaper-summary.md](whitepaper-summary.md) | One-page invariant digest |
 | [whitepaper-framework-audit.md](whitepaper-framework-audit.md) | Minimization and adversarial-reading audits |
 | **This document** | Research companion: context, comparison, limitations, empirical agenda |

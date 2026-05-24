@@ -41,10 +41,11 @@ flowchart TD
 
 | Doc | Audience |
 |-----|----------|
-| **[whitepaper.md](whitepaper.md)** | Framework v1.5: core invariants C1–C8, boundaries B1–B4, closure map, coordination vs implementation complexity, governance durability—embodiment Annex A only |
-| [whitepaper-summary.md](whitepaper-summary.md) | One-page digest (C1–C8) |
-| [research-companion.md](research-companion.md) | arXiv-style research narrative: history, related work adjacency, comparisons, limitations, empirical agenda (spec is authoritative) |
-| [whitepaper-framework-audit.md](whitepaper-framework-audit.md) | Stabilization audit: invariant minimization, scope boundaries, adversarial reading, v1.4→v1.5 migration |
+| **[whitepaper.md](whitepaper.md)** | Framework v1.6: C1–C7, B1–B4, closure map, causal edge strengths, constraint persistence—embodiment Annex A only |
+| [whitepaper-summary.md](whitepaper-summary.md) | One-page digest (C1–C7) |
+| [research-companion.md](research-companion.md) | arXiv-style research narrative (spec authoritative) |
+| [theory-hardening-audit.md](theory-hardening-audit.md) | Sixth pass: collapse test, causal strength, C8 demotion, freeze recommendation |
+| [whitepaper-framework-audit.md](whitepaper-framework-audit.md) | Fifth pass: stabilization, v1.4→v1.5 migration |
 
 ### Two execution paths (same merge gate)
 

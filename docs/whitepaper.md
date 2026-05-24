@@ -1,10 +1,10 @@
 # Human-Supervised Convergence Under Generative Software Mutation
 
-*Framework specification v1.5 — embodiment Annex A*
+*Framework specification v1.6 — embodiment Annex A*
 
-**Version:** 1.5 (May 2026)  
+**Version:** 1.6 (May 2026)  
 **License:** MIT  
-**Audit:** [whitepaper-framework-audit.md](whitepaper-framework-audit.md)  
+**Audits:** [whitepaper-framework-audit.md](whitepaper-framework-audit.md) · [theory-hardening-audit.md](theory-hardening-audit.md) · [theory-hardening-audit.md](theory-hardening-audit.md)  
 **Summary:** [whitepaper-summary.md](whitepaper-summary.md)  
 **Research companion:** [research-companion.md](research-companion.md) (arXiv-style narrative; this spec remains authoritative)
 
@@ -12,7 +12,7 @@
 
 ## 0. Structural closure
 
-### 0.1 Core invariants (C1–C8)
+### 0.1 Core invariants (C1–C7)
 
 | ID | Invariant |
 |----|-----------|
@@ -23,7 +23,8 @@
 | **C5** | Local stabilization of units does not imply repository-wide comprehensibility without compositional discipline. |
 | **C6** | Repository mechanical correctness and operator comprehensibility are independent properties. |
 | **C7** | Fixed review coordinates reduce context-reconstruction cost per acceptance decision. |
-| **C8** | Governance mechanisms outlive mutation-engine implementations. |
+
+*Constraint persistence (historical observation, not a separate invariant):* mutation substrates turn over faster than inspectable acceptance, accountability, and synchronization disciplines—see §1.3.
 
 ### 0.2 Boundary conditions (B1–B4)
 
@@ -47,7 +48,7 @@ Necessary clarifications; derivative of C1–C7. Not additional axioms.
 | Local/global divergence (C5) | Sequencing; intent artifacts | Compositional incoherence |
 | Correctness without comprehensibility (C6) | Review + gates, not CI alone | Green build / opaque narrative |
 | Context-reconstruction load (C7) | Fixed unit→branch→diff→evidence map | Unstable surfaces |
-| Engine turnover (C8) | Supervision decoupled from engine | Governance tied to vendor |
+| Engine turnover | Supervision decoupled from engine; constraint persistence (§1.3) | Governance tied to vendor |
 
 ### 0.4 Causal chain (observed)
 
@@ -57,13 +58,25 @@ propose-rate ↑ → reviewability bound stress → informational debt (C4)
   → operator opacity → local/global divergence (C5,C6)
 ```
 
-Audits: [whitepaper-framework-audit.md](whitepaper-framework-audit.md).
+### 0.5 Causal edge strengths
+
+| Edge | Strength | Notes |
+|------|----------|-------|
+| propose-rate ↑ → bound stress | Strong | Capacity / queueing |
+| bound stress → debt (C4) | Medium-strong | Lag or weak closure required |
+| debt → degradation modes (C4) | Medium | Correlational; breakable by hard gates |
+| degradation → opacity | Medium | Observable correlate |
+| opacity → coordination dominance | Medium | Reference observation only (§12) |
+
+Chain breaks when propose-rate ≈ accept-rate, units stay bounded, coordinates stable, and acceptance stays diff-grounded. Middle edges are not logical necessities.
+
+Audits: [whitepaper-framework-audit.md](whitepaper-framework-audit.md) · [theory-hardening-audit.md](theory-hardening-audit.md) · [theory-hardening-audit.md](theory-hardening-audit.md).
 
 ---
 
 ## Executive summary
 
-Under sufficient mutation throughput, **convergence capacity**—not mutation capacity—limits delivery. This specification defines invariants C1–C8, boundary conditions, closure mappings, and stabilization disciplines for inspectable-repository governance with bounded human supervision. Prescriptions are optional; pressures are observable.
+Under sufficient mutation throughput, **convergence capacity**—not mutation capacity—limits delivery. This specification defines invariants C1–C7, boundary conditions, closure mappings, and stabilization disciplines for inspectable-repository governance with bounded human supervision. Prescriptions are optional; pressures are observable.
 
 **Chat plans. The repo is truth. You merge.**
 
@@ -71,7 +84,7 @@ Under sufficient mutation throughput, **convergence capacity**—not mutation ca
 
 ## Abstract
 
-Closed framework for mutation/convergence governance: asymmetry (C1), acceptance vs proposal (C2), reviewability (C3), informational debt (C4), local/global stabilization (C5–C6), recomputation cost (C7), governance durability (C8). Scope and non-scope explicit. Embodiment non-definitional.
+Closed framework for mutation/convergence governance: asymmetry (C1), acceptance vs proposal (C2), reviewability (C3), informational debt (C4), local/global stabilization (C5–C6), recomputation cost (C7). Constraint persistence (§1.3). Scope and non-scope explicit. Embodiment non-definitional.
 
 ---
 
@@ -98,7 +111,7 @@ Closed framework for mutation/convergence governance: asymmetry (C1), acceptance
 | **Coordination complexity** | Cost of converging proposals into accepted, comprehensible state. |
 | **Implementation complexity** | Cost of producing mechanically working artifacts. |
 | **Convergence gate** | Synchronization: no new architectural epoch until local acceptance. |
-| **Constraint persistence** | Reviewability and cognition bounds persist across engine generations (C1, C8). |
+| **Constraint persistence** | Reviewability and cognition bounds persist across engine generations (C1); acceptance disciplines observed across recent substrate churn (§1.3). |
 
 ---
 
@@ -128,7 +141,7 @@ Proposal throughput is **not** acceptance throughput. Additional proposals befor
 | Vendor-specific runtimes | Merge authority as accountability locus |
 | | Synchronization before architectural epochs |
 
-**C8:** Governance requirements change slowly relative to mutation substrates. Framework describes persistent constraints—not a position on any current tool.
+**Constraint persistence:** In observed environments, mutation substrates turn over faster than inspectable acceptance and synchronization disciplines. This is historical observation—not a claim that current mechanisms (e.g. diff-based review) are eternal.
 
 ---
 
@@ -166,6 +179,7 @@ This distinction explains how domain work can remain modest while supervision wo
 | Optimal team structure | Underdefined |
 | Non-repository artifacts (tickets-only truth) | No inspectable diff anchor |
 | Fully autonomous acceptance | Outside merge-authority model |
+| Fragmented multi-operator merge authority | Requires ownership model not specified; C5 weakens |
 | Security/compliance frameworks | Adjacent; not derived here |
 | Optimal propose-rate | Prescriptive tradeoff, not predicted |
 
@@ -253,21 +267,19 @@ Acceptance grounded in inspectable state (C2, B2)—not narrative alone. Narrati
 
 ---
 
-## 10. Governance durability (C8)
+## 10. Constraint persistence (observation)
 
-*Historical observation:*
+Mutation substrates turnover on short horizons relative to acceptance disciplines. **Accountability** and **inspectable acceptance** persist as requirements; concrete mechanisms (diff review, branch conventions) are contingent.
 
-Mutation substrates (edit automation, assistants, batch runners) turnover on years-to-months cycles. Convergence practices—isolated units, diff review, scoped verification, explicit acceptance, epoch gates—persist across substrates.
-
-| Layer | Durability |
-|-------|------------|
+| Layer | Observed stability |
+|-------|-------------------|
 | Mutation engines | Low |
-| Reviewability bound (C1) | High |
-| Merge authority (C2) | High (accountability requirement) |
-| Stable coordinates (C7) | High (structural) |
-| Supervision state machines | Medium (implementation-specific) |
+| Reviewability bound (C1) | Persistent |
+| Need for explicit acceptance (C2) | Persistent requirement |
+| Stable coordinates (C7) | Structural benefit |
+| Supervision implementations | Medium; replaceable |
 
-Framework prescribes **durable layers** (truth, coordinates, authority, gates)—not engine identity.
+Supervision should remain decoupled from engine identity—not because engines are bad, but because substrates churn.
 
 ---
 
@@ -290,21 +302,21 @@ Example epoch protocol: Annex A only.
 
 ## 12. Reference observation
 
-*One high propose-rate deployment (Annex A).*
+*One high propose-rate deployment (Annex A)—anecdotal, not universal law.*
 
-Implementation effort modest; **coordination effort dominant**. Bottleneck: model of accepted vs proposed state—not artifact construction (§2). Same gates, different mutation substrate: disciplines unchanged (C8).
+Implementation effort modest; **coordination effort dominant** in that deployment. Bottleneck: model of accepted vs proposed state—not artifact construction (§2). Same gates, different mutation substrate: acceptance disciplines unchanged (constraint persistence).
 
 ---
 
 ## 13. Conclusion
 
-**C1** states the binding constraint. **C4** states predictable degradation. **C6** and **C7** separate mechanical success, comprehensibility, and reconstruction cost. **C8** states what persists.
+**C1** states the binding constraint. **C4** states degradation correlates under bound failure. **C6** and **C7** separate mechanical success, comprehensibility, and reconstruction cost.
 
 Stabilization disciplines (§11) rise in operational value as propose-rate rises; they are not rendered obsolete by faster mutation substrates.
 
 **C2:** Delivery follows **accepted** state, not **proposed** state.
 
-Portable content: C1–C8, B1–B4, closure map §0.3. Not any product name.
+Portable content: C1–C7, B1–B4, closure map §0.3–0.5. Not any product name.
 
 ---
 
@@ -320,7 +332,7 @@ Illustrative local supervision stack and epoch protocol decomposition. [jsdp.md]
 
 ## Annex B — Audit record
 
-[whitepaper-framework-audit.md](whitepaper-framework-audit.md)
+[whitepaper-framework-audit.md](whitepaper-framework-audit.md) · [theory-hardening-audit.md](theory-hardening-audit.md)
 
 ---
 

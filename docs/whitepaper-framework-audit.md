@@ -1,7 +1,7 @@
 # Framework Paper — Audit Record
 
-**Current paper:** [whitepaper.md](whitepaper.md) **v1.5**  
-**Prior passes:** v1.3 structure · v1.4 rigor · **v1.5 stabilization**
+**Current paper:** [whitepaper.md](whitepaper.md) **v1.6**  
+**Prior passes:** v1.3 structure · v1.4 rigor · v1.5 stabilization · **v1.6 theory hardening** ([theory-hardening-audit.md](theory-hardening-audit.md))
 
 ---
 
