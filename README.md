@@ -245,26 +245,33 @@ Legacy shell: `./scripts/role-chain-dispatch.sh --create --workspace … --progr
 
 ---
 
-## Docs
+## Documentation
 
-| Topic | Link |
-|-------|------|
-| **Execution paths (decision guide)** | [execution-paths.md](docs/execution-paths.md) |
-| All onboarding | [onboarding/README.md](docs/onboarding/README.md) |
-| **External-agent JSDP** | [external-agent-jsdp.md](docs/external-agent-jsdp.md) |
-| **JSDP protocol** | [jsdp.md](docs/jsdp.md) |
-| CLI reference | [cli.md](docs/cli.md) |
-| Doc index | [docs/README.md](docs/README.md) |
-| Install (deep) | [installation](docs/onboarding/installation.md) |
-| API | [control-plane-api](docs/control-plane-api.md) |
-| Coding agents | [AGENTS.md](AGENTS.md) |
-| Contribute | [development](docs/development.md) · [CONTRIBUTING](CONTRIBUTING.md) |
+| Learn… | Doc |
+|--------|-----|
+| **Strategy** (cockpit vs engine, pick a path) | [execution-paths.md](docs/execution-paths.md) |
+| **Cursor / IDE workflow** | [external-agent-jsdp.md](docs/external-agent-jsdp.md) |
+| **8-role programs** | [jsdp.md](docs/jsdp.md) |
+| **Why we built it this way** | [philosophy.md](docs/philosophy.md) |
+| **REST API** (external + leases + chains) | [control-plane-api.md](docs/control-plane-api.md) |
+| **CLI** | [cli.md](docs/cli.md) |
+| **Onboarding hub** | [onboarding/README.md](docs/onboarding/README.md) |
+| **Setup checklist** (full vs Cursor-first) | [setup-checklist.md](docs/onboarding/setup-checklist.md) |
+| **Full doc index** | [docs/README.md](docs/README.md) |
+| **Coding agents** | [AGENTS.md](AGENTS.md) |
+| **Contribute** | [development.md](docs/development.md) · [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ---
 
 ## For contributors
 
-`dotnet build JoyZoning.sln` · `dotnet test tests/JoyZoning.Tests/JoyZoning.Tests.csproj` · [architecture](docs/architecture.md)
+```bash
+dotnet build JoyZoning.sln
+dotnet test tests/JoyZoning.Tests/JoyZoning.Tests.csproj --filter "FullyQualifiedName~ExternalAgentJsdp|JsdpChainIntegration"
+./scripts/run-tests.sh medium
+```
+
+[architecture](docs/architecture.md) · [development](docs/development.md) · External JSDP tests: `ExternalAgentJsdpTests`, `JsdpChainIntegrationTests`
 
 ## License
 

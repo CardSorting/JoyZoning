@@ -1,6 +1,6 @@
 # Desktop UI guide
 
-JoyZoning.App is an **Avalonia 12** operator console — not an IDE. It supervises Hermes manager runs and DietCode executor runs through the local control plane.
+JoyZoning.App is an **Avalonia 12** operator console — not an IDE. It supervises **managed** Hermes/DietCode runs and **external** Cursor/manual work through the same control plane ([execution-paths.md](execution-paths.md)).
 
 ## Six product surfaces
 
@@ -37,7 +37,8 @@ Manager is **not** a code editor — use Workspace + external IDE for file edits
 - Columns map to `WorkTaskStatus`: Backlog → Planned → In Progress → Needs Approval → Verifying → Blocked → Complete.
 - **New Task** dialog: title, description, agent (Hermes / DietCode), risk level.
 - **Drag-and-drop** between columns updates status via `PUT /api/tasks/{id}/status`.
-- **Dispatch** — `POST /api/tasks/{id}/dispatch`; creates execution lease + Hermes run.
+- **Dispatch** — `POST /api/tasks/{id}/dispatch`; creates execution lease + Hermes run (managed).
+- **External start** (CLI/API) — no lease; card shows `ExternalInProgress`; use Workspace + **mark ready** flow ([external-agent-jsdp.md](external-agent-jsdp.md)).
 - **Critical** tasks (`risk` 3): checkbox for human approval before dispatch.
 - **Revoke lease**, **merge** (Complete column when `ready_for_review`), hint line from `OperatorApiHints` on API errors.
 - **Import from Hermes** — `POST /api/tasks/import-kanban`; optional **auto-sync** in Settings.
@@ -135,10 +136,21 @@ Separate from **lease recovery** (`POST .../lease/recover`) used for blocked dis
 
 If nothing listens on `:9470`, the desktop app spawns `JoyZoning.ControlPlane` as a child process before connecting SignalR.
 
+## Parallel workers (managed + external)
+
+Watch and desktop surfaces list active workers per session:
+
+| Worker type | UI hints |
+|-------------|----------|
+| **Managed lease** | Lease status, Hermes session, heartbeat |
+| **External** | `External: Cursor` (or driver), branch, changed files after scan |
+
+API: `GET /api/sessions/{id}/parallel-workers`. External workers have **no** lease id.
+
 ## What the desktop does not do
 
 - Replace your IDE (no LSP, no full editor)
-- Run without local Hermes (cloud agents out of scope for MVP)
+- Require Hermes for **external** JSDP (managed dispatch and Manager Chat still need gateway)
 - Let agents mark tasks **Complete** without human merge
 
 For terminal automation, use [cli.md](cli.md).

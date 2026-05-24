@@ -1,12 +1,21 @@
 # What's next after setup
 
-Your checklist is green — this is your **first real operator cycle**, using the same pattern as code review: **plan → execute → prove → approve**.
+Your checklist is green (or you used the **Cursor-first** track: control plane + workspace only) — this is your **first real operator cycle**: **plan → execute → prove → approve**.
 
-**Time:** ~20 minutes for first dispatch + merge.
+**Time:** ~20 minutes for first merge.
+
+| Path | Start work with | Guide section |
+|------|-----------------|---------------|
+| **Managed (Hermes)** | Kanban **Dispatch** | Steps below |
+| **External (Cursor)** | `jz task start-external` | [Alternative — Cursor-first](#alternative--cursor-first-no-hermes-dispatch) |
+
+Strategy overview: [execution-paths.md](../execution-paths.md).
 
 ---
 
 ## The operator loop (remember this)
+
+**Managed:**
 
 ```mermaid
 flowchart LR
@@ -18,6 +27,8 @@ flowchart LR
   R --> M[You merge]
   M --> C[Complete]
 ```
+
+**External:** Kanban card → `start-external` → edit in Cursor on card branch → `mark-ready` → verify → `complete --yes` (same merge authority, no lease).
 
 **Rule:** Only **you** merge. Agents stop at `ready_for_review`.
 

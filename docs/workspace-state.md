@@ -10,7 +10,9 @@ JoyZoning keeps **what you see**, **what git reports**, and **what the audit log
 
 ## The rule in one sentence
 
-> **Pick a kanban card → JoyZoning shows the files that card’s work affects — in your real project folder, on that card’s branch when dispatched.**
+> **Pick a kanban card → JoyZoning shows the files that card’s work affects — in your real project folder, on that card’s branch when work has started.**
+
+Work starts via **managed dispatch** (`jz task run`) or **external start** (`jz task start-external`) — both use branch `joyzoning/card-<task-id>` in the same canonical root. See [execution-paths.md](execution-paths.md).
 
 There is **no** separate sandbox copy under `.joyzoning/worktrees/` and **no** `.joyzoning/live/` mirror. The session workspace you opened **is** where agents work.
 
@@ -24,7 +26,7 @@ There is **no** separate sandbox copy under `.joyzoning/worktrees/` and **no** `
 | **VS Code → Source Control** | Workspace + split diff | Red/green hunks before you merge |
 | **Feature branch per ticket** | Branch `joyzoning/card-<task-id>` | Card selection drives branch + inspection |
 | **Linear issue → linked branch** | Kanban card → one branch in canonical root | Card selection drives inspection |
-| **Slack thread vs ticket** | Manager Chat vs Kanban card | Chat plans; card + lease is the contract for code |
+| **Slack thread vs ticket** | Manager Chat vs Kanban card | Chat plans; card + branch is the contract for code (lease optional) |
 
 The cockpit does **not** ask you to reconcile chat scrollback with disk. It asks you to reconcile **one card** with **one folder** (and branch) and **one timeline**.
 

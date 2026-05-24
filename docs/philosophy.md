@@ -121,7 +121,7 @@ Revoke, block, and recovery flows preserve **git state and evidence** on the lea
 
 | Audience | Doc |
 |----------|-----|
-| New operators | [what-is-joyzoning.md](what-is-joyzoning.md) |
+| New operators | [what-is-joyzoning.md](what-is-joyzoning.md) · [execution-paths.md](execution-paths.md) |
 | JSDP chains | [jsdp.md](jsdp.md) · [external-agent-jsdp.md](external-agent-jsdp.md) |
 | Modes (plan / execute / review) | [operational-modes.md](operational-modes.md) |
 | Contributors | [development.md](development.md) |

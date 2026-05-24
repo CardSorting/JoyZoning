@@ -82,7 +82,7 @@ Patterns borrowed from **VS Code Welcome**, **Docker Desktop**, **Linear**, and 
 |-----|-------------|
 | [first-run-desktop.md](first-run-desktop.md) | Auto-setup, chips, Connection window |
 | [first-run-cli.md](first-run-cli.md) | Terminal-only stack |
-| [setup-checklist.md](setup-checklist.md) | Five required steps + optional milestones |
+| [setup-checklist.md](setup-checklist.md) | Full (managed) vs **Cursor-first** tracks + milestones |
 | [status-indicators.md](status-indicators.md) | Green/red chips and health grade |
 
 ### Operate & fix
@@ -123,7 +123,7 @@ flowchart LR
 | **CONFIGURE** | JoyZoning + diet-hermes installed | [installation.md](installation.md), [hermes-setup.md](hermes-setup.md) |
 | **CONNECT** | API + dashboard healthy | [status-indicators.md](status-indicators.md), [api-keys-and-models.md](api-keys-and-models.md) |
 | **OPERATE** | First chat, dispatch, optional TUI | [whats-next.md](whats-next.md), [desktop-ui.md](../desktop-ui.md) |
-| **READY** | Core checklist green | [setup-checklist.md](setup-checklist.md) |
+| **READY** | Core checklist green (or Cursor-first: CP + workspace) | [setup-checklist.md](setup-checklist.md) |
 
 ---
 

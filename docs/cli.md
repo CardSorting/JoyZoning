@@ -162,7 +162,7 @@ Example scripts: `scripts/examples/agent-happy-path.sh`, `agent-verification-fai
 
 ## External-agent JSDP (no Hermes lease)
 
-JoyZoning supervises the role; you edit in Cursor, Claude Code, Copilot, or by hand. Full guide: [external-agent-jsdp.md](external-agent-jsdp.md).
+JoyZoning supervises the role; you edit in Cursor, Claude Code, Copilot, or by hand. Full guide: [external-agent-jsdp.md](external-agent-jsdp.md) · [execution-paths.md](execution-paths.md).
 
 | Command | Purpose |
 |---------|---------|

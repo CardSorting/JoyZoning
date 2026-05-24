@@ -2,7 +2,16 @@
 
 Use this page alongside the in-app **Getting Started** hub. Check items off as you go; each step links to deeper docs.
 
-**Health grade** in the app summarizes this list: **Healthy** = all five core steps done.
+**Health grade** in the app summarizes the **full (managed)** list: **Healthy** = all five core steps done.
+
+**Pick a track:**
+
+| Track | You need | Guide |
+|-------|----------|--------|
+| **Full (Hermes + desktop)** | All five core steps below | Default Getting Started |
+| **Cursor-first (external JSDP)** | Steps **1** + **5** only; Hermes optional | [external-agent-jsdp.md](../external-agent-jsdp.md) · [execution-paths.md](../execution-paths.md) |
+
+> **Cursor-first:** Skip steps 2–4 until you want Manager Chat or managed dispatch. You still need `:9470` and an opened workspace before `jz task start-external`.
 
 ---
 
@@ -17,7 +26,7 @@ Use this page alongside the in-app **Getting Started** hub. Check items off as y
 | **Verify** | `curl -s http://127.0.0.1:9470/api/health` → `"status":"ok"` |
 | **Fix** | Restart app or `dotnet run --project src/JoyZoning.ControlPlane` |
 
-### ☐ 2. diet-hermes ready
+### ☐ 2. diet-hermes ready *(managed / Manager Chat — skip for Cursor-only)*
 
 | | |
 |---|---|
@@ -31,16 +40,16 @@ Use this page alongside the in-app **Getting Started** hub. Check items off as y
 
 ## Phase: CONNECT
 
-### ☐ 3. API gateway
+### ☐ 3. API gateway *(managed — skip for Cursor-only)*
 
 | | |
 |---|---|
 | **What** | Hermes HTTP API on port **8642** (profile `joyzoning`) |
-| **Why** | Manager Chat and task dispatch call this API |
+| **Why** | Manager Chat and **managed** task dispatch call this API |
 | **Verify** | Green **API** chip · `curl -s http://127.0.0.1:8642/health` |
 | **Fix** | **Hermes → Ensure Gateway** · `POST /api/hermes/ensure` |
 
-### ☐ 4. Dashboard & session token
+### ☐ 4. Dashboard & session token *(managed / kanban sync — skip for Cursor-only)*
 
 | | |
 |---|---|
@@ -71,7 +80,8 @@ These do **not** block the health grade but confirm end-to-end flow:
 | ☐ | Milestone | Confirms |
 |---|-----------|----------|
 | ☐ | **First Manager Chat message** | LLM API keys + model work — [api-keys-and-models.md](api-keys-and-models.md) |
-| ☐ | **First kanban dispatch** | Lease + executor pipeline |
+| ☐ | **First kanban dispatch** | Managed lease + executor pipeline |
+| ☐ | **First external start** | `jz task start-external` — no lease — [external-agent-jsdp.md](../external-agent-jsdp.md) |
 | ☐ | **Hermes TUI connected** | Dashboard WebSocket on Execution surface |
 
 ---
@@ -84,11 +94,13 @@ When all five core items are checked:
 - **What’s next** cards appear on Getting Started  
 - Safe to run production-ish tasks on low/medium risk  
 
-Continue: [whats-next.md](whats-next.md)
+Continue: [whats-next.md](whats-next.md) (managed) · [external-agent-jsdp.md](../external-agent-jsdp.md) (Cursor)
 
 ---
 
 ## Printable summary
+
+**Full track (managed):**
 
 ```
 CONFIGURE   [ ] Control plane (:9470)
@@ -100,6 +112,14 @@ CONNECT     [ ] API gateway (:8642)
 OPERATE     [ ] Workspace opened
 
 OPTIONAL    [ ] Manager message  [ ] Dispatch  [ ] TUI
+```
+
+**Cursor-first track (external JSDP):**
+
+```
+CONFIGURE   [ ] Control plane (:9470)
+OPERATE     [ ] Workspace opened
+MILESTONE   [ ] jz task start-external → mark-ready → verify → complete --yes
 ```
 
 ---

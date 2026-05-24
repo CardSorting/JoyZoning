@@ -54,6 +54,8 @@ For precise API terms see [glossary.md](../glossary.md). **How one card maps to 
 | **Sign off / ship it** | Merge → Complete | **You only** — never the agent |
 | **Cancel assignment** | Revoke lease | **You** |
 | **Worker finished my part** | `ready_for_review` / `agent done` | Worker — still needs **your** merge |
+| **Working in Cursor** | `start-external` | JoyZoning tracks branch; you edit in Cursor; **you** merge |
+| **Mark ready for review** | `jz task mark-ready` | External path — “I’m done editing, please review” |
 
 ---
 
@@ -96,6 +98,9 @@ All are **localhost** — not exposed to the internet by default.
 |--------|---------|
 | “Lease is verifying” | Tests/commands running — wait or re-run verify |
 | “Ready for review” | Worker done — **your** turn to read diff and merge |
+| “External: Cursor” | Card running without Hermes — Parallel Workers / status shows IDE driver |
+| “No lease” / lease 404 | Normal for external tasks — use task status, not lease API |
+| “Next role blocked” | Prior JSDP role not merged — run `jz task complete --yes` on previous role |
 | “Local-wins on sync” | If you changed a card in JoyZoning, import won’t overwrite your status |
 | “Smart setup” | App installs/connects Hermes automatically |
 | “Profile joyzoning” | Separate Hermes settings folder so JoyZoning does not break your personal Hermes |

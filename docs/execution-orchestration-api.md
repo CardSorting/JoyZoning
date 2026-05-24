@@ -1,6 +1,8 @@
 # Execution orchestration API
 
-HTTP contract for Phase 21–24 kanban execution leases on the JoyZoning control plane (`http://127.0.0.1:9470`).
+HTTP contract for Phase 21–24 **managed** kanban execution leases on the JoyZoning control plane (`http://127.0.0.1:9470`).
+
+> **External-agent JSDP (Cursor, manual):** no lease row — use [control-plane-api.md — External execution](control-plane-api.md#external-execution-no-lease) and [external-agent-jsdp.md](external-agent-jsdp.md). `GET /api/tasks/{id}/lease` returning **404** is expected for external tasks.
 
 Errors are always JSON (never stack traces):
 

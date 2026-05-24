@@ -188,6 +188,9 @@ Key test areas:
 | `KanbanExecutionOrchestratorTests` | Transition matrix, evidence |
 | `LeaseRuntimeServiceTests` | Stale heartbeat, expiration, caps |
 | `DogfoodValidationTests` | End-to-end `jz` / `jz agent` paths |
+| `ExternalAgentJsdpTests` | External start → mark-ready → verify → complete (API host) |
+| `ExternalAgentJsdpPolicyTests` | Merge gate, status transitions, bounded-session guards |
+| `JsdpChainIntegrationTests` | Delivery chain queue + external next role |
 | `JoyZoning.Cli.Tests` | Args, safety, JSON output, agent guard |
 
 Dogfood uses `JoyZoningDogfoodServerProcess` (real Kestrel port) + shared temp SQLite — see [dogfood-report.md](dogfood-report.md).
@@ -198,6 +201,7 @@ Dogfood uses `JoyZoningDogfoodServerProcess` (real Kestrel port) + shared temp S
 - `TestDatabaseReset.ClearAllAsync` deletes rows instead of dropping the database file between tests.
 - `HermesRunEventConsumer.TrackRun` is a **no-op** in `Testing` so stub SSE reconciliation does not race lease assertions across test methods.
 - Filtered run: `dotnet test tests/JoyZoning.Tests/JoyZoning.Tests.csproj --filter "FullyQualifiedName~OrchestrationApi"`.
+- External JSDP: `dotnet test tests/JoyZoning.Tests/JoyZoning.Tests.csproj --filter "FullyQualifiedName~ExternalAgentJsdp|JsdpChainIntegration"`.
 
 ## Scripts
 

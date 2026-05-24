@@ -110,7 +110,8 @@ Maps JoyZoning menus to outcomes. Familiar if you have used **VS Code**, **Figma
 |---------|-----------|
 | **New Task** | Title, description, agent, risk level |
 | **Drag card** | Change column / status |
-| **Dispatch** | Start executor in worktree (needs API green) |
+| **Dispatch** | Start **managed** executor (Hermes lease; needs API green) |
+| **External start** | Use CLI: `jz task start-external` — same card branch, no Hermes ([external-agent-jsdp.md](../external-agent-jsdp.md)) |
 | **Critical checkbox** | Required for risk 3 before dispatch |
 | **Import from Hermes** | Pull board from Hermes (needs Dashboard green) |
 | **Merge** (when offered) | Your sign-off → Complete |
@@ -137,7 +138,7 @@ Agents **cannot** drag to Complete without verification + merge.
 |------|--------|
 | 1 | Kanban → **click the card** you are reviewing |
 | 2 | Sidebar → **Workspace** |
-| 3 | Read the **header** — confirms card branch after Dispatch |
+| 3 | Read the **header** — confirms card branch after Dispatch or external start |
 | 4 | **Changed** list → click a file → red/green **diff** |
 | 5 | Satisfied? Kanban → **Merge** (only you — not the agent) |
 

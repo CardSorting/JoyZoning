@@ -50,6 +50,19 @@ All events are stored in `joy_events` with monotonic `Id` (replay cursor), `Corr
 | `dietcode.execution.started` | Task dispatched to executor |
 | `dietcode.execution.completed` | Run reached terminal state |
 
+### External-agent JSDP
+
+| Type | When |
+|------|------|
+| `external.work.started` | `POST .../external/start` — branch + prompt stored |
+| `external.agent.prompt_generated` | Handoff prompt built or refreshed |
+| `external.workspace.status_scanned` | Git scan for branch / changed files |
+| `external.work.marked_ready_for_review` | Operator `mark-ready` |
+| `external.verification.started` / `passed` / `failed` | Verify commands on external task |
+| `external.work.merged` / `external.work.completed` | Operator accept-merge |
+
+See [external-agent-jsdp.md](external-agent-jsdp.md).
+
 ### Workspace / terminal
 
 | Type | When |

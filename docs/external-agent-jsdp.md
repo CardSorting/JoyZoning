@@ -12,6 +12,7 @@ JoyZoning supervises **JSDP delivery** even when it does not run the agent. Herm
 | CLI commands | [cli.md](cli.md) |
 | Why this exists | [philosophy.md](philosophy.md) |
 | Plain language | [what-is-joyzoning.md](what-is-joyzoning.md) |
+| Cursor-first setup | [onboarding/setup-checklist.md](onboarding/setup-checklist.md) (steps 1 + 5 only) |
 
 ### 60-second start (single task)
 

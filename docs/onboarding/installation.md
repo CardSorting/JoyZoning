@@ -2,18 +2,18 @@
 
 Complete install reference for JoyZoning and its dependency **diet-hermes** (Hermes Agent fork).
 
-**Quick path:** [quickstart.md](quickstart.md) · **Hermes only:** [hermes-setup.md](hermes-setup.md)
+**Quick path:** [quickstart.md](quickstart.md) · **Hermes only:** [hermes-setup.md](hermes-setup.md) · **Cursor-first (no Hermes):** [execution-paths.md](../execution-paths.md) · [setup-checklist.md](setup-checklist.md) (steps 1 + 5)
 
 ---
 
 ## What you are installing
 
-| Piece | What it is (plain language) | Size / time |
-|-------|----------------------------|-------------|
-| **JoyZoning desktop** | Operator window (kanban, chat, diffs) | .NET build ~1 min |
-| **Control plane** | Small local web API on port 9470 | Starts with app or CLI |
-| **diet-hermes** | AI agent runtime (gateway + tools) | First venv: **3–8 min** |
-| **`jz` CLI** (optional) | Terminal commands against 9470 | `install-jz.sh` ~30 s |
+| Piece | What it is (plain language) | Required for |
+|-------|----------------------------|--------------|
+| **JoyZoning desktop** | Operator window (kanban, chat, diffs) | All paths |
+| **Control plane** | Small local web API on port 9470 | All paths |
+| **diet-hermes** | AI agent runtime (gateway + tools); first venv **3–8 min** | **Managed** dispatch + Manager Chat only |
+| **`jz` CLI** | Terminal commands against 9470 | External JSDP + automation (recommended) |
 
 All components stay on **127.0.0.1** — local-first.
 

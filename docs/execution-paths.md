@@ -126,3 +126,9 @@ Not allowed:
 | CLI | [cli.md](cli.md) |
 | FAQ | [faq.md](faq.md) |
 | Use cases | [use-cases.md](use-cases.md) |
+| Troubleshooting | [external-agent-jsdp.md#troubleshooting](external-agent-jsdp.md#troubleshooting) · [troubleshooting.md](troubleshooting.md) |
+| Setup (Cursor-first checklist) | [onboarding/setup-checklist.md](onboarding/setup-checklist.md) |
+| Desktop menus | [onboarding/desktop-menu-guide.md](onboarding/desktop-menu-guide.md) |
+| API (external) | [control-plane-api.md#external-execution-no-lease](control-plane-api.md#external-execution-no-lease) |
+| API (leases) | [execution-orchestration-api.md](execution-orchestration-api.md) |
+| Events | [event-catalog.md](event-catalog.md) |

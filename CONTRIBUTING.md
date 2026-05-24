@@ -4,8 +4,8 @@ Thank you for contributing. JoyZoning is MIT-licensed — see [LICENSE](LICENSE)
 
 ## Before you start
 
-1. Read [docs/philosophy.md](docs/philosophy.md), then [docs/concepts.md](docs/concepts.md), [docs/architecture.md](docs/architecture.md), and [docs/development.md](docs/development.md).
-2. Understand the **authority model**: agents cannot merge or mark tasks Complete; humans own dispatch and merge ([docs/execution-orchestration-api.md](docs/execution-orchestration-api.md)).
+1. Read [docs/philosophy.md](docs/philosophy.md), [docs/execution-paths.md](docs/execution-paths.md), then [docs/concepts.md](docs/concepts.md), [docs/architecture.md](docs/architecture.md), and [docs/development.md](docs/development.md).
+2. Understand the **authority model**: agents cannot merge or mark tasks Complete; humans own merge for both **managed leases** and **external-agent JSDP** ([docs/external-agent-jsdp.md](docs/external-agent-jsdp.md), [docs/execution-orchestration-api.md](docs/execution-orchestration-api.md)).
 3. Install [.NET 8 SDK](https://dotnet.microsoft.com/download) (see `global.json`).
 
 ## Local setup
@@ -23,11 +23,17 @@ dotnet build JoyZoning.sln
 
 Optional: `./scripts/run-tests.sh dogfood` for end-to-end lease + CLI paths.
 
+External-agent JSDP (no Hermes lease):
+
+```bash
+dotnet test tests/JoyZoning.Tests/JoyZoning.Tests.csproj --filter "FullyQualifiedName~ExternalAgentJsdp|JsdpChainIntegration"
+```
+
 ## Pull requests
 
 - Keep PRs focused; one concern per PR when possible.
 - Add or update tests for behavior changes (`JoyZoning.Tests` for API/orchestration, `JoyZoning.Cli.Tests` for CLI).
-- Update relevant docs under `docs/` when you change APIs, config keys, or operator workflows.
+- Update relevant docs under `docs/` when you change APIs, config keys, or operator workflows — especially [docs/external-agent-jsdp.md](docs/external-agent-jsdp.md) and [docs/execution-paths.md](docs/execution-paths.md) for external execution changes.
 - Do not commit secrets (API keys, dashboard tokens, personal paths in `appsettings.json` — use `appsettings.Development.json` locally).
 
 ## Code conventions

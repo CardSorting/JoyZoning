@@ -8,6 +8,7 @@ Symptom-first guide for operators and developers.
 | Red chips / health grade | [onboarding/status-indicators.md](onboarding/status-indicators.md) |
 | Step-by-step setup | [onboarding/setup-checklist.md](onboarding/setup-checklist.md) |
 | Menu “where to click” | [onboarding/desktop-menu-guide.md](onboarding/desktop-menu-guide.md) |
+| **External / Cursor path** | [external-agent-jsdp.md](external-agent-jsdp.md#troubleshooting) · [execution-paths.md](execution-paths.md) |
 | Overview | [getting-started.md](getting-started.md) |
 
 ## Quick diagnostics
@@ -44,7 +45,19 @@ Desktop: **Settings → Copy health report** (paste into issues or notes).
 | Port in use | Another process on 9470 | Stop duplicate CP; change `ControlPlane:ListenUrl` |
 | Stale UI after Settings save | Rare client cache | Settings hot-reload Hermes clients; restart desktop only if needed |
 
-## Kanban and leases
+## External-agent JSDP (Cursor / manual)
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `mark-ready` rejected | Wrong branch or clean tree | `git checkout joyzoning/card-<id>`; ensure edits exist — `jz task status --refresh` |
+| `complete` rejected | Skipped mark-ready or verify | `mark-ready` → `jz task verify` → `complete --yes` |
+| `GET .../lease` 404 | External task (no lease) | Use `GET .../external/status` or `jz task status` |
+| Next JSDP role blocked | Prior role not Complete | `jz delivery-chain queue <id>`; merge prior role first |
+| Agent set Complete in chat | Not authoritative | Operator runs `jz task complete --yes` only |
+
+Full table: [external-agent-jsdp.md#troubleshooting](external-agent-jsdp.md#troubleshooting).
+
+## Kanban and leases (managed)
 
 | Symptom | HTTP / behavior | Fix |
 |---------|-----------------|-----|
