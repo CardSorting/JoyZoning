@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# JoyZoning Agent Operations CLI — canonical wrapper for the operator CLI.
+# Usage: ./scripts/joyzoning agent-context --json
+# Same binary as jz; joyzoning is the preferred name for agent automation.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+exec "$ROOT/scripts/jz" "$@"

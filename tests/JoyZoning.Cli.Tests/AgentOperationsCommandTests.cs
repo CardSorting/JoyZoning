@@ -8,6 +8,76 @@ namespace JoyZoning.Cli.Tests;
 public sealed class AgentOperationsCommandTests
 {
     [Fact]
+    public async Task Agent_manifest_command_returns_valid_json()
+    {
+        var json = await CaptureStdoutAsync(() =>
+            AgentOperationsCommand.DispatchAsync(
+                new JoyZoningCliClient(CliContext.DefaultBaseUrl),
+                CliContext.FromArgs(["agent-manifest", "--json"]),
+                ["agent-manifest", "--json"]));
+
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("joyzoning", doc.RootElement.GetProperty("app").GetString());
+        Assert.True(doc.RootElement.TryGetProperty("verification", out var verification));
+        Assert.True(verification.TryGetProperty("typecheck", out _));
+        Assert.True(doc.RootElement.TryGetProperty("protectedPaths", out var paths));
+        Assert.Contains(".next/", paths.EnumerateArray().Select(e => e.GetString()));
+    }
+
+    [Fact]
+    public async Task Agent_context_command_returns_valid_json()
+    {
+        var json = await CaptureStdoutAsync(() =>
+            AgentOperationsCommand.DispatchAsync(
+                new JoyZoningCliClient(CliContext.DefaultBaseUrl),
+                CliContext.FromArgs(["agent-context", "--json"]),
+                ["agent-context", "--json"]));
+
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("joyzoning", doc.RootElement.GetProperty("app").GetString());
+        Assert.True(doc.RootElement.TryGetProperty("git", out _));
+        Assert.True(doc.RootElement.TryGetProperty("importantFiles", out _));
+        Assert.True(doc.RootElement.TryGetProperty("nextCommands", out _));
+    }
+
+    [Fact]
+    public async Task Snapshot_command_returns_valid_json()
+    {
+        var json = await CaptureStdoutAsync(() =>
+            AgentOperationsCommand.DispatchAsync(
+                new JoyZoningCliClient(CliContext.DefaultBaseUrl),
+                CliContext.FromArgs(["snapshot", "--json"]),
+                ["snapshot", "--json"]));
+
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.TryGetProperty("git", out _));
+        Assert.True(doc.RootElement.TryGetProperty("tests", out _));
+        Assert.True(doc.RootElement.TryGetProperty("sessions", out _));
+    }
+
+    [Fact]
+    public async Task Doctor_command_returns_valid_json()
+    {
+        var ctx = CliContext.FromArgs(["doctor", "--json"]);
+        var previous = Console.Out;
+        using var writer = new StringWriter();
+        Console.SetOut(writer);
+        try
+        {
+            var code = await DoctorCommand.RunAsync(ctx);
+            using var doc = JsonDocument.Parse(writer.ToString());
+            Assert.True(doc.RootElement.TryGetProperty("checks", out var checks));
+            Assert.Equal(JsonValueKind.Array, checks.ValueKind);
+            Assert.Contains(checks.EnumerateArray(), c => c.GetProperty("id").GetString() == "endpoint_registry");
+            Assert.True(code is 0 or 1);
+        }
+        finally
+        {
+            Console.SetOut(previous);
+        }
+    }
+
+    [Fact]
     public async Task Endpoints_command_returns_valid_json()
     {
         var json = await CaptureStdoutAsync(() =>
@@ -19,6 +89,30 @@ public sealed class AgentOperationsCommandTests
         using var doc = JsonDocument.Parse(json);
         Assert.True(doc.RootElement.TryGetProperty("endpoints", out var endpoints));
         Assert.Equal(JsonValueKind.Array, endpoints.ValueKind);
+    }
+
+    [Fact]
+    public async Task Endpoints_markdown_command_writes_table()
+    {
+        var previous = Console.Out;
+        using var writer = new StringWriter();
+        Console.SetOut(writer);
+        try
+        {
+            var code = await AgentOperationsCommand.DispatchAsync(
+                new JoyZoningCliClient(CliContext.DefaultBaseUrl),
+                CliContext.FromArgs(["endpoints", "--markdown"]),
+                ["endpoints", "--markdown"]);
+            Assert.Equal(0, code);
+            var output = writer.ToString();
+            Assert.Contains("# JoyZoning Endpoint Map", output);
+            Assert.Contains("create-session", output);
+            Assert.Contains("/api/sessions", output);
+        }
+        finally
+        {
+            Console.SetOut(previous);
+        }
     }
 
     [Fact]

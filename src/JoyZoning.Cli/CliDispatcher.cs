@@ -23,6 +23,8 @@ public static class CliDispatcher
             "doctor" => await DoctorCommand.RunAsync(ctx),
             "status" or "inspect" or "agent-manifest" or "agent-context" or "endpoints" or "endpoint-map" or "snapshot" =>
                 await AgentOperationsCommand.DispatchAsync(client, ctx, a),
+            "plan" => await DispatchPlanAsync(client, ctx, a),
+            "run" => await DispatchRunAsync(client, ctx, a),
             "lease" => await DispatchLeaseShortcutAsync(client, ctx, a),
             "heartbeat" => await DispatchHeartbeatShortcutAsync(client, ctx, a),
             "verify" => await DispatchVerifyShortcutAsync(client, ctx, a),
@@ -279,6 +281,46 @@ public static class CliDispatcher
         }
 
         return 0;
+    }
+
+    private static async Task<int> DispatchPlanAsync(
+        JoyZoningCliClient client, CliContext ctx, string[] a)
+    {
+        if (ctx.Args.Has("--policy"))
+            return await YoloCommand.DispatchAsync(client, ctx, ["yolo", "plan", ..a.Skip(1)]);
+
+        var raw = ctx.Args.Raw;
+        var goal = CliArgs.OptStatic(raw, "--goal")
+                   ?? CliArgs.OptStatic(raw, "--title")
+                   ?? (a.Length > 1 ? string.Join(' ', a.Skip(1)) : null);
+        if (string.IsNullOrWhiteSpace(goal))
+            throw Usage("plan \"<goal>\" | plan --goal \"...\" | plan --policy <file>");
+
+        return await DispatchTaskAsync(client, ctx,
+        [
+            "task", "create",
+            "--goal", goal,
+            ..CopyOptFlags(raw, "--session", "--description", "--agent", "--risk"),
+        ]);
+    }
+
+    private static IEnumerable<string> CopyOptFlags(string[] raw, params string[] flags)
+    {
+        foreach (var flag in flags)
+        {
+            if (CliArgs.OptStatic(raw, flag) is { } value)
+            {
+                yield return flag;
+                yield return value;
+            }
+        }
+    }
+
+    private static async Task<int> DispatchRunAsync(
+        JoyZoningCliClient client, CliContext ctx, string[] a)
+    {
+        RequireArgs(a, 2, "run <task-id>");
+        return await DispatchTaskAsync(client, ctx, ["task", "run", a[1], ..a.Skip(2)]);
     }
 
     private static async Task<CliHttpResult> DispatchSessionAsync(

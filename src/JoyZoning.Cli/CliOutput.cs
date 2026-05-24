@@ -134,6 +134,18 @@ public static class CliOutput
               broccoliq audit        Recent mirrored events from hive
               config explain         Env vars and authority rules
 
+            Agent operations (self-describing control surface):
+              agent-manifest --json  Canonical manifest: commands, endpoints, verification
+              agent-context --json   Minimal state before acting (session, git, health)
+              inspect --json           Compressed discovery: important files, protected paths
+              endpoints --json         Typed endpoint registry (agent-safe flags)
+              endpoints --markdown     Endpoint map for docs
+              snapshot --json          Git, tests, sessions, approvals snapshot
+              plan "<goal>"            Create task from goal (--session required)
+              run <task-id>            Dispatch and run a task lease
+
+            See docs/AGENT.md — do not scan the repo unless doctor fails.
+
             Low-level API (escape hatch): raw <METHOD> <path> [--body @file.json|@stdin]
 
             Agent harness (DietCode worker — cannot merge/revoke/complete):

@@ -30,9 +30,18 @@ exec "${HOME}/.local/bin/joyzoning-jz/jz" "$@"
 WRAPPER
 chmod +x "$OUT/jz"
 
+cat > "$OUT/joyzoning" <<'WRAPPER'
+#!/usr/bin/env bash
+export DOTNET_ROOT="${DOTNET_ROOT:-$HOME/.dotnet}"
+export PATH="${DOTNET_ROOT}:${PATH}"
+export JOYZONING_URL="${JOYZONING_URL:-http://127.0.0.1:9470}"
+exec "${HOME}/.local/bin/joyzoning-jz/jz" "$@"
+WRAPPER
+chmod +x "$OUT/joyzoning"
+
 cp "$OUT/joyzoning-jz/jz" "$ROOT/dist/jz"
 chmod +x "$ROOT/dist/jz"
 
-echo "Installed: $OUT/jz"
-echo "Run: jz --help"
+echo "Installed: $OUT/jz and $OUT/joyzoning"
+echo "Run: joyzoning agent-context --json"
 echo "Optional: export JOYZONING_URL=http://127.0.0.1:9470"

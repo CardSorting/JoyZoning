@@ -11,7 +11,7 @@ public static class CompletionScript
             cur="${COMP_WORDS[COMP_CWORD]}"
             prev="${COMP_WORDS[COMP_CWORD-1]}"
             opts="--base-url --session --task --pretty --quiet --yes --approve-critical --field --tui --help"
-            local cmds="health doctor broccoliq lease heartbeat verify session task execution approval manager event hermes workspace config kanban tui completion yolo raw"
+            local cmds="health doctor status inspect agent-manifest agent-context endpoints endpoint-map snapshot plan run broccoliq lease heartbeat verify session task execution approval manager event hermes workspace config kanban tui completion yolo raw"
             if [[ ${COMP_CWORD} -eq 1 ]]; then
                 COMPREPLY=( $(compgen -W "${cmds}" -- "${cur}") )
                 return
@@ -38,5 +38,6 @@ public static class CompletionScript
             fi
         }
         complete -F _jz_completions jz
+        complete -F _jz_completions joyzoning
         """;
 }

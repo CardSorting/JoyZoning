@@ -42,6 +42,8 @@ public static class AgentOperationsCommand
     [
         new { name = "status", description = "Summarize current workspace/session/control-plane state.", safe = true },
         new { name = "inspect", description = "Return compressed discovery hints for agents.", safe = true },
+        new { name = "plan", description = "Create a task from a goal string or dry-run YOLO policy selection.", safe = true },
+        new { name = "run", description = "Dispatch and run a task lease.", safe = false },
         new { name = "agent-manifest", description = "Return the canonical Agent Operations manifest.", safe = true },
         new { name = "agent-context", description = "Return minimal state an agent needs before acting.", safe = true },
         new { name = "endpoint-map", description = "Return the typed endpoint registry.", safe = true },
@@ -245,6 +247,8 @@ public static class AgentOperationsCommand
             "scripts/run-tests.sh exists.");
         Check("cli_script", File.Exists(Path.Combine(root, "scripts/jz")),
             "scripts/jz exists.");
+        Check("joyzoning_script", File.Exists(Path.Combine(root, "scripts/joyzoning")),
+            "scripts/joyzoning exists for the canonical agent CLI name.");
         Check("manifest_fresh", File.Exists(Path.Combine(root, "docs/AGENT.md")) &&
                                 File.ReadAllText(Path.Combine(root, "docs/AGENT.md"))
                                     .Contains("joyzoning agent-context --json", StringComparison.Ordinal),

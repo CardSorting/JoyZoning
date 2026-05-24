@@ -1,8 +1,34 @@
-# JoyZoning operator CLI (`jz`)
+# JoyZoning operator CLI (`jz` / `joyzoning`)
 
-`jz` is the **operator shell** for JoyZoning’s local kanban runtime — human-supervised, scriptable, local-first. It is not a generic HTTP wrapper: workflows preserve the same authority gates as the desktop app (merge-only complete, explicit critical approval, evidence-preserving recovery).
+`jz` and `joyzoning` are the **operator shell** for JoyZoning’s local kanban runtime — human-supervised, scriptable, local-first. It is not a generic HTTP wrapper: workflows preserve the same authority gates as the desktop app (merge-only complete, explicit critical approval, evidence-preserving recovery).
+
+**For coding agents:** start with [AGENT.md](AGENT.md) and `joyzoning agent-context --json` — do not scan the repo first.
 
 Control plane default: `http://127.0.0.1:9470` (`JOYZONING_URL`).
+
+## Agent operations layer
+
+Self-describing control surface so agents never need to spelunk `src/`, routes, or package scripts.
+
+| Command | Purpose |
+|---------|---------|
+| `agent-manifest --json` | App metadata, CLI commands, endpoint map, verification commands, important files, protected paths |
+| `agent-context --json` | Minimal current state: session, git, health, approvals, tasks, last verification |
+| `inspect --json` | Compressed discovery: mode, surfaces, important files, do-not-edit paths |
+| `endpoints --json` | Typed endpoint registry with agent-safe flags and schema names |
+| `endpoints --markdown` | Human-readable endpoint map |
+| `snapshot --json` | Git dirty state, last verification, active session, pending approvals |
+| `doctor --json` | Validate files, scripts, endpoint registry, manifest freshness |
+| `plan "<goal>"` | Create a task from a goal (`--session` required) |
+| `run <task-id>` | Dispatch and run a task lease |
+
+```bash
+./scripts/joyzoning agent-context --json
+./scripts/joyzoning endpoints --json
+./scripts/joyzoning doctor --json
+```
+
+Endpoint registry source of truth: `src/JoyZoning.Domain/Orchestration/JoyZoningEndpointRegistry.cs`.
 
 ## Interactive operator TUI (Hermes-style)
 
@@ -37,9 +63,9 @@ Plain text (no `/`) sends **Manager Chat** when a session is active. Run `/help`
 
 ```bash
 cd /Users/bozoegg/Desktop/JoyZoning
-./scripts/install-jz.sh          # ~/.local/bin/jz + checks .NET SDK
-./scripts/jz doctor              # without install
-eval "$(jz completion bash)"     # optional tab completion
+./scripts/install-jz.sh          # ~/.local/bin/jz + joyzoning
+./scripts/joyzoning doctor --json
+eval "$(joyzoning completion bash)"     # optional tab completion
 ```
 
 ## I/O contract (automation)
