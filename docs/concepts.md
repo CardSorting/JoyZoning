@@ -40,7 +40,7 @@ Full guide: **[operational-modes.md](operational-modes.md)**.
 You interact through **surfaces** tuned for supervision — grouped by mode above:
 
 - **Plan** (Planning) — Manager Chat + Kanban aligned with Hermes board (two-way sync)  
-- **Execute** (Execution) — Execution viewport, parallel workers, live mirrors, terminal preview  
+- **Execute** (Execution) — Execution viewport, parallel workers, canonical workspace, terminal preview  
 - **Review** (Review) — Workspace diffs, merge queue, decision preflight before merge ([1:1 workspace state](workspace-state.md))  
 - **Govern** — Approvals + Timeline audit trail (cross-cutting)  
 - **Ambient** (Habitat, optional) — Watch pet / habitat — glanceable, not canonical  

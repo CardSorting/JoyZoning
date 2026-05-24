@@ -178,7 +178,7 @@ function MergeWorkerCard({
             type="button"
             className="inline-flex items-center gap-1 rounded-lg border border-campfire-border px-2 py-1 text-[10px] font-semibold text-campfire-muted hover:text-campfire-text"
             onClick={() => {
-              const p = worker.workspacePath || r!.liveMirrorPath!;
+              const p = worker.workspacePath || r!.worktreePath!;
               void openPathInShell(p).then((res) =>
                 onPathNotice(res.ok ? "Opened mirror in shell" : res.error, res.ok ? "info" : "error"),
               );

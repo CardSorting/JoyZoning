@@ -11,7 +11,6 @@ public record TaskLiveUpdatedDto(
     int ProgressPercent,
     int FilesCopiedThisTick,
     DateTimeOffset UpdatedAt,
-    string? WorkspacePath = null,
-    string? MirrorMode = null);
+    string? WorkspacePath = null);
 
 public record CodeActivityDto(Guid TaskId, string Path, string Kind, string? Preview);

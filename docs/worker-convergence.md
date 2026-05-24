@@ -39,22 +39,21 @@ Worker C worktree ──┘         ▲                              ▲
 
 ### 1. Where is the canonical main workspace?
 
-`OperatorSession.WorkspaceRoot` — exposed on live snapshot as `sessionWorkspaceRoot` and on merge/parallel APIs as `sessionWorkspaceRoot`.
+`OperatorSession.WorkspaceRoot` — exposed on workspace snapshot as `sessionWorkspaceRoot` and on merge/parallel APIs as `sessionWorkspaceRoot`.
 
-This is the session’s primary checkout. Live mirrors may copy *into* `.joyzoning/live/…` under that root; per-worker mirrors are separate from the session root when parallel mode suppresses shared-root mirroring.
+This is the session’s primary checkout. JSDP executes directly in this root on branch `joyzoning/card-<task-id>` (no `.joyzoning/worktrees/` sandbox).
 
 **Code:** `WorktreePlanner.TryPlan(workspaceRoot, …)` takes `session.WorkspaceRoot` as `workspaceRoot`.
 
 ### 2. Where is each worker worktree?
 
-Planned path:
+JSDP uses the **canonical workspace**:
 
-`{sessionWorkspaceRoot}/.joyzoning/worktrees/{segment}`
+`ExecutionLease.WorktreePath` = `OperatorSession.WorkspaceRoot`
 
-- `segment` = first 8 hex of card GUID, or SHA256 prefix of `hermesKanbanTaskId` when set (stable across duplicate local rows).
-- Created at lease start: `KanbanExecutionOrchestrator` → `Directory.CreateDirectory(worktreePath)` and stored on `ExecutionLease.WorktreePath`.
+Branch: `joyzoning/card-{segment}` where `segment` is derived from the card id or Hermes kanban id.
 
-**Code:** `WorktreePlanner.cs`, `KanbanExecutionOrchestrator.cs` (dispatch / recovery).
+**Code:** `WorktreePlanner.cs`, `JsdpSessionPolicy.UseCanonicalWorkspace`, `KanbanExecutionOrchestrator.cs`.
 
 ### 3. What branch/commit/diff does each worker produce?
 

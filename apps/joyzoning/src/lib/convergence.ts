@@ -13,7 +13,7 @@ export const METADATA_ONLY_ACCEPT_SUMMARY =
 export interface ConvergenceModel {
   mainWorkspacePath: string;
   workerWorktreePath: string | null;
-  workerMirrorPath: string | null;
+  workerWorkspacePath: string | null;
   workerBranch: string | null;
   headCommit: string | null;
   baseCommit: string | null;
@@ -57,7 +57,7 @@ export function buildConvergenceModel(
     snapshot.worktreePath?.trim() ||
     null;
 
-  const workerMirrorPath = workerWorktreePath;
+  const workerWorkspacePath = workerWorktreePath;
 
   const mergeState = mergeWorker?.mergeState;
   const gitConv = readiness?.gitConvergence ?? null;
@@ -87,7 +87,7 @@ export function buildConvergenceModel(
   return {
     mainWorkspacePath: main,
     workerWorktreePath,
-    workerMirrorPath,
+    workerWorkspacePath,
     workerBranch: readiness?.mergeTargetBranch?.trim() ?? null,
     headCommit: readiness?.headCommit ?? null,
     baseCommit: readiness?.baseCommit ?? null,

@@ -87,7 +87,7 @@ Server → client:
 - `OnKanbanSynced` — background kanban auto-import finished
 - `OnWorktreeRefreshed` — active lease worktree snapshot changed after background scan or deduped API refresh (`taskId`, `workspaceRoot`, `fileCount`, `inspect`)
 
-Background: `LeaseWorktreeMonitorHostedService` scans active leases every `LeaseRuntime:WorktreeMonitorIntervalSeconds` (default 45s), publishes `git.status.changed` / `workspace.file.changed` when the porcelain hash changes, then pushes `OnWorktreeRefreshed` for desktop/TUI subscribers.
+Workspace polling: `GET /api/tasks/{id}/workspace/changed` (and session-scoped `GET /api/workspace/changed`) publish `git.status.changed` / `workspace.file.changed` when the porcelain hash changes, then push `OnWorktreeRefreshed` and `OnTaskLiveUpdated` for Watch/TUI subscribers.
 
 ## Example sequence
 

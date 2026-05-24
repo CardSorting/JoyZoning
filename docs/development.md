@@ -72,57 +72,27 @@ dotnet run --project src/JoyZoning.ControlPlane
 dotnet run --project src/JoyZoning.App
 ```
 
-## Live workspace mirror (DietCode progress)
+## JSDP workspace progress (canonical checkout)
 
-JoyZoning builds in `.joyzoning/worktrees/<task-id>/`, not the session folder root. To see progress in your IDE without manual `rsync`:
+JoyZoning uses the **JoyZoning Sequential Delivery Protocol (JSDP)** by default: agents work in the **canonical session workspace** on branch `joyzoning/card-<id>`. There is no `.joyzoning/worktrees/` sandbox or `.joyzoning/live/` mirror copy.
 
 | Mechanism | What you get |
 |-----------|----------------|
-| **`JOYZONING_LIVE.md`** | Per-execution live mirror under `.joyzoning/live/<task-id>/<execution-id>/` (default `WorkspaceParallelism:LiveMirrorMode=PerExecution`) |
-| **`.joyzoning/live/index.json`** | Index of active mirrors when multiple workers run on one workspace |
-| **`GET /api/tasks/{id}/live`** | JSON snapshot + triggers mirror; includes `recommendedPollSeconds` |
-| **`POST /api/tasks/{id}/live/refresh`** | Force mirror + status file update |
-| **`jz task watch <id> [--workspace path]`** | Same as workspace-live.sh — step tracker + adaptive poll |
-| **`./scripts/workspace-live.sh <task-id> [workspace]`** | Friendly terminal tracker (steps, % bar, plain language; 3–25s adaptive poll) |
-| **`.joyzoning/live.json`** | Machine-readable mirror of `display` for IDE tooling |
+| **`GET /api/tasks/{id}/workspace/changed`** | Git porcelain changed files for the task workspace |
+| **`GET /api/tasks/{id}/workspace/diff`** | Unified diff for one path |
+| **`GET /api/sessions/{id}/parallel-workers`** | Workers + merge state (`protocol: jsdp`, `workspacePath`) |
+| **`jz task watch <id>`** | Polls workspace/changed + parallel-workers (CLI) |
+| **Watch UI** | `useLiveTask` builds presentation from workspace polling + SignalR |
+| **SignalR** | `OnWorktreeRefreshed`, `OnTaskLiveUpdated`, `OnTerminalOutput`, `OnCodeActivity` |
 
-Config (`appsettings` / `Workspace` section):
-
-```json
-"Workspace": {
-  "MirrorToSessionRoot": true,
-  "LiveStatusFileName": "JOYZONING_LIVE.md",
-  "LiveMonitorIntervalSeconds": 10
-}
-```
-
-Open `TinyQuest-Campfire/JOYZONING_LIVE.md` (or your session root) while a task runs.
-
-**Terminal watcher** (dedicated pane while DietCode runs):
+Terminal watcher:
 
 ```bash
-./scripts/workspace-live.sh f6d456dc-707b-427c-b130-6459529db5cc /path/to/session-workspace
-# once:  ./scripts/workspace-live.sh --once <task-id>
-# fixed: JOYZONING_LIVE_INTERVAL=10 ./scripts/workspace-live.sh <task-id>
+jz task watch <task-id> --interval 5
+jz task watch <task-id> --once
 ```
 
-The tracker uses familiar patterns (install wizard / package tracker):
-
-- **Headline + subheadline** in plain language (not lease enum names)
-- **Step list** — Getting started → Building → Quality checks → Review
-- **Progress bar** — combined build stage + deliverables checklist
-- **“What you can do next”** when blocked or ready for review
-- **`JOYZONING_LIVE.md`** — same narrative for non-technical readers (IDE-friendly)
-
-API clients can read `display` on `GET /api/tasks/{id}/live` (`headline`, `steps`, `nextActions`, `progressPercent`, `activityState`).
-
-Options: `--simple`, `--paths`, `--once`, `--notify` (macOS), `JOYZONING_LIVE_OPEN=1`.
-
-Polling modes (`display.pollMode`): **burst** (~3s) while files are changing, **normal**, **slow** (~20s) when idle/stuck, **stopped** when done.
-
-On TTY, compact **in-place** status lines appear between full dashboard redraws (like `npm` / CI log tail). Full refresh shows **Step N of M**, timeline `●──◉──○──○`, ETA estimate, and **Good to know** tips.
-
-**Fourth-pass behavior:** background monitor always refreshes `JOYZONING_LIVE.md` / `live.json`; terminal merges **timeline events** from `/api/events`; **milestone** lines when advancing steps; **poll jitter**; periodic full refresh every ~18 ticks; `--simple` shows a one-screen wizard card.
+After accept-merge or revoke, legacy `.joyzoning/worktrees` and `.joyzoning/live` folders under the project are pruned automatically.
 
 ## Web progress dashboard (Watch UI — Next.js)
 
@@ -161,15 +131,15 @@ See [web/watch/README.md](../web/watch/README.md).
 - **Vertical journey** — Setup → Build → Verify → Review (“you are here”)
 - **Right now** spotlight — typing indicator while active
 - **Tabs** — Workshop (live code + files) · Checklist · Timeline
-- **SignalR** — `OnTerminalOutput`, `OnCodeActivity`, `OnTaskLiveUpdated`, worktree refresh
+- **SignalR** — `OnTerminalOutput`, `OnCodeActivity`, `OnTaskLiveUpdated`, `OnWorktreeRefreshed`
 
-**Throughput tuning** (`appsettings.Development.json`): mirror tick 3s, stale lease 120m, stream poll 1s.
+**Throughput tuning** (`appsettings.Development.json`): stale lease thresholds, stream poll interval.
 
 Bootstrap API: `GET /api/watch/bootstrap`.
 
 **Operational modes:** see [operational-modes.md](operational-modes.md) — keep Planning (kanban), Execution (workers/mirrors), Review (merge queue), and Habitat (ambient watch) as separate metaphors in new UI/read models. Registry: `GET /api/operational-modes`.
 
-Parallel live mirrors: `GET /api/sessions/{sessionId}/parallel-workers` (read model from `.joyzoning/live/index.json`, registry, and disk meta). **Bounded session dispatch:** `GET /api/sessions/{sessionId}/delivery-plan` (`model: bounded_session`, one agent + one role per session) — see [bounded-session-audit.md](bounded-session-audit.md). Merge/reconciliation queue: `GET /api/sessions/{sessionId}/merge-queue` (buckets: ready to merge, conflicts, completed, revoked/abandoned; includes `mergeState`, `mergeReadiness`, `mergeConflict`, `decisionSummary`, `approveGuardrails`, `revokeGuardrails`). Operator preflight: `GET /api/sessions/{sessionId}/workers/{executionSessionId}/decision-preflight?action=accept|revoke|inspect` (`approve` aliases `accept`). Human actions: `POST /api/tasks/{taskId}/lease/merge`, `POST /api/tasks/{taskId}/lease/revoke`. Open mirror folder (macOS/Linux): `POST /api/sessions/open-path` with `{ "path": "..." }`. **Convergence model (worktree → main workspace, what accept does):** [worker-convergence.md](worker-convergence.md). **Bounded YOLO / authority autopilot:** [authority-autopilot.md](authority-autopilot.md). **Coherence audit (May 2026):** [bounded-yolo-coherence-audit.md](bounded-yolo-coherence-audit.md).
+Parallel workers (JSDP): `GET /api/sessions/{sessionId}/parallel-workers` (canonical `workspacePath`, merge readiness, authority). **Bounded session dispatch:** `GET /api/sessions/{sessionId}/delivery-plan` (`model: bounded_session`, one agent + one role per session) — see [bounded-session-audit.md](bounded-session-audit.md). Merge/reconciliation queue: `GET /api/sessions/{sessionId}/merge-queue` (buckets: ready to merge, conflicts, completed, revoked/abandoned; includes `mergeState`, `mergeReadiness`, `mergeConflict`, `decisionSummary`, `approveGuardrails`, `revokeGuardrails`). Operator preflight: `GET /api/sessions/{sessionId}/workers/{executionSessionId}/decision-preflight?action=accept|revoke|inspect` (`approve` aliases `accept`). Human actions: `POST /api/tasks/{taskId}/lease/merge`, `POST /api/tasks/{taskId}/lease/revoke`. Open mirror folder (macOS/Linux): `POST /api/sessions/open-path` with `{ "path": "..." }`. **Convergence model (worktree → main workspace, what accept does):** [worker-convergence.md](worker-convergence.md). **Bounded YOLO / authority autopilot:** [authority-autopilot.md](authority-autopilot.md). **Coherence audit (May 2026):** [bounded-yolo-coherence-audit.md](bounded-yolo-coherence-audit.md).
 
 ## Run (development)
 

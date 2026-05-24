@@ -97,11 +97,8 @@ export function ConvergencePanel({
         />
         <PathRow
           label={workerLabel}
-          path={model.workerWorktreePath ?? model.workerMirrorPath ?? "—"}
+          path={model.workerWorktreePath ?? model.workerWorkspacePath ?? "—"}
         />
-        {model.workerMirrorPath && model.workerWorktreePath && (
-          <PathRow label="Live mirror" path={model.workerMirrorPath} />
-        )}
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
             Worker branch
@@ -181,11 +178,11 @@ export function ConvergencePanel({
           data-testid="open-worker-workspace"
           onClick={() =>
             void openPath(
-              model.workerWorktreePath ?? model.workerMirrorPath,
+              model.workerWorktreePath ?? model.workerWorkspacePath,
               "worker workspace",
             )
           }
-          disabled={!model.workerWorktreePath && !model.workerMirrorPath}
+          disabled={!model.workerWorktreePath && !model.workerWorkspacePath}
           className="rounded-lg border border-violet-600/50 bg-violet-600/15 px-3 py-1.5 text-xs font-semibold text-violet-200 hover:bg-violet-600/25 disabled:opacity-40"
         >
           Open worker workspace

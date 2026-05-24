@@ -851,7 +851,11 @@ public static class ApiEndpoints
         {
             var files = await workspace.ListChangedFilesAsync(workspaceRoot, cancellationToken);
             await workspaceEvents.PublishChangedFilesAsync(
-                workspaceRoot, files, sessionId, cancellationToken);
+                workspaceRoot,
+                files,
+                sessionId,
+                taskId: null,
+                cancellationToken);
             return Results.Ok(files);
         });
 
@@ -880,12 +884,16 @@ public static class ApiEndpoints
 
             var files = await workspace.ListChangedFilesAsync(target.Root, cancellationToken);
             await workspaceEvents.PublishChangedFilesAsync(
-                target.Root, files, sessionId ?? target.SessionId, cancellationToken);
+                target.Root,
+                files,
+                sessionId ?? target.SessionId,
+                taskId: id,
+                cancellationToken);
             return Results.Ok(new
             {
                 taskId = id,
                 workspaceRoot = target.Root,
-                inspect = target.IsWorktree ? "worktree" : "session",
+                inspect = target.IsWorktree ? "isolated" : "canonical",
                 files,
             });
         });

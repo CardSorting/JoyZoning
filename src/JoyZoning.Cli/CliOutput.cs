@@ -119,7 +119,7 @@ public static class CliOutput
 
             Operator workflows:
               task run <id>          Dispatch + show lease [--poll 5] [--timeout 600]
-              task watch <id>        Live build tracker (plain-language progress) [--workspace path]
+              task watch <id>        Poll workspace changes from control plane [--interval 5] [--once]
               task verify <id>       Run --cmd locally in worktree, submit report
               task complete <id>     Human merge (--yes required)
               task fail <id>         Record failure evidence (--reason required)

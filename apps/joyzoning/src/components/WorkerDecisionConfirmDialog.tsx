@@ -72,36 +72,23 @@ function DecisionSummaryBody({
           base {shortCommit(summary.baseCommit)} → head {shortCommit(summary.headCommit)}
         </div>
       )}
-      {summary.worktreePath && (
+      {(summary.workspacePath ?? summary.worktreePath) && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate font-mono text-[10px] text-campfire-muted">{summary.worktreePath}</span>
+          <span className="truncate font-mono text-[10px] text-campfire-muted">
+            {summary.workspacePath ?? summary.worktreePath}
+          </span>
           <button
             type="button"
             className="inline-flex items-center gap-1 text-[10px] text-campfire-accent"
             onClick={() => {
-              void copyPath(summary.worktreePath!).then((res) => {
+              const p = summary.workspacePath ?? summary.worktreePath!;
+              void copyPath(p).then((res) => {
                 if (!res.ok) onPathError(res.error);
               });
             }}
           >
             <Copy className="h-3 w-3" /> Copy
           </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 text-[10px] text-campfire-accent"
-            onClick={() => {
-              void openPathInShell(summary.worktreePath!).then((res) => {
-                if (!res.ok) onPathError(res.error);
-              });
-            }}
-          >
-            <ExternalLink className="h-3 w-3" /> Open workspace
-          </button>
-        </div>
-      )}
-      {summary.workspacePath ?? summary.worktreePath && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate font-mono text-[10px] text-campfire-muted">{summary.workspacePath ?? summary.worktreePath}</span>
           <button
             type="button"
             className="inline-flex items-center gap-1 text-[10px] text-campfire-accent"
@@ -226,7 +213,7 @@ export function WorkerDecisionConfirmDialog({
   async function onConfirm() {
     if (!canConfirm) return;
     if (action === "inspect") {
-      const path = s?.worktreePath ?? s?.liveMirrorPath ?? worker.workspacePath;
+      const path = s?.worktreePath ?? s?.workspacePath ?? worker.workspacePath;
       if (path) {
         const res = await openPathInShell(path);
         if (!res.ok) {

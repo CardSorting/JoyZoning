@@ -2,24 +2,31 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using JoyZoning.Adapters.Workspace;
+using JoyZoning.ControlPlane.Hubs;
 using JoyZoning.Domain.Enums;
 using JoyZoning.Domain.Events;
+using JoyZoning.Domain.Orchestration;
 using JoyZoning.Persistence.Repositories;
 
 namespace JoyZoning.ControlPlane.Services;
 
-/// <summary>Persists workspace/git snapshots to the event timeline when the working tree changes.</summary>
+/// <summary>Persists workspace/git snapshots to the event timeline and notifies Watch clients.</summary>
 public class WorkspaceEventPublisher
 {
     private static readonly ConcurrentDictionary<string, string> LastSnapshotHashes = new();
 
     private readonly IOperatorSessionRepository _sessions;
     private readonly EventIngestor _events;
+    private readonly OperatorHubNotifier _hub;
 
-    public WorkspaceEventPublisher(IOperatorSessionRepository sessions, EventIngestor events)
+    public WorkspaceEventPublisher(
+        IOperatorSessionRepository sessions,
+        EventIngestor events,
+        OperatorHubNotifier hub)
     {
         _sessions = sessions;
         _events = events;
+        _hub = hub;
     }
 
     /// <returns>True when a new snapshot was published to the event timeline.</returns>
@@ -27,6 +34,7 @@ public class WorkspaceEventPublisher
         string workspaceRoot,
         IReadOnlyList<ChangedFile> files,
         Guid? sessionId = null,
+        Guid? taskId = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(workspaceRoot))
@@ -76,7 +84,40 @@ public class WorkspaceEventPublisher
                 cancellationToken);
         }
 
+        if (taskId is { } tid && tid != Guid.Empty)
+            await NotifyTaskWorkspaceAsync(tid, normalizedRoot, files.Count, cancellationToken);
+
         return true;
+    }
+
+    private async Task NotifyTaskWorkspaceAsync(
+        Guid taskId,
+        string workspaceRoot,
+        int fileCount,
+        CancellationToken cancellationToken)
+    {
+        await _hub.BroadcastAsync(
+            "OnWorktreeRefreshed",
+            new
+            {
+                taskId,
+                workspaceRoot,
+                fileCount,
+                inspect = "canonical",
+            },
+            cancellationToken);
+
+        await _hub.BroadcastAsync(
+            "OnTaskLiveUpdated",
+            new TaskLiveUpdatedDto(
+                taskId,
+                LeaseStatus: string.Empty,
+                Headline: $"{fileCount} changed file(s)",
+                ProgressPercent: 0,
+                FilesCopiedThisTick: fileCount,
+                UpdatedAt: DateTimeOffset.UtcNow,
+                WorkspacePath: workspaceRoot),
+            cancellationToken);
     }
 
     internal static void ClearDedupeCacheForTests() => LastSnapshotHashes.Clear();

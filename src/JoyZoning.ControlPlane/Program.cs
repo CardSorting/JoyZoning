@@ -52,6 +52,7 @@ if (builder.Environment.IsEnvironment("Testing"))
 builder.Services.AddJoyZoningAdapters();
 
 builder.Services.AddScoped<EventIngestor>();
+builder.Services.AddSingleton<OperatorHubNotifier>();
 builder.Services.AddScoped<WorkspaceEventPublisher>();
 builder.Services.AddScoped<WorkerMergeObservabilityBuilder>();
 builder.Services.AddScoped<AuthorityAutopilotMergeContextBuilder>();

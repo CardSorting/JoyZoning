@@ -52,12 +52,7 @@ export interface LiveTaskSnapshot {
   blockedReason: string | null;
   worktreePath: string | null;
   sessionWorkspaceRoot: string | null;
-  liveMirrorRoot?: string | null;
-  mirrorMode?: string | null;
-  mirrorKeyId?: string | null;
   leaseId?: string | null;
-  isSharedSessionRootMirror?: boolean;
-  liveIndexJson?: string | null;
   recommendedPollSeconds: number;
   progress?: LiveProgress;
   display: LiveDisplay;

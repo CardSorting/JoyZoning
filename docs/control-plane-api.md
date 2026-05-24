@@ -92,7 +92,7 @@ See [event-catalog.md](event-catalog.md).
 | `GET` | `/api/tasks/{id}/workspace/tree` | Same resolution as above |
 | `GET` | `/api/tasks/{id}/workspace/diff` | `path` — diff inside resolved worktree/session root |
 
-**Background:** `LeaseWorktreeMonitorHostedService` (config: `LeaseRuntime:WorktreeMonitor*`) scans active lease worktrees, dedupes snapshots, ingests timeline events, and broadcasts `OnWorktreeRefreshed`.
+**Workspace events:** `GET /api/tasks/{id}/workspace/changed` publishes git/workspace timeline events and broadcasts `OnWorktreeRefreshed` / `OnTaskLiveUpdated` when the snapshot hash changes.
 
 ## Hermes connectivity
 

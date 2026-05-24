@@ -7,7 +7,7 @@ The architecture already separates these concerns:
 | Mode | Canonical metaphor | Primary state |
 |------|-------------------|---------------|
 | **Planning** | Jira / Kanban | `WorkTask`, kanban sync, backlog |
-| **Execution** | Worker orchestration | `ExecutionLease`, Hermes sessions, live mirrors |
+| **Execution** | JSDP worker orchestration | `ExecutionLease`, Hermes sessions, canonical workspace |
 | **Review** | GitHub PR | merge queue, verification, approve/revoke |
 | **Habitat / Ambient** | Optional atmosphere | presentation, pet mood, care meters |
 
@@ -58,15 +58,15 @@ Collapsing these into a single “dashboard” or a single card type creates the
 
 ## 2. Execution Mode
 
-**Mental model:** Live worker orchestration — leases, isolated Hermes sessions, worktrees, live mirrors, runtime activity.
+**Mental model:** JSDP worker orchestration — leases, isolated Hermes sessions, canonical workspace, runtime activity.
 
 **Owns:**
 
 - `ExecutionLease` status machine (leased → running → verifying → ready_for_review)
 - Per-run `ExecutionSession.HermesSessionId` (parallel workers do not share one chat)
-- `.joyzoning/worktrees/` and `.joyzoning/live/` mirror layout
-- Parallel worker observability (`/parallel-workers`, registry, `mirror-meta.json`)
-- Live presentation (`/api/tasks/{id}/live`, SignalR, activity stream)
+- Canonical workspace execution (`workspacePath` = session root, branch `joyzoning/card-<id>`)
+- Parallel worker observability (`/parallel-workers`, `protocol: jsdp`)
+- Workspace polling (`/api/tasks/{id}/workspace/changed`, SignalR activity stream)
 
 **Does not own:**
 
@@ -79,11 +79,11 @@ Collapsing these into a single “dashboard” or a single card type creates the
 |---------|------|
 | Desktop **Execution viewport** | Canonical run observation |
 | Desktop **Timeline** | Event audit |
-| Watch **Parallel Workers** | Per-worker mirror health |
-| Watch **live snapshot / stream** | Single-task runtime |
+| Watch **Parallel Workers** | Per-worker lease + workspace path |
+| Watch **workspace snapshot / stream** | Single-task runtime |
 | `jz agent` | Worker-side lease transitions |
 
-**API hints:** `/api/tasks/{id}/live`, `/api/sessions/{id}/parallel-workers`, dispatch, heartbeat, verify.
+**API hints:** `/api/tasks/{id}/workspace/changed`, `/api/sessions/{id}/parallel-workers`, dispatch, heartbeat, verify.
 
 ---
 
@@ -136,7 +136,7 @@ Collapsing these into a single “dashboard” or a single card type creates the
 | Surface | Role |
 |---------|------|
 | Watch **Synthesis Pet**, care meters, habitat shells | Ambient only |
-| `WorkspaceLivePresentation` tips | Friendly framing |
+| Watch presentation (`useLiveTask`) | Friendly framing from workspace poll |
 
 When habitat and review/execution UI appear on the same page (e.g. Pet Shell), **preserve boundaries**: habitat chrome must not become the only path to merge/revoke; review panels remain explicitly labeled and API-backed.
 
@@ -194,7 +194,7 @@ Per-worker and per-live-task hints:
 
 | Field | Where | Meaning |
 |-------|--------|---------|
-| `recommendedMode` | parallel-workers, merge-queue, `/api/tasks/{id}/live` | Best mode to open next |
+| `recommendedMode` | parallel-workers, merge-queue, workspace/changed | Best mode to open next |
 | `availableModeTransitions` | same | Cross-mode handoff targets with labels |
 
 ## Watch navigation
@@ -207,7 +207,7 @@ Campfire-style ambient visuals (`StatusHero`, `Spotlight`, workshop tabs) live u
 
 **Production notes:** `ModeSwitcher` loads labels from `GET /api/operational-modes` (falls back to `operational-modes.ts`). Live task and worker APIs expose `recommendedMode` / `availableModeTransitions`. User-selected modes are pinned in `sessionStorage` until depart.
 
-**Live binding guard:** `createWatchLiveBinding()` (Watch) brands runtime props from `useLiveTask` + session state. Empty `connLabel`, error connection state, or missing snapshot/session id render `WatchOperatorDisconnected` — never a fake operator shell. Malformed `modeNavigation` on `/api/tasks/{id}/live` is inferred locally and labeled `(inferred)` in handoffs.
+**Live binding guard:** `createWatchLiveBinding()` (Watch) brands runtime props from `useLiveTask` + session state. Empty `connLabel`, error connection state, or missing snapshot/session id render `WatchOperatorDisconnected` — never a fake operator shell.
 
 ---
 

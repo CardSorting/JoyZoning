@@ -1,8 +1,9 @@
+using JoyZoning.Domain.Orchestration;
 using JoyZoning.Persistence.Repositories;
 
 namespace JoyZoning.ControlPlane.Services;
 
-/// <summary>Resolves session workspace vs lease worktree for file inspection.</summary>
+/// <summary>Resolves canonical session workspace for JSDP task file inspection.</summary>
 public static class WorkspaceInspection
 {
     public sealed record InspectionTarget(string Root, bool IsWorktree, Guid SessionId);
@@ -18,13 +19,18 @@ public static class WorkspaceInspection
         if (task is null)
             return null;
 
-        var lease = await exec.GetActiveLeaseAsync(taskId, cancellationToken);
-        if (!string.IsNullOrWhiteSpace(lease?.WorktreePath))
-            return new InspectionTarget(lease.WorktreePath, true, task.OperatorSessionId);
-
         var session = await sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken);
         if (session is null || string.IsNullOrWhiteSpace(session.WorkspaceRoot))
             return null;
+
+        var lease = await exec.GetActiveLeaseAsync(taskId, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(lease?.WorktreePath))
+        {
+            var isIsolated = !JsdpWorkspaceExecution.IsCanonicalWorktree(
+                session.WorkspaceRoot,
+                lease.WorktreePath);
+            return new InspectionTarget(lease.WorktreePath, isIsolated, task.OperatorSessionId);
+        }
 
         return new InspectionTarget(session.WorkspaceRoot, false, task.OperatorSessionId);
     }

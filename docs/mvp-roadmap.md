@@ -154,7 +154,7 @@ Ensure diet-hermes API server is on port **8642** for live agent runs. Operator 
 - [x] **Timeline ingestion** — `WorkspaceEventPublisher` → `git.status.changed` / `workspace.file.changed`; `HermesRunEventConsumer` persists `terminal.output`
 - [x] **Task worktree APIs** — `GET /api/tasks/{id}/workspace/{changed,tree,diff}` via `WorkspaceInspection`
 - [x] **Desktop + CLI** — lease worktree label, Refresh, SignalR-driven refresh (`OnWorktreeRefreshed`, execution/lease events)
-- [x] **Background monitor** — `LeaseWorktreeMonitor` + hosted service; dedupe hash; tests in `LeaseWorktreeMonitorTests.cs`
+- [x] **Workspace change publisher** — `WorkspaceEventPublisher` dedupes git porcelain; SignalR `OnWorktreeRefreshed` on task workspace poll
 - [x] **Operator TUI** — `/workspace` uses task APIs when `/use <task>` is set; hub stream shows worktree updates
 - [x] **Docs** — [workspace-state.md](workspace-state.md) (1:1 card → folder, PR/VS Code analogies, non-technical navigation)
 

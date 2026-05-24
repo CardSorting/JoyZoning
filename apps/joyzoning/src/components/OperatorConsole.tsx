@@ -29,7 +29,6 @@ import { mergeStateLabel, mergeStateTone } from "@/lib/merge-queue";
 import type { OperatorDecisionAction } from "@/lib/operator-decision";
 import { openPathInShell } from "@/lib/path-actions";
 import type { ParallelWorkerEntry } from "@/lib/parallel-workers";
-import { healthLabel, healthTone } from "@/lib/parallel-workers";
 import type { WatchOperatorShellProps } from "./watch-operator-shell-props";
 import { ModeEmphasisBar } from "./ModeEmphasisBar";
 import { ConnectionPill } from "./ConnectionPill";
@@ -339,10 +338,8 @@ export function OperatorConsole({
                     Lease {shortId(selectedWorker.leaseId)} · {selectedWorker.leaseStatus}
                   </p>
                 </div>
-                <span
-                  className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${healthTone(selectedWorker.healthState)}`}
-                >
-                  {healthLabel(selectedWorker.healthState)}
+                <span className="rounded-full border border-zinc-600 px-2 py-0.5 text-[10px] font-semibold uppercase text-zinc-400">
+                  {selectedWorker.leaseStatus}
                 </span>
               </div>
 

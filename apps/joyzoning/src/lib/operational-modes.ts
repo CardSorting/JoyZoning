@@ -120,10 +120,10 @@ export function inferModeFromApiPath(path: string): JoyZoningOperationalMode | n
   ) {
     return "review";
   }
-  if (p.includes("/parallel-workers") || p.includes("/live") || p.includes("/dispatch")) {
+  if (p.includes("/parallel-workers") || p.includes("/workspace/") || p.includes("/dispatch")) {
     return "execution";
   }
-  if (p.includes("/tasks") && !p.includes("/live")) {
+  if (p.includes("/tasks") && !p.includes("/workspace/")) {
     return "planning";
   }
   if (p.includes("/watch/")) {
