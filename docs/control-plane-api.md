@@ -62,9 +62,10 @@ For `TaskExecutionMode.ExternalAgent` — Cursor, Claude Code, manual. **No** `E
 | `GET` | `/api/tasks/{id}/external/status` | — | Driver, branch, scan summary |
 | `GET` | `/api/tasks/{id}/workspace/status` | — | Git porcelain + `readyForReviewAllowed` / `blockedReason` |
 | `POST` | `/api/tasks/{id}/external/ready-for-review` | — | Operator gate after edits (branch + diff checks) |
+| `POST` | `/api/tasks/{id}/external/verify` | `{ "report": VerificationReport }` | External-only verify (same payload as `/verification`) |
 | `POST` | `/api/tasks/{id}/external/complete` | `{ "operatorApproved": true }` | Accept-merge + `Complete` (same authority as managed merge) |
 
-`POST /api/tasks/{id}/verification` routes to external flow when the task is external. Agents must **not** call `PUT /api/tasks/{id}/status` with `Complete`.
+`POST /api/tasks/{id}/verification` also routes to the external flow when the task is external (preferred for `jz task verify`). Agents must **not** call `PUT /api/tasks/{id}/status` with `Complete`.
 
 Guide: [external-agent-jsdp.md](external-agent-jsdp.md) · [execution-paths.md](execution-paths.md).
 

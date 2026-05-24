@@ -25,6 +25,7 @@ jz task mark-ready <task-id>   # operator only
 - **Sequential delivery:** [docs/jsdp.md](docs/jsdp.md) (JSDP)
 - **Execution paths:** [docs/execution-paths.md](docs/execution-paths.md) (managed vs external)
 - **External path:** [docs/external-agent-jsdp.md](docs/external-agent-jsdp.md)
+- **Framework (optional):** [docs/whitepaper-summary.md](docs/whitepaper-summary.md) — C1–C8; product is Annex A embodiment only
 
 ## Three ways to learn the repo
 

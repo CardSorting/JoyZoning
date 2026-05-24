@@ -1,524 +1,309 @@
-# JoyZoning: Human-Supervised Delivery for Generative Software Mutation
+# Human-Supervised Convergence Under Generative Software Mutation
 
-**Version:** 1.2 (May 2026)  
-**Status:** Conceptual framework — observed under generative mutation load  
-**License:** MIT
+*Framework specification v1.5 — embodiment Annex A*
+
+**Version:** 1.5 (May 2026)  
+**License:** MIT  
+**Audit:** [whitepaper-framework-audit.md](whitepaper-framework-audit.md)  
+**Summary:** [whitepaper-summary.md](whitepaper-summary.md)
+
+---
+
+## 0. Structural closure
+
+### 0.1 Core invariants (C1–C8)
+
+| ID | Invariant |
+|----|-----------|
+| **C1** | Mutation throughput scales with compute; convergence throughput scales with bounded human cognition. Proposing change is cheaper than accepting change. |
+| **C2** | Delivery follows accepted repository state, not proposed repository state. |
+| **C3** | Trustworthy acceptance requires reviewability within declared policy bounds. |
+| **C4** | When propose-rate exceeds reviewability bound, informational debt accumulates; governance tends toward verification without scoped confidence and acceptance without diff grounding. |
+| **C5** | Local stabilization of units does not imply repository-wide comprehensibility without compositional discipline. |
+| **C6** | Repository mechanical correctness and operator comprehensibility are independent properties. |
+| **C7** | Fixed review coordinates reduce context-reconstruction cost per acceptance decision. |
+| **C8** | Governance mechanisms outlive mutation-engine implementations. |
+
+### 0.2 Boundary conditions (B1–B4)
+
+Necessary clarifications; derivative of C1–C7. Not additional axioms.
+
+| ID | Condition |
+|----|-----------|
+| **B1** | Executable checks on mis-scoped or unreviewed units do not constitute local stabilization. |
+| **B2** | Completion narratives do not constitute acceptance without inspectable state and merge authority. |
+| **B3** | Stabilization disciplines maximize survivable convergence under load, not proposal throughput. |
+| **B4** | Concurrent architectural mutation on one shared surface without synchronization gates increases informational debt accrual rate. |
+
+### 0.3 Closure map (pressure ↔ discipline)
+
+| Pressure (when C1 binds) | Discipline (proposed) | Failure mode addressed |
+|--------------------------|----------------------|-------------------------|
+| Propose-rate > review bound (C4) | Stable review coordinates (C7) | Unbounded units; coordinate drift |
+| Informational debt (C4) | Merge authority (C2); convergence gates | Acceptance without comprehension |
+| Verification without scope confidence (C4) | Repository truth; scoped evidence | Symbolic verification |
+| Acceptance without diff grounding (C4) | Review on inspectable diff (C3) | Narrative substitution |
+| Local/global divergence (C5) | Sequencing; intent artifacts | Compositional incoherence |
+| Correctness without comprehensibility (C6) | Review + gates, not CI alone | Green build / opaque narrative |
+| Context-reconstruction load (C7) | Fixed unit→branch→diff→evidence map | Unstable surfaces |
+| Engine turnover (C8) | Supervision decoupled from engine | Governance tied to vendor |
+
+### 0.4 Causal chain (observed)
+
+```
+propose-rate ↑ → reviewability bound stress → informational debt (C4)
+  → scoped-confidence loss in verify + acceptance without diff grounding
+  → operator opacity → local/global divergence (C5,C6)
+```
+
+Audits: [whitepaper-framework-audit.md](whitepaper-framework-audit.md).
 
 ---
 
 ## Executive summary
 
-Generative environments are **software mutation systems**: they raise the throughput of proposed repository change far faster than they raise the capacity to **converge** that change into owned, comprehensible reality.
+Under sufficient mutation throughput, **convergence capacity**—not mutation capacity—limits delivery. This specification defines invariants C1–C8, boundary conditions, closure mappings, and stabilization disciplines for inspectable-repository governance with bounded human supervision. Prescriptions are optional; pressures are observable.
 
-The deepest asymmetry is structural:
-
-> **Generative systems increase mutation capacity faster than human systems increase convergence capacity.**
-
-**Mutation** (here) means a *proposed* change to repository state—not delivery. **Convergence** means stabilizing *accepted* repository reality so a finite operator can again maintain a coherent mental model of the system. **Trust** still flows through review, evidence, and merge—not through fluent narrative.
-
-Modern coding agents are highly effective **mutation engines**. They are not, by themselves, **convergence systems**. Unconstrained mutation produces operational entropy: unstable narratives, overlapping architectures, and **informational debt**—debt in the maintainability of *understanding*, not only of code.
-
-This paper articulates a durable framework for **human-supervised convergence**—discovered through building and operating **JoyZoning**, a local operator cockpit that embodies the framework. JoyZoning is not the thesis; the thesis is the separation of dimensions (mutation, reviewability, convergence, trust, operator cognition) and the disciplines that bind them. JoyZoning is one implementation example.
-
-- **Chat plans.** Advisory narrative.
-- **The repo is truth.** Inspectable state.
-- **You merge.** Operator-owned acceptance.
-
-**Cockpit, not engine.** Supervision layers should survive **engine churn**—model vendors, IDEs, and agent runtimes change; repository governance and merge authority should not.
-
-**Companion:** [whitepaper-summary.md](whitepaper-summary.md)
-
----
-
-## Conceptual glossary
-
-| Term | Definition |
-|------|------------|
-| **Mutation** | A *proposed* repository state change—a diff not yet accepted into project lineage. |
-| **Generation** | The act of producing candidate mutations (models, agents, editors). |
-| **Convergence** | Stabilizing *accepted* repository reality through review, verification, merge authority, sequencing, preserved intent, and bounded scope—so an operator regains a coherent mental model. |
-| **Repository truth** | Inspectable disk state (branch, diff, command output) as operational observability—not chat narrative. |
-| **Reviewability** | The property that a change unit can be comprehended by a finite reviewer within bounded attention. A **systems constraint** bridging mutation and trust. |
-| **Informational debt** | Accumulated difficulty of maintaining accurate understanding of the system—distinct from technical debt. |
-| **Cognitive stabilization** | Disciplines (e.g. sequential roles, merge gates, lock artifacts) that prevent review collapse under high mutation throughput. |
-| **Engine churn** | The rapid turnover of inference providers, IDEs, and agent runtimes—motivating supervision decoupled from any single engine. |
-| **Merge authority** | The operator’s exclusive power to accept mutation into lineage after review and evidence. |
-
----
-
-## Conceptual model: separate dimensions
-
-These dimensions are often collapsed in tooling and conversation. Treating them separately explains why mutation acceleration does not imply delivery acceleration.
-
-| Dimension | Question it answers | Scales with… |
-|-----------|-------------------|--------------|
-| **Mutation throughput** | How fast can candidates be produced? | Models, agents, parallelism |
-| **Reviewability** | Can a human comprehend a bounded change unit? | Diff clarity, scope, sequencing |
-| **Verification** | What executable evidence supports claims? | Commands, CI, operator time |
-| **Convergence** | Is accepted reality stable before more mutation? | Gates, merge, preserved intent |
-| **Trust** | Who may assert “done”? | Merge authority—not chat fluency |
-| **Operator cognition** | Can one mind hold the system story? | Attention, boundaries, informational debt |
-
-When mutation throughput rises while reviewability and convergence capacity do not, the system enters **informational debt**: verification becomes symbolic, merges become faith-based, situational awareness erodes, and the codebase may remain buildable while remaining **psychologically opaque** to its supervisor.
+**Chat plans. The repo is truth. You merge.**
 
 ---
 
 ## Abstract
 
-Generative coding environments are **mutation systems**. They accelerate proposed change. Delivery still requires **convergence mechanisms**: review surfaces, verification evidence, sequencing, preserved intent, and human merge authority grounded in repository state—not in natural language that can imply completion without evidence.
-
-**Convergence is not** merely passing tests, generating code, obtaining agent consensus, or finishing a prompt. **Convergence is** the point at which a human operator can once again answer: *what is the accepted state of this repository, and what may safely build on it?*
-
-Existing patterns often optimize mutation. They under-invest in convergence. The operational failure is predictable: code soup, scope drift, chat “done” without diff, QA collapse, loss of canonical workspace truth.
-
-**JoyZoning** implements human-supervised convergence as a local operator cockpit. The ideas in this paper stand even if the implementation changed: **repository truth**, **reviewability**, **merge authority**, and **cognitive stabilization** under load.
-
-**Generative AI changed the economics of mutation, not the economics of trust.**
+Closed framework for mutation/convergence governance: asymmetry (C1), acceptance vs proposal (C2), reviewability (C3), informational debt (C4), local/global stabilization (C5–C6), recomputation cost (C7), governance durability (C8). Scope and non-scope explicit. Embodiment non-definitional.
 
 ---
 
-## 1. Introduction: mutation systems and delivery
+## Glossary
 
-### 1.1 Software mutation systems
-
-A generative coding environment—chat assistant, agent runtime, IDE integration—is best understood as a **software mutation system**: infrastructure that increases the rate at which repository state *may* change.
-
-**Mutation** = proposed repository state change.
-
-Such systems can be extraordinarily effective at mutation throughput. Delivery systems, however, still require **convergence**: the stabilization of accepted reality before further mutation accumulates. **Mutation without convergence produces unstable operational reality**—many candidate worlds, unclear ownership, narratives that diverge from disk.
-
-> **Modern coding agents are highly effective mutation engines. They are not inherently convergence systems.**
-
-The bottleneck has moved. Pre-generative delivery was often limited by typing and specification. Generative-assisted delivery is limited by **whether finite humans can converge** what was mutated.
-
-| Era | Dominant constraint |
-|-----|---------------------|
-| Pre-generative | Code production, specification clarity |
-| Generative-assisted | Convergence, reviewability, trust, operator cognition |
-
-Primitives that predate generative editing—branches, diffs, tests, audit trails, accountable merge—remain the convergence substrate. Tools that stop at chat or unbounded file edit export convergence work to the operator.
-
-### 1.2 Convergence (formal)
-
-**Convergence** = stabilizing accepted repository reality through:
-
-- **Review** on a bounded, inspectable change unit  
-- **Verification** (executable evidence when policy requires)  
-- **Merge authority** (operator acceptance into lineage)  
-- **Sequencing** (when multiple roles or agents participate)  
-- **Preserved intent** (artifacts later roles must honor)  
-- **Bounded mutation scope** (one card, one branch, one role at a time)
-
-**Convergence is not:**
-
-| Often mistaken for convergence | Why it is insufficient |
-|--------------------------------|-------------------------|
-| Passing tests once | Tests on the wrong branch or incomplete scope do not establish accepted reality |
-| Generating code | Production of candidates is mutation, not acceptance |
-| Agent or chat consensus | Narrative agreement without disk inspection is epistemically weak |
-| Prompt completion | Ending a session ≠ merge into project lineage |
-
-**Convergence is:** a human operator can once again maintain a **coherent mental model of accepted system state**—and delegate the next bounded mutation from that stable reference frame.
-
-Modern tooling **over-optimizes generation** and **under-invests in convergence**. JoyZoning, as implementation, is **convergence-biased**: reviewable units, recorded evidence, merge gates—not maximal autonomous throughput.
-
-### 1.3 Framework and implementation
-
-This paper’s framework is **general**. **JoyZoning** is the **embodiment** encountered in practice: a local-first operator cockpit supervising mutation regardless of engine.
-
-JoyZoning is **not** another IDE, model, or autonomy doctrine. It supervises **whether proposed mutations may advance**. It does not claim proof of correctness or replace CI. It is governance for **human-supervised convergence**—inspectable, sequenced, evidenced, merge-gated.
-
-**Operators want evidence before completion.** Sustainable supervision—not maximal autonomy.
+| Term | Definition |
+|------|------------|
+| **Mutation** | Proposed repository state change. |
+| **Acceptance** | Proposal enters lineage via merge authority (C2). |
+| **Delivery** | Accepted state used as operational baseline (C2). |
+| **Review** | Human inspection of diff on bounded unit. |
+| **Verification** | Executable evidence on scoped tree. Necessary; insufficient (B1). |
+| **Local stabilization** | Unit: reviewable → evidenced (if required) → accepted. |
+| **Global comprehensibility** | Operators can narrate accepted repo-wide state without contradiction; requires compositional discipline (C5). |
+| **Reviewability** | Unit comprehensible within policy time/attention bounds (C3). |
+| **Reviewability bound failure** | Policy bounds cannot be met at current propose-rate or unit size. |
+| **Informational debt** | Cumulative cost of maintaining accurate accepted-vs-proposed model (C4). |
+| **Repository correctness** | Mechanical/CI satisfaction (C6). |
+| **Repository comprehensibility** | Accurate operator model of accepted state (C6). |
+| **Stable review surface** | Fixed coordinates: unit → branch scope → diff → evidence → acceptance (C7). |
+| **Context-reconstruction cost** | Labor to re-derive scope/intent when coordinates drift (C7). |
+| **Verification without scoped confidence** | Commands run; inspectable scope not established (C4). |
+| **Acceptance without diff grounding** | Acceptance without inspectable diff review (C4, B2). |
+| **Coordination complexity** | Cost of converging proposals into accepted, comprehensible state. |
+| **Implementation complexity** | Cost of producing mechanically working artifacts. |
+| **Convergence gate** | Synchronization: no new architectural epoch until local acceptance. |
+| **Constraint persistence** | Reviewability and cognition bounds persist across engine generations (C1, C8). |
 
 ---
 
-## 2. Problem statement
+## 1. Asymmetry and constraint persistence
 
-Failure modes below appear when **mutation systems** operate on non-trivial repositories **without** convergence discipline. The framework was shaped by operational exposure under load—not by preference for ceremony.
+### 1.1 Mutation systems
 
-### 2.1 Why common patterns fail operationally
+A **mutation system** increases propose-rate for repository state. It does not inherently perform acceptance (C2).
 
-| Pattern | Mutation strength | Convergence failure |
-|---------|-------------------|---------------------|
-| **Chat-only assistance** | Fast narrative, planning | No isolated review unit; “done” without diff |
-| **IDE inline assistants** | Tight edit loop | Weak sequencing, audit, multi-role stabilization |
-| **Autonomous auto-merge** | Throughput | Removes merge authority; trust without review |
-| **Multi-agent swarms** | Parallel mutation | Reviewability collapse; integration entropy |
-| **CI/CD alone** | Integration verification | No in-flight mutation bounds or role order |
+*Observed under:* high propose-rate, inspectable repositories, human supervision.
 
-The failure is rarely “the model cannot code.” It is **unbounded mutation** without **reviewability**, and **completion signals** that do not bind to repository truth.
+### 1.2 Scaling (C1)
 
-### 2.2 Failure modes
+| Variable | Scales with |
+|----------|-------------|
+| Mutation throughput | Compute, automation of edit |
+| Convergence throughput | Policy, attention, gate discipline |
 
-| Failure mode | Mechanism | Cost |
-|--------------|-----------|------|
-| **Code soup** | Parallel mutation without convergence | Archaeological review; unknown architecture |
-| **Scope drift** | Unbounded mutation per “role” | Intent erosion; QA explosion |
-| **Informational debt** | Throughput > comprehension | Opaque system despite green builds |
-| **Chat completion claims** | Narrative substitutes for disk | Faith-based merge; incidents |
-| **QA collapse** | Verification lag | Spot-checking; burnout |
-| **Loss of repository truth** | Sandboxes or chat as “the project” | Observability failure |
+Proposal throughput is **not** acceptance throughput. Additional proposals before acceptance **worsen** convergence state (C4, B4).
 
-Responses that proved necessary in practice: **repository truth**, **reviewability bounds**, **merge gates**, **cognitive stabilization (JSDP)**, **engine-agnostic supervision**.
+### 1.3 Constraint persistence
 
-### 2.3 Informational debt
+| Transient (high turnover) | Persistent (observed across eras) |
+|---------------------------|-----------------------------------|
+| Mutation-engine implementations | Bounded human reviewability |
+| Edit automation substrates | Need for inspectable acceptance |
+| Vendor-specific runtimes | Merge authority as accountability locus |
+| | Synchronization before architectural epochs |
 
-**Technical debt** concerns maintainability of *code*. **Informational debt** concerns maintainability of *understanding*.
-
-Generative mutation can accumulate informational debt **faster** than technical debt: unclear diffs, overlapping rewrites, unverifiable changes, chat-only completion claims, unstable architecture narratives, concurrent “done” stories.
-
-> **High mutation throughput without reviewability creates informational debt.**
-
-Verification under informational debt becomes **symbolic**—commands run without confidence in scope. Merges become **faith-based**. Operators lose **situational awareness**. The system becomes **psychologically opaque** even when artifacts exist.
-
-**Reviewability is the bridge between mutation and trust.** Without it, trust cannot scale with mutation volume.
+**C8:** Governance requirements change slowly relative to mutation substrates. Framework describes persistent constraints—not a position on any current tool.
 
 ---
 
-## 3. Design principle: repository truth
+## 2. Coordination vs implementation complexity
 
-Repository truth is the convergence anchor: **operational observability**, not philosophical purity.
+| | **Implementation complexity** | **Coordination complexity** |
+|--|------------------------------|----------------------------|
+| **Question** | Does the artifact work? | Is accepted state comprehensible and correctly sequenced? |
+| **Primary cost** | Construction, debugging | Review, gates, supervision, context reconstruction |
+| **Often reduced by** | Mutation automation | Not reduced proportionally (C1) |
+| **Failure signal** | Test/build failure | Opacity, debt (C4), supervision dominating effort |
 
-| Layer | Character | Role |
-|-------|-----------|------|
-| **Chat / planning** | Narrative | Advisory |
-| **Repository state** | Inspectable | **Truth** |
-| **Operator** | Review, verify, merge | **Accountability** |
+*Observed:* mutation systems lower implementation cost faster than coordination cost. Bottleneck shifts to **convergence** (reference observation §12).
 
-### 3.1 Narrative vs inspectable state
-
-**Chat is narrative**—compressive, persuasive, capable of implying completion without evidence.
-
-**Repository state is inspectable reality**—diffs, branches, logs on *this* tree.
-
-**Diffs are epistemically stronger than summaries.** Summaries assist; diffs ground. **Verification commands** ground claims in executable evidence attached to the task.
-
-### 3.2 Delivery implication
-
-> **JoyZoning treats generated code as proposed repository mutation, not completed work.**
-
-Delivery is operator acceptance into lineage—on a **stable review surface**, with evidence when required. The framework does not require a specific product name; it requires **truth on disk**.
+This distinction explains how domain work can remain modest while supervision work dominates.
 
 ---
 
-## 4. Cockpit, not engine
+## 3. Scope
 
-### 4.1 Separation of supervision and mutation
+### 3.1 In scope
 
-**Cockpit, not engine:** supervise mutation; do not compete as the mutation engine.
+| Assumption | Framework addresses |
+|------------|---------------------|
+| Inspectable repository (branch, diff, logs) | C2, C7, repository truth |
+| Bounded human supervision | C1, C3 |
+| Governance-oriented delivery | C2, merge authority, gates |
+| Software mutation environments | Entire specification |
 
-| Supervision layer owns | Mutation engines own |
-|------------------------|----------------------|
-| Task status, sequencing, gates | Edits, refactors, local iteration |
-| Branch identity per unit | Implementation tactics |
-| Verification evidence | Tool execution |
-| Audit trail | Advisory “stop” signals |
-| Merge authority | — |
+### 3.2 Out of scope
 
-Engines—models, IDEs, agent runtimes—are **mutation sources**. None are **merge authority**.
+| Not addressed | Reason |
+|---------------|--------|
+| Proof of program correctness | B1; verification ≠ convergence |
+| Optimal team structure | Underdefined |
+| Non-repository artifacts (tickets-only truth) | No inspectable diff anchor |
+| Fully autonomous acceptance | Outside merge-authority model |
+| Security/compliance frameworks | Adjacent; not derived here |
+| Optimal propose-rate | Prescriptive tradeoff, not predicted |
 
-### 4.2 Engine churn
+### 3.3 Predictive limits
 
-**Engine churn** is a first-class operational fact: inference providers, IDE integrations, and agent runtimes **change faster** than mature delivery disciplines are reinvented. Workflows hard-wired to one engine become brittle; supervision tied to one vendor repeats the “chat is truth” failure in a new shell.
-
-Therefore:
-
-> **Durable supervision layers should outlive inference providers.**
-
-Repository governance—branch per unit, diff review, evidence, merge gate, sequencing—matters more for **delivery** than provider selection. **Cockpit, not engine** is not branding; it is **decoupling convergence from churn**.
-
-JoyZoning implements this decoupling (managed path with one runtime integration; external path with any editor). The **framework** stands without either path.
-
-### 4.3 Implementation note (JoyZoning)
-
-JoyZoning runs local control plane state (:9470), kanban tasks, workspace inspection, and CLI (`jz`) with the same gates as desktop UI. Canonical workspace = folder opened; card branch = `joyzoning/card-<id>`. Details in §8.
+Framework predicts **degradation patterns** when propose-rate exceeds reviewability bound (C4). It does **not** predict optimal gate intervals, team size, or tool choice. Readers may reject prescriptions while accepting pressures (Annex C).
 
 ---
 
-## 5. Execution paths
+## 4. Informational debt (C4)
 
-Two embodiment paths share **convergence mechanics**; they differ only in **where mutation occurs**. **Same merge gate. Different engine.**
+**Definition:** cumulative deficit in maintaining an accurate model of **accepted vs proposed** state. Distinct from technical debt (code structure).
 
-### 5.1 Comparison table
+| Mechanism | Effect |
+|-----------|--------|
+| Propose-rate > reviewability bound | Accrual per weakly closed unit |
+| Unstable review coordinates (C7) | Reconstruction labor compounds accrual |
+| Concurrent epochs without gates (B4) | Accrual rate increases on shared surface |
+| Acceptance without comprehension | Debt persists post-merge |
 
-| Dimension | **Managed** (integrated agent runtime) | **External** (editor / manual) |
-|-----------|----------------------------------------|--------------------------------|
-| **Start** | Dispatch / `task run` | `start-external` / `delivery-chain next --external` |
-| **Runtime lease** | Yes | **No** (expected) |
-| **Where mutation occurs** | Integrated execution view | Operator IDE or terminal |
-| **Stop surface** | `ReadyForReview` | `mark-ready` |
-| **Verification** | Shared command evidence | Shared |
-| **Convergence** | Operator `complete --yes` | Same |
-| **Specific runtime required** | Yes (managed path) | **No** |
+| Degradation mode (C4) | Observable sign |
+|----------------------|-----------------|
+| Verification without scoped confidence | Verify run; branch/scope not confirmed |
+| Acceptance without diff grounding | Merge without diff inspection record |
+| Operator opacity | Disagreement on accepted baseline |
 
-### 5.2 Managed path (summary)
-
-Dispatch → lease + handoff → mutation on card branch → verify → review → operator merge → **Complete**.
-
-### 5.3 External path (summary)
-
-`start-external` → prompt + branch → mutation in editor → scan → `mark-ready` → verify → operator merge → **Complete**.
-
-Convergence mechanics are **engine-independent**; only the mutation locus changes.
-
-### 5.4 Lifecycle diagram
-
-```mermaid
-flowchart TB
-  subgraph truth [Repository truth]
-    B[Branch joyzoning/card-id]
-    D[Diff / changed files]
-    V[Verification evidence]
-  end
-
-  subgraph cockpit [Supervision cockpit]
-    T[Task status]
-    G[Merge gate]
-  end
-
-  subgraph engines [Mutation engines - pick one]
-    H[Managed runtime]
-    C[Editor / manual]
-  end
-
-  T --> B
-  engines --> B
-  engines --> D
-  D --> V
-  V --> G
-  G -->|operator complete --yes| T
-  T -->|sequencing: prior unit Complete| engines
-```
+**Recovery:** expensive—requires re-establishing coordinates, re-review, or bounded epochs with gates (C7, B3). Debt does not amortize like some technical debt.
 
 ---
 
-## 6. JSDP: cognitive stabilization under mutation load
+## 5. Reviewability (C3)
 
-**JSDP** (JoyZoning Sequential Delivery Protocol) is a **cognitive stabilization strategy** for high-mutation environments—not a throughput maximizer.
+**Reviewability:** within declared policy, a finite reviewer can comprehend unit diff and intent in bounded time.
 
-**Operate like a line dance, not a jazz band.** One step. One role. One merge. Next step.
+**Reviewability bound failure:** policy cannot be met—unit oversize, arrival overload, parallel overlap on same seams, summary substitution for diff.
 
-Under high mutation velocity, choreography is how a finite operator **survives convergence**—not how a committee enjoys process. JSDP does **not** maximize mutation throughput. It **maximizes survivable convergence**.
-
-### 6.1 What stabilization provides
-
-| Instability | Stabilization mechanism |
-|-------------|-------------------------|
-| Simultaneous architectural drift | One role at a time |
-| Lost intent | Product Lock, Architecture Lock as reference frames |
-| Integration entropy | Merge gate = synchronization point before next mutation |
-| Review collapse | Bounded scope per role; explicit handoff sections |
-| Parallel “done” narratives | One branch + one merge per role |
-
-**Merge gates** are **synchronization points**: narrative pauses; disk must catch up to claimed intent before the next role mutates.
-
-**Accepted roles become stable reference frames**—the next mutation extends reality, not rewrites it silently.
-
-### 6.2 Rules
-
-1. One role at a time on a chain.  
-2. One bounded session per role; one branch `joyzoning/card-<task-id>`.  
-3. Role N **Complete** (merged) before Role N+1 begins.  
-4. Lock artifacts preserve intent; follow-ups do not silently redesign.
-
-### 6.3 Default eight-role chain
-
-| Seq | Role | Intent |
-|-----|------|--------|
-| 1 | **Product Lock** | `docs/product-lock.md` |
-| 2 | **Architecture Lock** | `docs/architecture-lock.md` |
-| 3 | **Core Flow** | Main user journey |
-| 4 | **UI Coherence** | Consistent UI/UX |
-| 5 | **Data & Persistence** | State, storage, recovery |
-| 6 | **QA Pass** | Tests, regressions |
-| 7 | **Polish & Recovery** | High-impact fixes only |
-| 8 | **Release Seal** | Runbook, ship verification |
-
-### 6.4 Reviewability under load
-
-**Reviewability is a systems constraint.** Without reviewability, verification is symbolic and merge is faith-based.
-
-Sequential choreography **reduces integration entropy** and **bounds operator attention** to one story at a time. It denies **unbounded simultaneous architectural mutation** on one convergence surface—not all parallelism everywhere.
-
-### 6.5 Sequence diagram
-
-```mermaid
-sequenceDiagram
-  participant Op as Operator
-  participant JZ as Supervision cockpit
-  participant Eng as Mutation engine
-  participant Repo as Repository
-
-  Note over JZ,Repo: Role N (gate open)
-
-  Op->>JZ: Start role
-  JZ->>Repo: Checkout card branch
-  JZ->>Eng: Handoff prompt
-  Eng->>Repo: Mutate
-  JZ->>Repo: Scan / events
-
-  alt External path
-    Op->>JZ: mark-ready
-  else Managed path
-    Eng->>JZ: ready_for_review
-  end
-
-  Op->>JZ: verify
-  Op->>JZ: complete --yes
-  JZ->>Repo: Converge / Complete
-
-  Note over JZ: Role N+1 blocked until Complete
-```
+Downstream per C4 chain (§0.4). Not a moral failure; a capacity mismatch.
 
 ---
 
-## 7. Human factors: operator cognition under load
+## 6. Correctness and comprehensibility (C6)
 
-Human factors are the **limiting reagent**—not an appendix.
+| Property | Criterion |
+|----------|-----------|
+| **Correctness** | Mechanical/CI satisfaction |
+| **Comprehensibility** | Operator can narrate accepted architecture |
 
-> **The operator’s ability to maintain a coherent mental model is the limiting reagent in generative mutation systems.**
-
-### 7.1 Finite infrastructure
-
-Operators are **finite infrastructure**. Attention, working memory, and QA capacity **do not scale linearly** with mutation volume. **Understanding system state is itself work**—often underestimated when generation appears “free.”
-
-**QA is a scarce cognitive resource.** When verification cannot keep pace with mutation, quality does not average out; it collapses into spot-checking, narrative trust, or withdrawal.
-
-### 7.2 Cognition and orchestration
-
-**Orchestration complexity can exceed implementation complexity.** A modest application domain may still produce **dominant mutation-management cost**: tracking branches, roles, conflicting narratives, and incomplete convergence. The limiting work becomes **supervision**, not feature coding.
-
-This observation is repeatable: the **mutation-management problem** can dwarf the **software problem**.
-
-### 7.3 Review surfaces and merge gates
-
-Operators require **stable review surfaces**—one unit, one branch, one diff set, one evidence record. Without them, every review **re-derives context** from chat—a high-error, high-cost mode.
-
-**Merge gates are cognitive boundaries**: candidate mutation must not blur into accepted reality until the operator’s model aligns with disk.
-
-### 7.4 Informational opacity
-
-High parallelism without reviewability yields **psychological opacity**: artifacts exist, but the operator cannot confidently narrate what the system *is*. That opacity is **informational debt**—and it compounds with each unmerged mutation wave.
-
-### 7.5 Sustainable supervision
-
-> **The goal is not full autonomy. The goal is sustainable supervision.**
-
-After sufficient mutation throughput, **stable convergence disciplines become more—not less—important.** Additional generation without convergence boundaries **increases** informational debt; it does not clear it.
+Independent (C6). Correctness may hold while comprehensibility fails (B1 does not rescue comprehensibility).
 
 ---
 
-## 8. Implementation sketch (JoyZoning)
+## 7. Stabilization taxonomy
 
-JoyZoning embodies the framework locally: control plane, kanban tasks, workspace scanner, verification runner, merge gate, audit events, JSDP chains, managed and external paths. Component table unchanged in role—implementation detail for readers who deploy the system.
+| Step | Output |
+|------|--------|
+| Mutation | Candidate diff |
+| Review | Judgment on diff |
+| Verification | Scoped evidence (B1) |
+| Acceptance | Lineage update (C2) |
+| Local stabilization | Review + evidence (if required) + acceptance |
+| Global comprehensibility | Compositional accepted-state narrative (C5) |
+| Delivery | Accepted baseline in operation (C2) |
 
-| Component | Convergence function |
-|-----------|-------------------|
-| Control plane | State, gates, API |
-| Workspace inspection | Repository truth on disk |
-| Verification runner | Evidence attachment |
-| Merge gate / JSDP queue | Convergence enforcement |
-| Audit (`joy_events`, `external.*`) | Post-hoc observability |
-
-The **framework** does not require this stack; it requires the **functions**.
-
----
-
-## 9. Agent-agnostic discipline
-
-**JSDP and merge authority bind to repository mutation—not to a runtime.**
-
-External workflow (editor/manual): start → mutate on branch → mark-ready → verify → operator merge. Agents must not usurp **Complete**.
-
-**Engine churn** reinforces agnosticism: gates and evidence outlive engines.
+**Global comprehensibility (C5):** continuity of accepted architectural narrative; operators can predict consequences of *accepted* changes within stated bounds—not omniscience about future proposals.
 
 ---
 
-## 10. Comparison to common patterns
+## 8. Stable coordinates and recomputation (C7)
 
-| Pattern | Mutation | Convergence gap |
-|---------|----------|-----------------|
-| Chat-only | High narrative throughput | No review unit; informational debt |
-| Auto-merge agents | High | No merge authority |
-| Swarms | Very high parallel mutation | Reviewability collapse |
-| IDE assistants | High local mutation | Weak sequencing / stabilization |
-| CI/CD | Low in-flight mutation | Strong at boundary, weak mid-flight |
+**Stable review surface:** `unit → branch scope → diff set → evidence record → acceptance event`.
 
-Supervision sits **between** mutation systems and **human-owned merge authority**.
+| Unstable | Stable |
+|----------|--------|
+| Coordinates shift between propose and review | Coordinates fixed per unit |
+| Context re-derived from narrative each time | Context loaded from coordinates |
+| Reconstruction cost dominates | Reconstruction bounded per acceptance |
 
----
-
-## 11. Case study: TinyQuest Campfire
-
-**TinyQuest** is a local-first React Native (Expo) app—**grounded observation**, not promotion.
-
-### 11.1 Two problems, unequal weight
-
-- **Software problem:** Modest—a cozy mobile companion (quests, journal, hydration, settings). Generative tools were adequate to the **domain**.
-- **Mutation-management problem:** Dominant—tracking what changed, in what order, under which intent, with what evidence.
-
-> **The orchestration layer became more cognitively expensive than the application domain itself.**
-
-That inversion is the case study’s core finding.
-
-### 11.2 What failed first
-
-Unconstrained parallel mutation raised **output** faster than **comprehension**. The bottleneck was **understanding what changed**—not **producing changes**. Informational debt accumulated: competing sketches, opaque diffs, verification harder than generation.
-
-### 11.3 Cognitive stabilization (JSDP)
-
-JSDP restored **comprehensibility** through synchronization points—not maximum throughput:
-
-- Lock artifacts as **stable reference frames**  
-- One role converged before the next mutated  
-- Survivable QA for a single operator  
-
-### 11.4 Engine change without framework change
-
-External editor workflow (same gates, no managed runtime lease) showed **convergence discipline outlived the engine**. Mutation locus changed; stabilization did not.
-
-### 11.5 General lesson
-
-When mutation is cheap, **convergence is the product**. Tools that only raise mutation throughput without reviewability bounds **export cost** to operators—as informational debt and eventually as codebase risk.
+**Convergence gates:** synchronization boundaries—no new architectural epoch until acceptance on stable coordinates (B3).
 
 ---
 
-## 12. Lessons learned
+## 9. Repository truth
 
-1. **Mutation capacity and convergence capacity scale differently.**  
-2. **Reviewability bridges mutation and trust**—without it, verification is symbolic.  
-3. **Informational debt can outrun technical debt.**  
-4. **Convergence is operator comprehension of accepted state—not prompt completion.**  
-5. **Cognitive stabilization maximizes survivable convergence, not throughput.**  
-6. **Merge gates are synchronization points, not bureaucracy.**  
-7. **Supervision should survive engine churn.**  
-8. **Orchestration cost can dominate domain cost** under high mutation load.
+Acceptance grounded in inspectable state (C2, B2)—not narrative alone. Narrative advises; diffs and logs ground decisions.
 
 ---
 
-## 13. Limitations
+## 10. Governance durability (C8)
 
-The framework does not prove correctness; it depends on review quality; it adds overhead on trivial changes; external paths require operator discipline; it does not replace CI or team process. JoyZoning as implementation is local-first, single-operator biased. **Modest claims, operational scope.**
+*Historical observation:*
+
+Mutation substrates (edit automation, assistants, batch runners) turnover on years-to-months cycles. Convergence practices—isolated units, diff review, scoped verification, explicit acceptance, epoch gates—persist across substrates.
+
+| Layer | Durability |
+|-------|------------|
+| Mutation engines | Low |
+| Reviewability bound (C1) | High |
+| Merge authority (C2) | High (accountability requirement) |
+| Stable coordinates (C7) | High (structural) |
+| Supervision state machines | Medium (implementation-specific) |
+
+Framework prescribes **durable layers** (truth, coordinates, authority, gates)—not engine identity.
 
 ---
 
-## 14. Future work
+## 11. Stabilization disciplines (proposed)
 
-Richer review surfaces; editor integrations respecting branches; policy templates; shared audit; stronger evidence adapters—implementation directions, not framework requirements.
+*When C1 binds. Disagreement on prescription does not negate C4 pressures.*
+
+| Discipline | Invariant |
+|------------|-----------|
+| Repository truth | C2 |
+| Stable coordinates | C7 |
+| Merge authority | C2 |
+| Convergence gates | B3 |
+| Epoch sequencing | C5, B4 |
+| Intent artifacts | C5 |
+
+Example epoch protocol: Annex A only.
 
 ---
 
-## 15. Conclusion
+## 12. Reference observation
 
-Generative environments made **mutation** inexpensive. They did not make **convergence** inexpensive. Trust still requires inspectable state, reviewable units, evidence when policy demands, and a human who merges.
+*One high propose-rate deployment (Annex A).*
 
-As **mutation throughput** rises across the industry, **convergence disciplines**—repository truth, reviewability, merge authority, cognitive stabilization—become **more important**, not less. That is not a prediction about “the future of AI.” It is the same invariant that applied when diffs replaced verbal handoffs: **delivery follows accepted reality, not proposed reality.**
+Implementation effort modest; **coordination effort dominant**. Bottleneck: model of accepted vs proposed state—not artifact construction (§2). Same gates, different mutation substrate: disciplines unchanged (C8).
 
-The limiting question is whether a finite operator can **converge** the repository to a state they understand and accept before informational debt makes the system opaque.
+---
 
-Historical pattern suggests teams that treat mutation systems as convergence systems—not as oracles—will outperform teams that optimize narrative confidence. The mechanism is mundane: **inspect disk, bound scope, evidence, merge, then mutate again.**
+## 13. Conclusion
 
-JoyZoning names one embodiment. The framework is the point.
+**C1** states the binding constraint. **C4** states predictable degradation. **C6** and **C7** separate mechanical success, comprehensibility, and reconstruction cost. **C8** states what persists.
+
+Stabilization disciplines (§11) rise in operational value as propose-rate rises; they are not rendered obsolete by faster mutation substrates.
+
+**C2:** Delivery follows **accepted** state, not **proposed** state.
+
+Portable content: C1–C8, B1–B4, closure map §0.3. Not any product name.
 
 ---
 
@@ -526,13 +311,26 @@ JoyZoning names one embodiment. The framework is the point.
 
 ---
 
-## References (project documentation)
+## Annex A — Reference embodiment
 
-| Topic | Document |
-|-------|----------|
-| Execution paths | [execution-paths.md](execution-paths.md) |
-| External-agent JSDP | [external-agent-jsdp.md](external-agent-jsdp.md) |
-| JSDP protocol | [jsdp.md](jsdp.md) |
-| Philosophy | [philosophy.md](philosophy.md) |
-| Architecture | [architecture.md](architecture.md) |
-| API | [control-plane-api.md](control-plane-api.md) |
+Illustrative local supervision stack and epoch protocol decomposition. [jsdp.md](jsdp.md) · [execution-paths.md](execution-paths.md)
+
+---
+
+## Annex B — Audit record
+
+[whitepaper-framework-audit.md](whitepaper-framework-audit.md)
+
+---
+
+## Annex C — Adversarial reading notes
+
+| Position | Compatible with framework? |
+|----------|---------------------------|
+| Prefer maximum propose throughput | Yes; may reject B3, gates |
+| Prefer autonomous acceptance | Yes; outside scope §3.2 |
+| Reject human merge authority | Yes; C4 pressures may still apply if humans review |
+| Different engineering culture | Pressures observable; prescriptions adaptable |
+| Low mutation environments | C1 may not bind; framework low overhead |
+
+Framework argues via **operational mechanics** (C4 correlates), not ideological alignment with supervision.

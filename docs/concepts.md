@@ -2,7 +2,7 @@
 
 JoyZoning is built around one idea: **software work with agents needs an operator**, not just another chat window. You remain accountable for what ships; agents get **bounded authority** inside leases you can audit, recover, and approve.
 
-This page is the conceptual spine. **Philosophy (canonical workspace + JSDP):** [philosophy.md](philosophy.md). **External-agent JSDP:** [external-agent-jsdp.md](external-agent-jsdp.md). **Plain-language overview:** [what-is-joyzoning.md](what-is-joyzoning.md). **Hands-on setup:** [onboarding/README.md](onboarding/README.md). Implementation: [architecture.md](architecture.md), [lease-lifecycle.md](lease-lifecycle.md), [jsdp.md](jsdp.md), [hermes-integration.md](hermes-integration.md). **Terminal split:** [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md).
+This page is the conceptual spine. **Philosophy (canonical workspace + JSDP):** [philosophy.md](philosophy.md). **External-agent JSDP:** [external-agent-jsdp.md](external-agent-jsdp.md). **Framework (implementation-independent):** [whitepaper-summary.md](whitepaper-summary.md) · [whitepaper.md](whitepaper.md). **Plain-language overview:** [what-is-joyzoning.md](what-is-joyzoning.md). **Hands-on setup:** [onboarding/README.md](onboarding/README.md). Implementation: [architecture.md](architecture.md), [lease-lifecycle.md](lease-lifecycle.md), [jsdp.md](jsdp.md), [hermes-integration.md](hermes-integration.md). **Terminal split:** [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md).
 
 ---
 
@@ -179,6 +179,7 @@ JoyZoning **orchestrates**; Hermes **executes**. Neither duplicates the other.
 
 | Question | Doc |
 |----------|-----|
+| Why mutation needs convergence governance (C1–C8)? | [whitepaper-summary.md](whitepaper-summary.md) |
 | Why canonical workspace + JSDP? | [philosophy.md](philosophy.md) |
 | How does one card map to one folder? | [workspace-state.md](workspace-state.md) |
 | Sequential role delivery | [jsdp.md](jsdp.md) |

@@ -41,8 +41,9 @@ flowchart TD
 
 | Doc | Audience |
 |-----|----------|
-| **[whitepaper.md](whitepaper.md)** | Conceptual framework (v1.2): mutation systems, convergence, reviewability, informational debt—JoyZoning as embodiment |
-| [whitepaper-summary.md](whitepaper-summary.md) | One-page digest of the whitepaper |
+| **[whitepaper.md](whitepaper.md)** | Framework v1.5: core invariants C1–C8, boundaries B1–B4, closure map, coordination vs implementation complexity, governance durability—embodiment Annex A only |
+| [whitepaper-summary.md](whitepaper-summary.md) | One-page digest (C1–C8) |
+| [whitepaper-framework-audit.md](whitepaper-framework-audit.md) | Stabilization audit: invariant minimization, scope boundaries, adversarial reading, v1.4→v1.5 migration |
 
 ### Two execution paths (same merge gate)
 

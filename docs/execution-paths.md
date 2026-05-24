@@ -123,6 +123,7 @@ Not allowed:
 | External path (full) | [external-agent-jsdp.md](external-agent-jsdp.md) |
 | JSDP protocol | [jsdp.md](jsdp.md) |
 | Philosophy | [philosophy.md](philosophy.md) |
+| Framework (C2 merge authority, C7 stable coordinates, C8 engine-agnostic) | [whitepaper-summary.md](whitepaper-summary.md) |
 | CLI | [cli.md](cli.md) |
 | FAQ | [faq.md](faq.md) |
 | Use cases | [use-cases.md](use-cases.md) |

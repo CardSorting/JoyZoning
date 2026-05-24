@@ -16,7 +16,7 @@ You are operating under the **JoyZoning Sequential Delivery Protocol (JSDP)**.
 
 ## Why JSDP exists
 
-Parallel agents on the same codebase look fast but produce **code soup**: duplicate scaffolding, competing architectures, and work nobody can QA. JSDP trades fake speed for **stable convergence** — each role finishes, merges, and hands off a workspace the next role can actually build on.
+Parallel agents on the same codebase raise **coordination complexity** faster than they lower **implementation complexity** — duplicate scaffolding, overlapping architecture, and units that are hard to review. JSDP trades propose-throughput for **stable convergence**: each role finishes, merges, and hands off a workspace the next role can build on. Framework terms: [whitepaper-summary.md](whitepaper-summary.md) (C1, C4, C7).
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Reading level:** Anyone curious what this project actually is — no background in agent frameworks, leases, or orchestration required.
 
-**Related:** [philosophy.md](philosophy.md) (how we build) · [workspace-state.md](workspace-state.md) (one card → one truth) · [concepts.md](concepts.md) · [jsdp.md](jsdp.md) · [onboarding/plain-language-glossary.md](onboarding/plain-language-glossary.md)
+**Related:** [philosophy.md](philosophy.md) (how we build) · [workspace-state.md](workspace-state.md) (one card → one truth) · [concepts.md](concepts.md) · [jsdp.md](jsdp.md) · [whitepaper-summary.md](whitepaper-summary.md) (framework) · [onboarding/plain-language-glossary.md](onboarding/plain-language-glossary.md)
 
 ---
 
@@ -44,6 +44,8 @@ Use this framing:
 **Files, git, and task-scoped workspaces are durable and reviewable.** That is what you diff, what CI runs against, and what you merge.
 
 Software work should be **governed by durable state**, with chat feeding decisions — not replacing them.
+
+That split is the product face of framework invariant **C2** (delivery follows **accepted** repository state, not proposed state). The full, implementation-independent model — asymmetry, informational debt, stable review coordinates — is in [whitepaper-summary.md](whitepaper-summary.md).
 
 ```mermaid
 flowchart LR
@@ -278,3 +280,4 @@ Use Hermes to **explore and execute ideas**. Use JoyZoning to **govern, observe,
 | Understand 1:1 folders | [workspace-state.md](workspace-state.md) |
 | Use the terminal | [cli.md](cli.md) · [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) |
 | Technical terms | [glossary.md](glossary.md) |
+| Why convergence governance (research) | [whitepaper-summary.md](whitepaper-summary.md) · [whitepaper.md](whitepaper.md) |

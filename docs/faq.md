@@ -158,6 +158,22 @@ Default profile name: **`joyzoning`** (API enabled on 8642). Configurable per se
 
 ---
 
+## Framework & research
+
+### Where is the delivery-systems framework paper?
+
+[whitepaper.md](whitepaper.md) (v1.5) — implementation-independent; JoyZoning is one embodiment (Annex A). Start with [whitepaper-summary.md](whitepaper-summary.md) for invariants **C1–C8** and boundaries **B1–B4**.
+
+### What does “Chat plans. The repo is truth. You merge.” mean?
+
+Framework shorthand: narrative advises; **inspectable repository state** grounds acceptance; **merge authority** is the operator accountability gate (invariant **C2**). Product mapping: [philosophy.md](philosophy.md), [execution-paths.md](execution-paths.md).
+
+### Is the framework tied to Hermes or Cursor?
+
+No. **C8:** governance disciplines (stable coordinates, merge authority, gates) outlive mutation-engine implementations. Managed and external JSDP paths are embodiments, not definitions.
+
+---
+
 ## Contributing
 
 ### License?

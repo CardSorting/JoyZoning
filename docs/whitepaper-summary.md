@@ -1,69 +1,61 @@
-# JoyZoning Whitepaper — One-Page Summary
+# Framework Summary (v1.5)
 
-**Full paper:** [whitepaper.md](whitepaper.md) (v1.2)  
-**Title:** *JoyZoning: Human-Supervised Delivery for Generative Software Mutation*
-
----
-
-## Deepest idea
-
-> **Generative systems increase mutation capacity faster than human systems increase convergence capacity.**
-
-Generative coding environments are **software mutation systems**—effective at proposed change, not inherently at **convergence** (accepted, comprehensible reality).
+**Paper:** [whitepaper.md](whitepaper.md) · **Audit:** [whitepaper-framework-audit.md](whitepaper-framework-audit.md)
 
 ---
 
-## Conceptual glossary (compressed)
+## Core invariants (C1–C8)
 
-| Term | Meaning |
-|------|---------|
-| **Mutation** | Proposed repository state change (not delivery) |
-| **Convergence** | Stabilizing accepted reality so an operator regains a coherent mental model—via review, evidence, merge, sequencing, bounded scope |
-| **Reviewability** | Bridge between mutation and trust; systems constraint |
-| **Informational debt** | Debt in maintainability of *understanding* (opaque diffs, narrative “done”, unstable stories) |
-| **Cognitive stabilization** | e.g. JSDP—survivable convergence under load, not max throughput |
-| **Engine churn** | Models/IDEs/runtimes change; supervision should outlive them |
-| **Repository truth** | Disk inspectable; chat advisory |
+| ID | Statement |
+|----|-----------|
+| **C1** | Mutation ∝ compute; convergence ∝ bounded cognition. Propose cheaper than accept. |
+| **C2** | Delivery follows **accepted** state, not proposed. |
+| **C3** | Trustworthy acceptance requires reviewability within policy bounds. |
+| **C4** | Propose-rate > review bound → informational debt; verify without scoped confidence; acceptance without diff grounding. |
+| **C5** | Local stabilization ≠ global comprehensibility without composition. |
+| **C6** | Correctness ≠ comprehensibility. |
+| **C7** | Fixed review coordinates reduce context-reconstruction cost. |
+| **C8** | Governance outlives mutation engines. |
 
-**Convergence is not:** tests alone, code generation, agent consensus, prompt end.  
-**Convergence is:** operator can answer *what is accepted state here?*
-
----
-
-## Separate dimensions (do not collapse)
-
-Mutation throughput · Reviewability · Verification · Convergence · Trust · Operator cognition
-
-High mutation without reviewability → **informational debt** (faith-based merge, symbolic verify, psychological opacity).
+**Boundaries:** B1 tests ≠ stabilization · B2 narrative ≠ acceptance · B3 maximize convergence not propose-rate · B4 concurrent epochs accelerate debt.
 
 ---
 
-## Framework vs implementation
+## Closure map (pressure → discipline)
 
-**Framework** (durable): repository truth, reviewability, merge authority, cognitive stabilization, engine-agnostic supervision.
-
-**JoyZoning** (embodiment): local operator cockpit implementing the framework—not the thesis itself.
-
-**Chat plans. The repo is truth. You merge.**
-
-**Cockpit, not engine.** Same merge gate. Different engine.
+Propose overload → stable coordinates · debt → merge authority + gates · opacity → repository truth + review · engine churn → supervision decoupling (§0.3).
 
 ---
 
-## JSDP
+## Coordination vs implementation (§2)
 
-**Cognitive stabilization** for high-mutation programs—one role, one merge synchronization point, lock artifacts as reference frames. **Maximizes survivable convergence**, not mutation throughput. *Line dance, not jazz band.*
-
----
-
-## TinyQuest (case study)
-
-**Software problem:** modest app. **Mutation-management problem:** dominant—**orchestration more cognitively expensive than the domain**. Bottleneck: understanding what changed. Stabilization restored comprehensibility; external editor proved framework survives engine change.
+Mutation lowers **implementation** cost faster than **coordination** cost. Bottleneck shifts to convergence under load.
 
 ---
 
-## Conclusion
+## Key models
 
-As mutation throughput rises, **convergence disciplines become more—not less—important.** Delivery follows accepted reality, not proposed reality.
+| Model | Point |
+|-------|--------|
+| **Informational debt (C4)** | Cost of maintaining accepted-vs-proposed model; expensive recovery |
+| **Reviewability bound failure** | Policy cannot be met at current load |
+| **Stable coordinates (C7)** | unit → branch → diff → evidence → accept |
+| **Constraint persistence** | Cognition/review bounds persist; engines turn over |
+
+---
+
+## Scope
+
+In: inspectable repo, bounded supervision, mutation governance.  
+Out: correctness proofs, team design, ticket-only truth, full autonomy.  
+Prescription optional; pressures observable (Annex C).
+
+---
+
+## Reference observation
+
+Modest implementation; **coordination dominated**. Annex A = embodiment only.
+
+---
 
 **Chat plans. The repo is truth. You merge.**
