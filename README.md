@@ -3,16 +3,31 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4)](global.json)
 
-**Supervise AI coding on your machine** — kanban-shaped work, changes in your real repo, optional tests as proof, and **you** merge before anything counts as done.
+Supervise AI coding on your machine.
+
+JoyZoning gives you a local cockpit for agent work:
+
+- plan in chat
+- track work as kanban cards
+- run changes in your real repo
+- verify with tests and builds
+- merge only when you approve
+
+It is not a second IDE.  
+It is not an autonomous auto-merge bot.  
+It is not “the agent said it’s done.”
+
+JoyZoning is for operators who want evidence before completion.
 
 One local [diet-hermes](https://github.com/NousResearch/hermes-agent). Not a second IDE. Not “the agent said it’s finished.”
 
-> **New here?** Read this page top to bottom once (~10 min), then follow **[What's next](docs/onboarding/whats-next.md)** for your first dispatch and merge (~20 min).  
-> **Guided hub:** [docs/onboarding/README.md](docs/onboarding/README.md)
+**Anchor:** Chat plans; Workspace is truth.
+
+> **New here?** [What's next](docs/onboarding/whats-next.md) (~20 min) after install · [Onboarding hub](docs/onboarding/README.md)
 
 ---
 
-## Onboarding in three phases
+## Onboarding in four steps
 
 ```mermaid
 flowchart LR
