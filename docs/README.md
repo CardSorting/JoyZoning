@@ -60,6 +60,15 @@ Before your first **Merge**, read how one kanban card maps to one folder — the
 | [quickstart.md](onboarding/quickstart.md) | Desktop in ~5–15 min |
 | [whats-next.md](onboarding/whats-next.md) | First dispatch → merge |
 
+### I am a coding agent (Cursor, CLI automation)
+
+| Doc | Contents |
+|-----|----------|
+| **[AGENTS.md](../AGENTS.md)** | **Start here** — do not scan the repo |
+| **[agent-operations.md](agent-operations.md)** | Full agent ops layer reference |
+| [AGENT.md](AGENT.md) | Short agent contract |
+| [cli.md](cli.md#agent-operations-layer) | CLI command table |
+
 ### I run JoyZoning day to day
 
 | Doc | Contents |
@@ -67,7 +76,7 @@ Before your first **Merge**, read how one kanban card maps to one folder — the
 | [getting-started.md](getting-started.md) | Overview + links |
 | [desktop-ui.md](desktop-ui.md) | All six surfaces |
 | [workspace-state.md](workspace-state.md) | 1:1 inspection model (GitHub PR / VS Code analogies) |
-| [cli.md](cli.md) | `jz` / `jz agent` |
+| [cli.md](cli.md) | `jz` / `jz agent` / agent operations layer |
 | [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) | Cognition vs authority; `jz` vs `hermes --tui` |
 | [use-cases.md](use-cases.md) | Scenario walkthroughs |
 | [troubleshooting.md](troubleshooting.md) | Symptom → fix |
@@ -159,6 +168,8 @@ JoyZoning.App          →  http://127.0.0.1:9470  →  JoyZoning.ControlPlane
 
 | Doc | Audience |
 |-----|----------|
+| [agent-operations.md](agent-operations.md) | Coding agents / integrators |
+| [AGENT.md](AGENT.md) | Coding agents (short contract) |
 | [architecture.md](architecture.md) | Contributors |
 | [cli.md](cli.md) | Terminal / CI |
 | [what-is-joyzoning.md](what-is-joyzoning.md) | Everyone — plain-language product explanation |

@@ -10,6 +10,18 @@ All JSON bodies use camelCase. Lease orchestration errors return structured JSON
 |--------|------|-------------|
 | `GET` | `/api/health` | `{ "status": "ok", "service": "joyzoning-control-plane" }` |
 
+## Agent operations
+
+Machine-readable self-description for coding agents. Full guide: [agent-operations.md](agent-operations.md).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/agent/manifest` | Static manifest: commands, endpoints, verification, important files |
+| `GET` | `/api/agent/context` | Runtime state: sessions, active/blocked leases, pending approvals |
+| `GET` | `/api/agent/endpoints` | Endpoint registry; `?agentSafe=true` for agent-safe routes only |
+
+`GET /api/watch/bootstrap` includes an `agentOps` block with URLs to the above.
+
 ## Sessions
 
 | Method | Path | Body | Response |

@@ -297,6 +297,8 @@ Target framework: **net8.0**, Avalonia **12**, terminal widget: **SvcSystems.UI.
 
 Registry sync is enforced by `JoyZoningEndpointRegistrySyncTests` and `JoyZoningLiveEndpointRegistrySyncTests`. `joyzoning doctor --json` includes an `endpoint_registry_sync` check.
 
+Full agent-ops documentation: [agent-operations.md](agent-operations.md).
+
 ## Migrations
 
 EF migrations live in `JoyZoning.Persistence/Migrations/`. Database is created on startup via `EnsureDatabaseCreated()`.

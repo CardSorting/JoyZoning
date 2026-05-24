@@ -23,6 +23,7 @@ public static class AgentOperationsManifest
         "src/JoyZoning.ControlPlane/Endpoints/ApiEndpoints.cs",
         "src/JoyZoning.Domain/Orchestration/JoyZoningRuntimeContext.cs",
         "docs/AGENT.md",
+        "docs/agent-operations.md",
         "docs/cli.md",
         "AGENTS.md",
     ];

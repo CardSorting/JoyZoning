@@ -2,39 +2,38 @@
 
 `jz` and `joyzoning` are the **operator shell** for JoyZoning’s local kanban runtime — human-supervised, scriptable, local-first. It is not a generic HTTP wrapper: workflows preserve the same authority gates as the desktop app (merge-only complete, explicit critical approval, evidence-preserving recovery).
 
-**For coding agents:** start with [AGENT.md](AGENT.md) and `joyzoning agent-context --json` — do not scan the repo first.
+**For coding agents:** start with [AGENT.md](AGENT.md) or the full guide [agent-operations.md](agent-operations.md). Run `joyzoning agent-context --json` — do not scan the repo first.
 
 Control plane default: `http://127.0.0.1:9470` (`JOYZONING_URL`).
 
 ## Agent operations layer
 
-Self-describing control surface so agents never need to spelunk `src/`, routes, or package scripts.
+Self-describing control surface — **full reference:** [agent-operations.md](agent-operations.md).
 
 | Command | Purpose |
 |---------|---------|
-| `agent-manifest --json` | App metadata, CLI commands, endpoint map, verification commands, important files, protected paths |
-| `agent-context --json` | Minimal current state: session, git, health, approvals, tasks, last verification |
-| `inspect --json` | Compressed discovery: mode, surfaces, important files, do-not-edit paths |
-| `endpoints --json` | Typed endpoint registry with agent-safe flags and schema names |
-| `endpoints --agent-safe` | Agent-safe endpoints only |
-| `endpoints --markdown` | Human-readable endpoint map |
-| `snapshot --json` | Git dirty state, last verification, active session, pending approvals |
-| `doctor --json` | Validate files, scripts, endpoint registry, manifest freshness |
+| `agent-context --json` | Minimal state before acting: session, git, health, tasks, approvals |
+| `agent-manifest --json` | Full manifest; writes `.joyzoning/agent-manifest.json` |
+| `inspect --json` | Compressed discovery: important files, protected paths, entrypoints |
+| `status --json` | Workspace + control-plane summary |
+| `snapshot --json` | Post-edit snapshot: git, tests, sessions, approvals |
+| `endpoints --json` | Typed endpoint registry (all routes) |
+| `endpoints --agent-safe` | Agent-safe routes only |
+| `endpoints --markdown` | Markdown endpoint table |
+| `doctor --json` | Validate assumptions; refreshes cache on local pass |
 | `verify --manifest --fast` | Fast verification (typecheck + build) |
-| `verify --manifest` | Full manifest verification |
-| `plan "<goal>"` | Create a task from a goal (`--session` required) |
+| `verify --manifest` | Full verification tier |
+| `plan "<goal>" --session <guid>` | Create a task from a goal |
 | `run <task-id>` | Dispatch and run a task lease |
 
 ```bash
 ./scripts/joyzoning agent-context --json
-./scripts/joyzoning endpoints --json
+./scripts/joyzoning agent-manifest --json
 ./scripts/joyzoning doctor --json
 curl -s http://127.0.0.1:9470/api/agent/context | jq .
-curl -s http://127.0.0.1:9470/api/agent/manifest | jq .
 ```
 
-Endpoint registry source of truth: `src/JoyZoning.Domain/Orchestration/JoyZoningEndpointRegistry.cs`.
-Static manifest source: `src/JoyZoning.Domain/Orchestration/AgentOperationsManifest.cs`.
+**Source files:** `AgentOperationsManifest.cs`, `JoyZoningEndpointRegistry.cs`, `AgentOperationsCommand.cs` under `src/JoyZoning.Domain/Orchestration/` and `src/JoyZoning.Cli/`.
 
 ## Interactive operator TUI (Hermes-style)
 
