@@ -149,7 +149,7 @@ JoyZoning  :9470   ← tasks, leases, timeline
     ↓
 diet-hermes :8642 / :9119
     ↓
-Your repo + .joyzoning/worktrees/
+Your repo (canonical workspace, card branches)
 ```
 
 | Port | Friendly name |

@@ -12,7 +12,7 @@ For precise API terms see [glossary.md](../glossary.md). **How one card maps to 
 |---------------|----------------|-----------------|
 | **You** | Operator | The person who approves work — like a tech lead or release manager |
 | **Manager** | Manager session / Hermes planning run | Senior colleague who breaks down goals — does not edit files directly |
-| **Worker / executor** | DietCode / executor session | Contractor working in a cordoned-off copy of the repo |
+| **Worker / executor** | DietCode / executor session | Contractor working on a **card branch** in your real repo folder |
 | **Agent** | Hermes run with tools | The worker when it is actively running |
 
 ---
@@ -25,10 +25,10 @@ For precise API terms see [glossary.md](../glossary.md). **How one card maps to 
 | **Local coordinator** | Control plane (`:9470`) | Air traffic control — remembers tasks and rules |
 | **AI engine** | diet-hermes | One engine; different “channels” for manager vs worker |
 | **Your project folder** | Session workspace / `workspaceRoot` | The repo you opened — same idea as “Open Folder” in VS Code |
-| **Sandbox copy** | Lease worktree | A practice lane — agent edits here after **Dispatch**, like a CI job workspace |
-| **Files changed tab** | Workspace → Changed | Same idea as GitHub PR “Files changed” — one card, one folder |
-| **1:1 workspace state** | Card-scoped inspection | Pick a card → every panel shows that card’s folder (not chat guesswork) |
-| **Hidden agent notes** | `.joyzoning/context.json` | Sticky note in the sandbox: task id, what agent may/may not do |
+| **Card branch** | `joyzoning/card-<id>` | Feature branch for one ticket after **Dispatch** |
+| **Files changed tab** | Workspace → Changed | Same idea as GitHub PR “Files changed” — one card, one workspace |
+| **1:1 workspace state** | Card-scoped inspection | Pick a card → every panel shows that card’s path and branch |
+| **Hidden agent notes** | `.joyzoning/context.json` | Sticky note in the project: task id, what agent may/may not do |
 
 ---
 

@@ -6,6 +6,8 @@
 
 **What did we actually build?** → **[what-is-joyzoning.md](what-is-joyzoning.md)** (plain English, start here if terms like “lease” or “orchestration” are unfamiliar)
 
+**How we build and run agents** → **[philosophy.md](philosophy.md)** — canonical workspace, JSDP sequential delivery, cognition vs authority (read this before diving into API docs)
+
 ---
 
 ## New here?
@@ -30,7 +32,7 @@ flowchart TD
 | 3 | [Setup checklist](onboarding/setup-checklist.md) | 10 min |
 | 4 | [What's next](onboarding/whats-next.md) | 20 min |
 
-**Big picture:** [what-is-joyzoning.md](what-is-joyzoning.md) · **Technical concepts:** [concepts.md](concepts.md) · **Sequential delivery (JSDP):** [jsdp.md](jsdp.md) · **Operational modes:** [operational-modes.md](operational-modes.md) · **FAQ:** [faq.md](faq.md)
+**Big picture:** [philosophy.md](philosophy.md) · [what-is-joyzoning.md](what-is-joyzoning.md) · [concepts.md](concepts.md) · [jsdp.md](jsdp.md) · [operational-modes.md](operational-modes.md) · [faq.md](faq.md)
 
 ### Understand workspace state (recommended)
 
@@ -40,7 +42,7 @@ Before your first **Merge**, read how one kanban card maps to one folder — the
 |-----|-----|
 | **[workspace-state.md](workspace-state.md)** | **1:1 card → folder** — plain language + diagrams |
 | [desktop-menu-guide.md](onboarding/desktop-menu-guide.md) | Where to click: Kanban → Workspace → Merge |
-| [plain-language-glossary.md](onboarding/plain-language-glossary.md) | Session workspace vs worktree |
+| [plain-language-glossary.md](onboarding/plain-language-glossary.md) | Session workspace vs card branch |
 
 ---
 
@@ -129,7 +131,7 @@ Also: [first-run-desktop](onboarding/first-run-desktop.md) · [api-keys-and-mode
 
 ## Core concepts (one paragraph)
 
-JoyZoning is a **governed execution runtime for AI-assisted software work**: chat is **cognition**, workspace is **truth**, and **you** merge when satisfied. It is **not** an IDE and **not** a second Hermes. Full plain-language explanation: [what-is-joyzoning.md](what-is-joyzoning.md). Technical detail: [concepts.md](concepts.md).
+JoyZoning is a **governed execution runtime for AI-assisted software work**: chat is **cognition**, the **canonical workspace** is **truth**, and **you** merge when satisfied. Agents work in your real project folder on `joyzoning/card-<id>`; multi-role delivery follows **JSDP** (sequential roles, mandatory accept-merge). It is **not** an IDE and **not** a second Hermes. [philosophy.md](philosophy.md) · [what-is-joyzoning.md](what-is-joyzoning.md) · [concepts.md](concepts.md).
 
 ---
 
@@ -157,7 +159,7 @@ JoyZoning.App          →  http://127.0.0.1:9470  →  JoyZoning.ControlPlane
 | Action | Operator (you) | Agent |
 |--------|----------------|-------|
 | Dispatch, critical approval | ✓ | — |
-| Code in lease worktree | — | ✓ |
+| Code in canonical workspace (card branch) | — | ✓ |
 | Verify + evidence | ✓ (via `jz task`) | ✓ (via `jz agent`) |
 | Merge → Complete | ✓ | **never** |
 | Revoke lease | ✓ | — |
@@ -172,8 +174,10 @@ JoyZoning.App          →  http://127.0.0.1:9470  →  JoyZoning.ControlPlane
 | [AGENT.md](AGENT.md) | Coding agents (short contract) |
 | [architecture.md](architecture.md) | Contributors |
 | [cli.md](cli.md) | Terminal / CI |
+| [philosophy.md](philosophy.md) | Everyone — canonical workspace, JSDP, authority model |
 | [what-is-joyzoning.md](what-is-joyzoning.md) | Everyone — plain-language product explanation |
 | [concepts.md](concepts.md) | Everyone |
+| [jsdp.md](jsdp.md) | Operators / agents — sequential delivery protocol |
 | [configuration.md](configuration.md) | Operators / ops |
 | [control-plane-api.md](control-plane-api.md) | Integrators |
 | [desktop-ui.md](desktop-ui.md) | Desktop users |

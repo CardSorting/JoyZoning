@@ -2,7 +2,7 @@
 
 Tamagotchi-style UI for JoyZoning orchestration: one **Synthesis Pet** mirrors run health; technical detail lives in the collapsible **Observatory** (stack trace basement).
 
-JoyZoning is **multi-mode** — do not collapse metaphors. See [operational-modes.md](../docs/operational-modes.md).
+JoyZoning is **multi-mode** — do not collapse metaphors. See [operational-modes.md](../docs/operational-modes.md). Execution uses the **canonical workspace** (JSDP) — [philosophy.md](../docs/philosophy.md).
 
 ## Canonical shell
 

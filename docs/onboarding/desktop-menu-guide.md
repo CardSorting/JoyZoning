@@ -39,7 +39,7 @@ Maps JoyZoning menus to outcomes. Familiar if you have used **VS Code**, **Figma
 | Start agent on a card | Kanban → select card → **Dispatch** |
 | Watch agent work | **Execution** |
 | See file changes (like a PR) | **Workspace** — pick card on Kanban first |
-| Understand which folder is shown | Workspace header: **Lease worktree** vs **Session workspace** |
+| Understand which folder is shown | Workspace header: path + **card branch** vs **session workspace** |
 | Allow/deny risky tool | **Approvals** |
 | Debug what happened | **Timeline** |
 | Open my real project | **Project → Open Workspace** |
@@ -137,7 +137,7 @@ Agents **cannot** drag to Complete without verification + merge.
 |------|--------|
 | 1 | Kanban → **click the card** you are reviewing |
 | 2 | Sidebar → **Workspace** |
-| 3 | Read the **header** — must say **Lease worktree** after Dispatch |
+| 3 | Read the **header** — confirms card branch after Dispatch |
 | 4 | **Changed** list → click a file → red/green **diff** |
 | 5 | Satisfied? Kanban → **Merge** (only you — not the agent) |
 

@@ -55,16 +55,16 @@ Manager is **not** a code editor — use Workspace + external IDE for file edits
 
 | UI part | Familiar analog |
 |---------|-----------------|
-| Header label | “Lease worktree” = agent sandbox; “Session workspace” = project you opened |
+| Header label | Card branch vs session workspace — same folder, branch per dispatched card |
 | **Changed** list | PR file list (`git status --porcelain`) |
 | Split diff | Removed (red) / added (green) hunks |
 | **Refresh** | Re-fetch without changing card selection |
 
 - `GET /api/workspace/tree` — file tree for active workspace root.
 - `GET /api/workspace/changed` — `git status --porcelain` (24h mtime fallback when not a git repo or git fails); emits timeline events when `sessionId` is supplied.
-- **Task-scoped inspection** — selecting a kanban card, dispatch, execution updates, or `OnWorktreeRefreshed` refreshes via `GET /api/tasks/{id}/workspace/changed`, resolving the **lease worktree** under `.joyzoning/worktrees/<task-id>/` when dispatched.
-- Header shows **Lease worktree** vs **Session workspace**; **Refresh** re-fetches without changing selection.
-- Background monitor (`LeaseRuntime:WorktreeMonitorEnabled`) scans active leases periodically and pushes `OnWorktreeRefreshed` when the snapshot hash changes.
+- **Task-scoped inspection** — selecting a kanban card, dispatch, execution updates, or `OnWorktreeRefreshed` refreshes via `GET /api/tasks/{id}/workspace/changed` on the **canonical workspace** (card branch when dispatched).
+- Header shows path + branch context; **Refresh** re-fetches without changing selection.
+- `WorkspaceEventPublisher` pushes `OnWorktreeRefreshed` and `OnTaskLiveUpdated` when workspace/changed detects new git state.
 - `GET /api/workspace/diff` / task-scoped diff — unified diff; UI splits removed (red) / added (green) hunks.
 - Line-numbered preview when diff unavailable.
 

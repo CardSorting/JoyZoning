@@ -153,7 +153,7 @@ Ensure diet-hermes API server is on port **8642** for live agent runs. Operator 
 - [x] **Git porcelain** — `GitWorkspaceStatus` + `LocalWorkspaceAdapter` (mtime fallback only for non-git or failed git)
 - [x] **Timeline ingestion** — `WorkspaceEventPublisher` → `git.status.changed` / `workspace.file.changed`; `HermesRunEventConsumer` persists `terminal.output`
 - [x] **Task worktree APIs** — `GET /api/tasks/{id}/workspace/{changed,tree,diff}` via `WorkspaceInspection`
-- [x] **Desktop + CLI** — lease worktree label, Refresh, SignalR-driven refresh (`OnWorktreeRefreshed`, execution/lease events)
+- [x] **Desktop + CLI** — workspace path + branch label, Refresh, SignalR (`OnWorktreeRefreshed`, `OnTaskLiveUpdated`)
 - [x] **Workspace change publisher** — `WorkspaceEventPublisher` dedupes git porcelain; SignalR `OnWorktreeRefreshed` on task workspace poll
 - [x] **Operator TUI** — `/workspace` uses task APIs when `/use <task>` is set; hub stream shows worktree updates
 - [x] **Docs** — [workspace-state.md](workspace-state.md) (1:1 card → folder, PR/VS Code analogies, non-technical navigation)
@@ -201,7 +201,7 @@ Ensure diet-hermes API server is on port **8642** for live agent runs. Operator 
 - [x] Structured append-only evidence log (actor, from/to, reason, summary)
 - [x] Dispatch failure recovery (leased → blocked + evidence, no silent stuck state)
 - [x] Critical approval grant/consume per lease; global critical slot includes approved leased
-- [x] Worktree path sandbox under `.joyzoning/worktrees`
+- [x] Canonical workspace execution (JSDP default; legacy sandboxes pruned)
 - [x] Verification integrity (structure, failed path, supersede guard)
 - [x] SQLite partial unique index: one active lease per card
 - [x] Extended tests in `tests/JoyZoning.Tests/`

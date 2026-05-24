@@ -58,11 +58,11 @@ No. It is a **supervision layer**: kanban, leases, approvals, diffs, timeline. Y
 
 ### What is “1:1 workspace state”?
 
-One **kanban card** → one **inspection folder**. After dispatch, that folder is the **lease worktree**; before dispatch, it is your **session workspace**. Workspace, Timeline, and git all agree. Plain language: [workspace-state.md](workspace-state.md).
+One **kanban card** → one **inspection context** in your **canonical workspace**. After dispatch, work is on branch `joyzoning/card-<id>`; before dispatch, you see the session workspace on your default branch. Workspace, Timeline, and git all agree. [workspace-state.md](workspace-state.md) · [philosophy.md](philosophy.md).
 
-### Why does Workspace say “Lease worktree” vs “Session workspace”?
+### Why does Workspace show a card branch vs session workspace?
 
-**Session workspace** = the project you opened (**Project → Open Workspace**). **Lease worktree** = the agent’s sandbox for that card after **Dispatch**. Always check the header before merge — like confirming the right PR branch.
+**Session workspace** = the project you opened (**Project → Open Workspace**). **Card branch** = `joyzoning/card-<id>` after **Dispatch** — same folder, different branch. Always check the header before merge — like confirming the right PR branch.
 
 ### Should I trust Manager Chat or Workspace for “what changed”?
 

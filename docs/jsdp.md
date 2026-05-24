@@ -36,7 +36,7 @@ CREATE chain (POST /api/delivery-chains)
 FOR each role N:
   DISPATCH Role N          (--next when gate open)
     → one lease
-    → agent works in worktree
+    → agent works in canonical workspace (card branch)
     → verification → ReadyForReview
   OPERATOR accept-merge
     → task status Complete

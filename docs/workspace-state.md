@@ -1,79 +1,72 @@
-# Workspace state — one card, one folder, one truth
+# Workspace state — one card, one workspace, one truth
 
-JoyZoning keeps **what you see**, **what git reports**, and **what the audit log records** aligned. That is the **1:1 workspace state** model: one selected task at a time maps to **one inspection folder**, and every surface reads that same folder through the control plane.
+JoyZoning keeps **what you see**, **what git reports**, and **what the audit log records** aligned. That is the **1:1 workspace state** model: one selected task at a time maps to **one inspection path** (and branch when dispatched), and every surface reads that same context through the control plane.
 
-**Who this is for:** everyone — especially operators who do not want to guess which directory the agent edited.
+**Philosophy:** [philosophy.md](philosophy.md) · **Who this is for:** everyone — especially operators who do not want to guess which directory the agent edited.
 
-**Start with the big picture:** [what-is-joyzoning.md](what-is-joyzoning.md) · **See also:** [desktop-ui.md](desktop-ui.md) (Workspace surface) · [desktop-menu-guide.md](onboarding/desktop-menu-guide.md) (where to click) · [plain-language-glossary.md](onboarding/plain-language-glossary.md) (everyday words) · [event-catalog.md](event-catalog.md) (timeline types)
+**See also:** [desktop-ui.md](desktop-ui.md) · [desktop-menu-guide.md](onboarding/desktop-menu-guide.md) · [plain-language-glossary.md](onboarding/plain-language-glossary.md) · [event-catalog.md](event-catalog.md)
 
 ---
 
 ## The rule in one sentence
 
-> **Pick a kanban card → JoyZoning shows the files that card’s agent is allowed to change — not a random parent folder.**
+> **Pick a kanban card → JoyZoning shows the files that card’s work affects — in your real project folder, on that card’s branch when dispatched.**
 
-If the card has been **dispatched**, that folder is the **lease worktree** (sandbox copy). If not, it is your **session workspace** (the project you opened). The header always tells you which.
+There is **no** separate sandbox copy under `.joyzoning/worktrees/` and **no** `.joyzoning/live/` mirror. The session workspace you opened **is** where agents work.
 
 ---
 
 ## Familiar patterns (industry mirror)
 
-JoyZoning borrows layouts you may already know:
-
 | You may know… | JoyZoning equivalent | What stays 1:1 |
 |---------------|----------------------|----------------|
 | **GitHub PR → Files changed** | Workspace → **Changed** list | Same paths git sees |
-| **VS Code → Source Control** | Workspace + split diff | Red/green hunks before you “merge” |
-| **CI job → workspace artifact** | Lease worktree under `.joyzoning/worktrees/<task-id>/` | Agent edits only inside the job folder |
-| **Linear issue → linked branch** | Kanban card → one worktree | Card selection drives inspection |
+| **VS Code → Source Control** | Workspace + split diff | Red/green hunks before you merge |
+| **Feature branch per ticket** | Branch `joyzoning/card-<task-id>` | Card selection drives branch + inspection |
+| **Linear issue → linked branch** | Kanban card → one branch in canonical root | Card selection drives inspection |
 | **Slack thread vs ticket** | Manager Chat vs Kanban card | Chat plans; card + lease is the contract for code |
 
-The cockpit does **not** ask you to reconcile chat scrollback with disk. It asks you to reconcile **one card** with **one folder** and **one timeline**.
+The cockpit does **not** ask you to reconcile chat scrollback with disk. It asks you to reconcile **one card** with **one folder** (and branch) and **one timeline**.
 
 ---
 
-## Two folders (only two you need)
+## Two views (same folder)
 
 ```mermaid
 flowchart TB
-  subgraph session [Session workspace]
-    Root["Your opened project folder"]
-    Root --> Plan["Manager Chat plans here"]
-  end
-
-  subgraph lease [After Dispatch]
-    WT[".joyzoning/worktrees/task-id/"]
-    WT --> Agent["Executor agent edits here"]
-  end
+  Root["Session workspace — project you opened"]
+  Root --> Plan["Manager Chat plans here"]
+  Root --> Branch["After dispatch: joyzoning/card-task-id"]
+  Branch --> Agent["Executor agent edits here"]
 
   Card[Kanban card selected] --> Resolver{Dispatched?}
-  Resolver -->|Yes| WT
+  Resolver -->|Yes| Branch
   Resolver -->|No| Root
   Resolver --> Workspace[Workspace surface]
   Resolver --> Timeline[Timeline git/workspace events]
 ```
 
-| Folder | Everyday name | When it is used |
-|--------|---------------|-----------------|
+| View | Everyday name | When it is used |
+|------|---------------|-----------------|
 | **Session workspace** | “The project I opened” | Planning, undispatched cards, browsing the repo |
-| **Lease worktree** | “The agent’s practice lane” | After **Dispatch** — all executor edits for that card |
+| **Card branch** | “This ticket’s line of work” | After **Dispatch** — executor edits on `joyzoning/card-<id>` |
 
-**Label in the app:** Workspace header shows either **Lease worktree · …path** or **Session workspace · …path**. If the label and the changed-file list do not match what you expect, click **Refresh** or re-select the card.
+**Label in the app:** Workspace header shows **Session workspace** or the active **card branch** and path. If the changed-file list does not match what you expect, click **Refresh** or re-select the card.
 
 ---
 
 ## What “1:1” means technically
 
-For the **active card**, these read the **same resolved path**:
+For the **active card**, these read the **same resolved path** (`OperatorSession.WorkspaceRoot`):
 
 | Surface | What it shows |
 |---------|----------------|
 | **Workspace** | File tree, changed files, diff preview |
 | **Timeline** (Git / Workspace filters) | `git.status.changed`, `workspace.file.changed` |
-| **`jz /workspace`** (with `/use <task>`) | Same API as desktop |
-| **Background monitor** | Periodic scan of active lease worktrees → `OnWorktreeRefreshed` |
+| **`jz task watch`** | Polls `GET /api/tasks/{id}/workspace/changed` |
+| **Watch UI** | `useLiveTask` + SignalR `OnWorktreeRefreshed`, `OnTaskLiveUpdated` |
 
-Resolution is centralized in the control plane (`WorkspaceInspection`): **task id → lease worktree if present, else session root**. No duplicate heuristics in the UI.
+Resolution is centralized in the control plane (`WorkspaceInspection`): **task id → workspace root**, with branch `joyzoning/card-<id>` when a lease is active. No duplicate heuristics in the UI.
 
 **Git source of truth:** `git status --porcelain` on that path. Non-git folders fall back to “recently modified files” (24h) — the header still reflects the correct folder.
 
@@ -86,9 +79,9 @@ Follow this like a **PR review checklist**:
 | Step | Where in the app | You are checking… |
 |------|------------------|-------------------|
 | 1 | **Kanban** — click the card | “This is the task I care about” |
-| 2 | **Workspace** — read the header | “Lease worktree” vs “Session workspace” |
+| 2 | **Workspace** — read the header | Path + branch for this card |
 | 3 | **Changed** list | Same idea as PR file list — what will merge |
-| 4 | Click a file — **diff** | Red removed / green added (or file preview) |
+| 4 | Click a file — **diff** | Red removed / green added |
 | 5 | **Execution** (optional) | Live terminal preview — *conversation*, not the merge gate |
 | 6 | **Timeline** → filter Git or Workspace | Audit trail matches the same paths |
 | 7 | **Kanban** — **Merge** when satisfied | Only you sign off → **Complete** |
@@ -97,15 +90,17 @@ Follow this like a **PR review checklist**:
 
 ---
 
-## When the UI updates (you do not need to poll)
+## When the UI updates
 
 | Event | What refreshes Workspace |
 |-------|---------------------------|
 | You select a kanban card | Task-scoped inspection |
-| You click **Dispatch** | Switches to lease worktree |
-| Agent changes files | Background monitor (~45s) or **Refresh** |
+| You click **Dispatch** | Switches to card branch view |
+| Agent changes files | `GET /api/tasks/{id}/workspace/changed` or **Refresh** |
+| SignalR `OnWorktreeRefreshed` / `OnTaskLiveUpdated` | Auto-refresh when selected card matches |
 | Execution phase changes | Auto-refresh if that card is selected |
-| SignalR `OnWorktreeRefreshed` | Auto-refresh when selected card matches |
+
+Legacy `.joyzoning/worktrees/` and `.joyzoning/live/` directories are **not** used. If you still have them from older runs, they are pruned on merge/revoke — you may delete them manually: `rm -rf <workspace>/.joyzoning/worktrees <workspace>/.joyzoning/live`.
 
 ---
 
@@ -125,19 +120,13 @@ Full terminal strategy: [hermes-aligned-terminal-strategy.md](hermes-aligned-ter
 
 | Symptom | Likely cause | What to do |
 |---------|--------------|------------|
-| Empty **Changed** but agent was busy | Card not dispatched — still on session root | **Dispatch**, then re-open Workspace |
-| Changes under `main` unexpectedly | Editing outside JoyZoning lease | Open **Lease worktree** path in your IDE, or dispatch properly |
-| Stale file list | Deduped snapshot — no git delta yet | Click **Refresh**; wait one monitor interval |
+| Empty **Changed** but agent was busy | Card not dispatched — still on default branch | **Dispatch**, then re-open Workspace |
+| Changes on unexpected branch | Editing outside JoyZoning lease | Confirm card selected; check `git branch` |
+| Stale file list | No git delta yet | Click **Refresh**; run `jz task watch <id>` |
 | Timeline shows events but Workspace empty | Different card selected | Re-select the card on Kanban |
 | Not a git repo | Porcelain unavailable | Changed list uses recent files; merge still human-gated |
 
-More: [troubleshooting.md](troubleshooting.md) · [troubleshooting-setup.md](onboarding/troubleshooting-setup.md)
-
----
-
-## Configuration (optional)
-
-Background scans: `LeaseRuntime:WorktreeMonitorEnabled` (default `true`), `WorktreeMonitorIntervalSeconds` (default `45`). See [configuration.md](configuration.md).
+More: [troubleshooting.md](troubleshooting.md) · [jsdp.md](jsdp.md) (legacy folder cleanup)
 
 ---
 
@@ -146,9 +135,10 @@ Background scans: `LeaseRuntime:WorktreeMonitorEnabled` (default `true`), `Workt
 | Endpoint | Resolves |
 |----------|----------|
 | `GET /api/workspace/*` | Explicit `workspaceRoot` (+ optional `sessionId` for timeline) |
-| `GET /api/tasks/{id}/workspace/*` | Lease worktree or session root for that task |
+| `GET /api/tasks/{id}/workspace/*` | Canonical workspace for that task (card branch when leased) |
+| `GET /api/tasks/{id}/workspace/changed` | Git porcelain; triggers SignalR when hash changes |
 
-[control-plane-api.md](control-plane-api.md) · [event-catalog.md](event-catalog.md)
+[control-plane-api.md](control-plane-api.md) · [event-catalog.md](event-catalog.md) · [development.md](development.md)
 
 ---
 
@@ -156,8 +146,8 @@ Background scans: `LeaseRuntime:WorktreeMonitorEnabled` (default `true`), `Workt
 
 | Audience | Doc |
 |----------|-----|
+| Why canonical workspace | [philosophy.md](philosophy.md) |
 | What JoyZoning is (plain English) | [what-is-joyzoning.md](what-is-joyzoning.md) |
 | Click-by-click | [onboarding/desktop-menu-guide.md](onboarding/desktop-menu-guide.md) |
+| JSDP chains | [jsdp.md](jsdp.md) |
 | Concepts spine | [concepts.md](concepts.md) |
-| Terminal operators | [cli.md](cli.md) (`/workspace`, `/use`) |
-| Product history | [mvp-roadmap.md](mvp-roadmap.md) Phase 27 |

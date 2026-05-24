@@ -27,7 +27,7 @@ JoyZoning supervises **[diet-hermes](https://github.com/NousResearch/hermes-agen
 | Role | Where you use it | Hermes mechanism |
 |------|------------------|------------------|
 | **Manager** | Manager Chat | API run with planning toolsets |
-| **Executor** | Kanban → Dispatch | API run in lease worktree |
+| **Executor** | Kanban → Dispatch | API run in canonical workspace (card branch) |
 | **Board** | Kanban import/sync | Hermes kanban plugin via dashboard token |
 
 ---

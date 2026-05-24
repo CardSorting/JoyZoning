@@ -85,7 +85,7 @@ Server → client:
 - `OnApprovalRequested` — new pending approval
 - `OnTerminalOutput` — Hermes tool output preview (execution viewport)
 - `OnKanbanSynced` — background kanban auto-import finished
-- `OnWorktreeRefreshed` — active lease worktree snapshot changed after background scan or deduped API refresh (`taskId`, `workspaceRoot`, `fileCount`, `inspect`)
+- `OnWorktreeRefreshed` — task workspace snapshot changed after `workspace/changed` poll or deduped API refresh (`taskId`, `workspaceRoot`, `fileCount`, `inspect`)
 
 Workspace polling: `GET /api/tasks/{id}/workspace/changed` (and session-scoped `GET /api/workspace/changed`) publish `git.status.changed` / `workspace.file.changed` when the porcelain hash changes, then push `OnWorktreeRefreshed` and `OnTaskLiveUpdated` for Watch/TUI subscribers.
 

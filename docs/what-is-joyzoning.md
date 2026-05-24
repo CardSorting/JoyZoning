@@ -2,13 +2,13 @@
 
 **Reading level:** Anyone curious what this project actually is — no background in agent frameworks, leases, or orchestration required.
 
-**Related:** [workspace-state.md](workspace-state.md) (one card → one folder) · [concepts.md](concepts.md) (technical spine) · [onboarding/plain-language-glossary.md](onboarding/plain-language-glossary.md) (word list)
+**Related:** [philosophy.md](philosophy.md) (how we build) · [workspace-state.md](workspace-state.md) (one card → one truth) · [concepts.md](concepts.md) · [jsdp.md](jsdp.md) · [onboarding/plain-language-glossary.md](onboarding/plain-language-glossary.md)
 
 ---
 
 ## 1. One paragraph summary
 
-JoyZoning is a **governed execution runtime for AI-assisted software work** on your own machine. AI tools can help write code, run commands, and plan tasks — but real software projects still need **review**, **boundaries**, **verification**, and **human ownership** before changes become part of the project. JoyZoning provides that structure: a local control plane that tracks work on a board, runs agents in **isolated folders**, records what happened, requires **tests or checks** where you define them, and keeps **final sign-off** with you — not with the model. It works alongside one local [diet-hermes](https://github.com/NousResearch/hermes-agent) install; it is not a replacement IDE and not a second chat app.
+JoyZoning is a **governed execution runtime for AI-assisted software work** on your own machine. AI tools can help write code, run commands, and plan tasks — but real software projects still need **review**, **boundaries**, **verification**, and **human ownership** before changes become part of the project. JoyZoning provides that structure: a local control plane that tracks work on a board, runs agents in your **real project folder** (one branch per card), records what happened, requires **tests or checks** where you define them, and keeps **final sign-off** with you — not with the model. Multi-role delivery uses **JSDP** — sequential roles with a merge gate between each. It works alongside one local [diet-hermes](https://github.com/NousResearch/hermes-agent) install; it is not a replacement IDE and not a second chat app.
 
 ---
 
@@ -57,22 +57,22 @@ flowchart LR
 
 ---
 
-## 4. One card → one folder → one truth
+## 4. One card → one workspace → one truth
 
 This is the central mental model.
 
 - Each **kanban card** is one piece of work.
 - When you care about **what changed**, you **select that card**.
-- JoyZoning resolves **one inspection folder** for that card.
-- **Review**, **git status**, **verification**, and **timeline events** all refer to **that same folder**.
+- JoyZoning resolves **one inspection path** for that card — always your opened project folder.
+- **Review**, **git status**, **verification**, and **timeline events** all refer to **that same path** (and branch when dispatched).
 
-After you **dispatch** work on a card, the folder is usually an **isolated copy** under your project (a **worktree**) — like giving a contractor a separate job site, not the whole building. Before dispatch, you see your normal **project folder**.
+After you **dispatch**, the agent works on branch `joyzoning/card-<id>` in that folder — like a **feature branch per ticket**, not a hidden sandbox copy. Before dispatch, you see your normal project on the default branch.
 
 | Familiar pattern | JoyZoning |
 |------------------|-----------|
 | **GitHub PR → Files changed** | Workspace → changed file list for the selected card |
 | **VS Code → Source Control** | Same folder, diff before you accept changes |
-| **CI job workspace** | Agent edits inside the job folder, not random paths |
+| **Feature branch per issue** | `joyzoning/card-<id>` in the canonical workspace |
 
 Full detail: [workspace-state.md](workspace-state.md).
 
@@ -96,12 +96,12 @@ JoyZoning is layered. Each piece has a job you may already recognize from normal
 |-------|------------|-----------------|
 | **Kanban** | Scheduler / work queue | A board of tickets — what is next, what is blocked, what is done |
 | **Lease** | Temporary permission to work on one card | A signed work order: this task, this folder, this risk level, this expiry |
-| **Worktree** | Isolated folder for that task’s edits | The CI workspace or feature-branch checkout for one job |
+| **Card branch** | `joyzoning/card-<id>` in the session workspace | Feature-branch checkout for one ticket |
 | **Hermes** | Planning, chat, tools | The AI “engine” for conversation and tool use (one local install) |
 | **Verification** | Proof work meets reality | Running tests, builds, or commands you care about — results stored on the task |
 | **Human merge** | Final approval | You decide the change becomes **Complete** on the board and in project history |
 | **`jz`** | Operator shell | Terminal commands for dispatch, verify, merge — same rules as the desktop app |
-| **`jz agent`** | Constrained worker harness | What runs **inside** the worktree — heartbeat, verify, submit for review — **not** merge |
+| **`jz agent`** | Constrained worker harness | What runs **inside** the lease workspace — heartbeat, verify, submit for review — **not** merge |
 
 Nothing here requires a datacenter or a proprietary cloud. The **control plane** runs locally (default `http://127.0.0.1:9470`) and stores orchestration state in SQLite on your machine.
 
@@ -162,7 +162,7 @@ JoyZoning **is** intentionally:
 | **Local-first** | Control plane and data on your machine |
 | **Git-native** | Changes are normal files and diffs you can review |
 | **Review-first** | Workspace and verification before merge |
-| **Bounded** | One active lease per card, worktrees, risk levels, approvals for sensitive work |
+| **Bounded** | One active lease per card, canonical workspace + card branches, risk levels, approvals for sensitive work |
 | **Observable** | Timeline and evidence — what ran, when, with what outcome |
 | **Recoverable** | Blocked or revoked work preserves folders and logs; you can retry or recover |
 

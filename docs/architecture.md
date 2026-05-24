@@ -93,7 +93,7 @@ Card → ExecutionLease (leased) → HandoffPacket → DietCode run (running)
 
 **Runtime enforcement:** `LeaseRuntimeService` applies caps (`MaxGlobalActiveLeases`, `MaxCriticalLeases`), heartbeat staleness (`LeaseStaleOptions`), and absolute expiration before orchestrator mutations. Evidence is append-only JSON on the lease row (`EvidenceLogJson`).
 
-**Worktrees:** `WorktreePlanner` creates sandbox directories under `<workspace>/.joyzoning/worktrees/<task-id>/`. Paths are never deleted on revoke — only lease status changes.
+**Workspace execution (JSDP):** `WorktreePlanner` plans the canonical session root with branch `joyzoning/card-<task-id>`. `JsdpWorkspaceExecution` enforces canonical checkout; legacy `.joyzoning/worktrees/` and `.joyzoning/live/` are pruned on merge/revoke. See [philosophy.md](philosophy.md).
 
 ## Layer responsibilities
 
@@ -111,7 +111,7 @@ Card → ExecutionLease (leased) → HandoffPacket → DietCode run (running)
 - Spawns Hermes gateway/dashboard via `HermesConnectivityService` / `HermesDashboardConnectivityService`
 - **Hosted services:**
   - `KanbanAutoSyncHostedService` — periodic Hermes kanban import when enabled in config
-  - `LeaseReconciliationHostedService` — stale leases, orphan runs, missing worktrees, merged tasks with active leases
+  - `LeaseReconciliationHostedService` — stale leases, orphan runs, merged tasks with active leases
 - On startup: marks interrupted executions; bootstraps runtime config from SQLite
 
 ### Persistence (`JoyZoning.Persistence`)

@@ -85,7 +85,7 @@ jz hermes tui             # spawns hermes --tui (Node Ink + Python gateway)
 | Layer | Shows |
 |-------|--------|
 | Hermes TUI / Manager Chat | Plans, tool streams, reasoning |
-| JoyZoning **Workspace** | Files on disk for the **selected card** (lease worktree after dispatch) |
+| JoyZoning **Workspace** | Files on disk for the **selected card** (card branch in canonical workspace after dispatch) |
 | JoyZoning **Timeline** | Same paths, persisted as `git.status.changed` / `workspace.file.changed` |
 
 `jz /workspace` with `/use <task>` hits the same APIs as the desktop — not a second copy of git state. See [workspace-state.md](workspace-state.md).
@@ -161,7 +161,7 @@ These rules are non-negotiable across desktop, REST, and `jz`:
 
 | Statement | Meaning |
 |-----------|---------|
-| Hermes can **think** and **act** as an agent worker | Tools, edits, and plans inside a lease worktree |
+| Hermes can **think** and **act** as an agent worker | Tools, edits, and plans in the lease workspace (card branch) |
 | JoyZoning decides what becomes **project state** | Kanban column, lease status, evidence rows |
 | `jz agent done` → **`ready_for_review` only** | Never `Complete` |
 | **`jz task complete --yes`** → human merge | Only path to Complete after verification |
@@ -244,7 +244,7 @@ JOYZONING_NO_TUI=1 jz --field .status task lease "$TASK_ID"
 | **Hermes** | Cognition cockpit — how agents think, talk, and use tools |
 | **JoyZoning** | Runtime kernel — what is allowed to become durable project state |
 | **`jz`** | Operator shell — human-supervised commands against the control plane |
-| **`jz agent`** | Constrained worker harness — inside a lease worktree only |
+| **`jz agent`** | Constrained worker harness — inside the lease workspace only |
 | **Kanban** | Scheduler — cards, dispatch, sync with Hermes board |
 | **Human merge** | Final authority — Complete after evidence and review |
 | **Workspace (1:1)** | One card → one folder — PR-style file review, not chat scrollback |

@@ -1,17 +1,17 @@
-# Worker worktree convergence
+# Worker convergence (canonical workspace)
 
-How parallel worker sandboxes relate to the **canonical session workspace**, what **accept result** (`POST …/lease/merge`) does today, and where conflicts appear.
+How parallel workers relate to the **canonical session workspace** on card branches, what **accept result** (`POST …/lease/merge`) does, and where conflicts appear. Philosophy: [philosophy.md](philosophy.md).
 
 **UI terminology:** Watch calls this **Accept result**, not “Approve merge”, until [real-git-convergence.md](real-git-convergence.md) is implemented.
 
 ## Mental model
 
 ```text
-MAIN WORKSPACE (session.WorkspaceRoot)
-  The real project checkout JoyZoning binds to the operator session.
+CANONICAL WORKSPACE (session.WorkspaceRoot)
+  The real project checkout — all JSDP roles and card leases execute here.
 
-WORKER WORKTREES ({root}/.joyzoning/worktrees/{segment})
-  Temporary sandboxes where Hermes/DietCode runs per card lease.
+CARD BRANCHES (joyzoning/card-{segment})
+  One branch per dispatched card; Hermes/DietCode edits on that branch.
 
 MERGE QUEUE (GET /api/sessions/{id}/merge-queue)
   Read model: ready / conflict / completed / revoked buckets + mergeReadiness.
@@ -20,19 +20,17 @@ REVIEW (Watch console + decision-preflight)
   Human gate before approve/revoke.
 
 ACCEPT RESULT (POST /api/tasks/{taskId}/lease/merge)
-  JoyZoning lease + task status transition — see §6 (not a git merge today).
+  JoyZoning lease + task status transition — see §6.
 
 REVOKE (POST /api/tasks/{taskId}/lease/revoke)
-  Lease → Revoked; worktree and mirror paths are preserved for inspection.
+  Lease → Revoked; git state and evidence preserved for inspection.
 ```
 
 ```text
-Worker A worktree ──┐
-Worker B worktree ──┼──> Merge queue ──> Human review ──> Main workspace (canonical)
-Worker C worktree ──┘         ▲                              ▲
-                              │                              │
-                         observability                  metadata on approve;
-                         + git diff in worktree          git merge not automated
+Worker A (card branch) ──┐
+Worker B (card branch) ──┼──> Merge queue ──> Human review ──> Canonical workspace
+Worker C (card branch) ──┘         ▲
+                              observability + git diff on workspace path
 ```
 
 ## Answers (audit checklist)

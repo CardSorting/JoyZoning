@@ -26,7 +26,7 @@ flowchart TB
   A --> CP
 ```
 
-**Important:** `jz agent` is for **workers inside a lease worktree** — not a replacement for the desktop. It cannot merge or Complete tasks.
+**Important:** `jz agent` is for **workers inside a lease** (canonical workspace, card branch) — not a replacement for the desktop. It cannot merge or Complete tasks.
 
 ---
 

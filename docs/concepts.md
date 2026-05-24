@@ -2,7 +2,7 @@
 
 JoyZoning is built around one idea: **software work with agents needs an operator**, not just another chat window. You remain accountable for what ships; agents get **bounded authority** inside leases you can audit, recover, and approve.
 
-This page is the conceptual spine. **Plain-language overview:** [what-is-joyzoning.md](what-is-joyzoning.md). **Hands-on setup:** [onboarding/README.md](onboarding/README.md). Implementation details: [architecture.md](architecture.md), [lease-lifecycle.md](lease-lifecycle.md), [hermes-integration.md](hermes-integration.md). **Terminal split (cognition vs authority):** [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md).
+This page is the conceptual spine. **Philosophy (canonical workspace + JSDP):** [philosophy.md](philosophy.md). **Plain-language overview:** [what-is-joyzoning.md](what-is-joyzoning.md). **Hands-on setup:** [onboarding/README.md](onboarding/README.md). Implementation: [architecture.md](architecture.md), [lease-lifecycle.md](lease-lifecycle.md), [jsdp.md](jsdp.md), [hermes-integration.md](hermes-integration.md). **Terminal split:** [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md).
 
 ---
 
@@ -10,7 +10,7 @@ This page is the conceptual spine. **Plain-language overview:** [what-is-joyzoni
 
 | Without an operator layer | With JoyZoning |
 |---------------------------|----------------|
-| Manager and worker agents share one chat or one terminal — context collides | **Manager** plans in chat; **executor** works in isolated worktrees |
+| Manager and worker agents share one chat or one terminal — context collides | **Manager** plans in chat; **executor** works on bounded branches in the **canonical workspace** |
 | “Done” means the model said so | **Done** means verification passed **and** a human merged |
 | Risky tool calls are invisible until something breaks | **Approvals** inbox + scoped grants |
 | Restarts lose track of in-flight runs | **SQLite + events** survive restarts; recovery flows |
@@ -27,7 +27,7 @@ JoyZoning is intentionally **multi-mode**. Users think differently when planning
 | Mode | Metaphor | Canonical state |
 |------|----------|-----------------|
 | **Planning** | Jira / Kanban | `WorkTask`, kanban sync |
-| **Execution** | Worker orchestration | leases, Hermes sessions, mirrors |
+| **Execution** | JSDP worker orchestration | leases, Hermes sessions, canonical workspace |
 | **Review** | GitHub PR | merge queue, verification, approve/revoke |
 | **Habitat** | Ambient (optional) | pet / atmosphere — not authoritative ops |
 
@@ -71,7 +71,7 @@ An **execution lease** is the unit of agent authority for one kanban card:
 
 | Lease carries | Why it matters |
 |---------------|----------------|
-| **Worktree path** | Agent edits are sandboxed under `.joyzoning/worktrees/<task-id>/` |
+| **Workspace path + branch** | Agent edits in `WorkspaceRoot` on `joyzoning/card-<task-id>` (canonical workspace) |
 | **Handoff packet** | Objective, acceptance criteria, suggested verify commands |
 | **Risk level** | Critical work needs explicit human approval per dispatch |
 | **Status machine** | Explicit transitions — no hidden “done” |
@@ -83,10 +83,10 @@ sequenceDiagram
   participant H as Human operator
   participant CP as Control plane
   participant A as Agent (DietCode / jz agent)
-  participant W as Worktree
+  participant W as Canonical workspace
 
   H->>CP: Dispatch task
-  CP->>W: Create lease + worktree
+  CP->>W: Create lease + card branch
   CP->>A: Hermes run (executor)
   A->>W: Code changes
   A->>CP: Verify commands + evidence
@@ -98,16 +98,16 @@ sequenceDiagram
 
 **Merge is the only door to Complete.** Agents may reach `ready_for_review`; they cannot call merge or set `WorkTaskStatus.Complete`. The same rule applies in the desktop UI, REST API, `jz`, and `jz agent` (enforced by `KanbanExecutionRules`, `AgentGuard`, and API 403s).
 
-### 4. One card → one folder (1:1 workspace state)
+### 4. One card → one workspace (1:1 inspection)
 
-Dispatch creates a **lease worktree**; the control plane resolves **one inspection path per kanban card**. Workspace, git porcelain, timeline events, and `GET /api/tasks/{id}/workspace/*` all use that path — the same contract as a **GitHub PR “Files changed”** tab tied to one issue.
+Dispatch creates a **lease** on branch `joyzoning/card-<task-id>` in the **session workspace**; the control plane resolves **one inspection path per kanban card**. Workspace, git porcelain, timeline events, and `GET /api/tasks/{id}/workspace/*` all use that path — the same contract as a **GitHub PR “Files changed”** tab tied to one issue.
 
-| You select | Inspected folder |
-|------------|------------------|
-| Card without active lease | Session workspace (project you opened) |
-| Dispatched card | `.joyzoning/worktrees/<task-id>/` |
+| You select | Inspected context |
+|------------|-------------------|
+| Card without active lease | Session workspace (default branch) |
+| Dispatched card | Same folder, branch `joyzoning/card-<id>` |
 
-Chat shows **intent**; Workspace shows **disk truth** for the selected card. Details: [workspace-state.md](workspace-state.md).
+Chat shows **intent**; Workspace shows **disk truth** for the selected card. Details: [workspace-state.md](workspace-state.md) · [philosophy.md](philosophy.md).
 
 ---
 
@@ -122,7 +122,7 @@ Think of two hats:
 
 This split is **intentional**. Autonomous agents are productive inside a lease; **accountability** stays with the human who merges. That is how JoyZoning scales to critical tasks (`risk: 3`) with a global cap on concurrent critical leases.
 
-`.joyzoning/context.json` in each worktree makes the rules visible to scripts and harnesses — not just documentation.
+`.joyzoning/context.json` in the workspace makes lease rules visible to scripts and harnesses — not just documentation.
 
 ---
 
@@ -143,7 +143,7 @@ JoyZoning **orchestrates**; Hermes **executes**. Neither duplicates the other.
 
 1. **Explicit state machines** — Leases and kanban columns have defined transitions; background reconciliation fixes orphans instead of hoping agents self-heal.  
 2. **Evidence over vibes** — Failed verification is stored; merge requires a passing report.  
-3. **Recoverability** — Revoke/block does not delete worktrees; recovery modes reopen or replace leases.  
+3. **Recoverability** — Revoke/block preserves git state and evidence; recovery reopens or replaces leases on the canonical workspace.  
 4. **One policy, many surfaces** — UI, API, and CLI share `KanbanExecutionOrchestrator`; no “back door” Complete.  
 5. **Complement, don’t replace** — Edit in VS Code / Cursor; supervise in JoyZoning.
 
@@ -170,7 +170,9 @@ JoyZoning **orchestrates**; Hermes **executes**. Neither duplicates the other.
 
 | Question | Doc |
 |----------|-----|
+| Why canonical workspace + JSDP? | [philosophy.md](philosophy.md) |
 | How does one card map to one folder? | [workspace-state.md](workspace-state.md) |
+| Sequential role delivery | [jsdp.md](jsdp.md) |
 | How do I install and run it? | [getting-started.md](getting-started.md) |
 | What is each lease state? | [lease-lifecycle.md](lease-lifecycle.md) |
 | How does Hermes connect? | [hermes-integration.md](hermes-integration.md) |

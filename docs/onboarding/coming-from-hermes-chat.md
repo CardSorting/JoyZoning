@@ -26,7 +26,7 @@ Old:  You ↔ Hermes chat ↔ your files
 New:  You ↔ JoyZoning ↔ Hermes
               ├─ Manager (plan)
               ├─ Kanban (track)
-              └─ Lease worktree (worker edits here)
+              └─ Card branch in canonical workspace (worker edits here)
 ```
 
 ---

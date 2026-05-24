@@ -41,7 +41,7 @@ Agents **cannot** jump directly to Merged or set kanban **Complete** without ver
 ```text
 1. Human: create task, optional kanban column moves
 2. Human: POST dispatch (critical → humanApprovedCritical)
-3. System:  lease=Leased → Running, worktree at .joyzoning/worktrees/<id>/
+3. System:  lease=Leased → Running, branch joyzoning/card-<id> in canonical workspace
 4. Agent:  jz agent start (writes context.json)
 5. Agent:  heartbeat, verify --cmd ..., agent done
 6. System:  lease=ReadyForReview, verification JSON on lease

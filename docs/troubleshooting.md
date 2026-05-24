@@ -89,7 +89,8 @@ Desktop: **Settings → Copy health report** (paste into issues or notes).
 |----------|------|
 | macOS DB | `~/Library/Application Support/JoyZoning/joyzoning.db` |
 | macOS onboarding | `~/Library/Application Support/JoyZoning/onboarding.json` |
-| Lease worktrees | `<workspace>/.joyzoning/worktrees/<task-id>/` |
+| Task workspace | `<workspaceRoot>` on branch `joyzoning/card-<task-id>` (canonical workspace) |
+| Legacy folders (safe to delete) | `<workspace>/.joyzoning/worktrees/`, `.joyzoning/live/` |
 
 To reset onboarding only: **Settings → Reset onboarding** (does not delete tasks DB).
 

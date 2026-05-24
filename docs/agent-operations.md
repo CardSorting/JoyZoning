@@ -42,7 +42,7 @@ JoyZoning answers those questions **about itself** through CLI commands, HTTP en
 
 | Surface | When to use |
 |---------|-------------|
-| **CLI** `./scripts/joyzoning` | Full context: git state, workspace root, lease worktree, verification |
+| **CLI** `./scripts/joyzoning` | Full context: git state, canonical workspace root, card branch, verification |
 | **HTTP** `/api/agent/*` | CLI not installed; control plane running |
 | **Cache** `.joyzoning/agent-manifest.json` | Offline; fingerprint still valid |
 | **Watch bootstrap** `/api/watch/bootstrap` → `agentOps` | UI-embedded agent hints |
@@ -160,7 +160,7 @@ Re-run `agent-manifest` when `doctor` reports `manifest_cache: warn`.
 2. `joyzoning snapshot --json`
 3. Report changed files, verification result, remaining risks
 
-### Task-bound work (lease worktree)
+### Task-bound work (canonical workspace)
 
 Use `joyzoning verify --cmd "..."` or `joyzoning task verify <id> --cmd "..."`.  
 Agents stop at **ReadyForReview**; humans own merge and Complete.

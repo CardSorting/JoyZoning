@@ -37,7 +37,7 @@ jz agent done
 jz task complete "$TASK" --yes   # merge, not skip verification
 ```
 
-**Desktop:** Kanban → select card → **Workspace** (1:1 lease worktree, PR-style diff) → **Merge** when `ready_for_review`. Execution is live context; Workspace is disk truth. [workspace-state.md](workspace-state.md)
+**Desktop:** Kanban → select card → **Workspace** (1:1 canonical workspace, PR-style diff) → **Merge** when `ready_for_review`. Execution is live context; Workspace is disk truth. [workspace-state.md](workspace-state.md)
 
 Script reference: `scripts/examples/agent-happy-path.sh`
 

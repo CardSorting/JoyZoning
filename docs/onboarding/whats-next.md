@@ -56,7 +56,7 @@ flowchart LR
 **You should see:**
 
 - Execution viewport shows steps  
-- Worktree at `<repo>/.joyzoning/worktrees/<task-id>/`  
+- Branch `joyzoning/card-<task-id>` in your project folder (canonical workspace)  
 - Timeline events (`lease.created`, `hermes.run.*`)
 
 **CLI equivalent:**
@@ -92,7 +92,7 @@ Same policy as messaging gateway — scoped grants reduce repeated prompts.
 
 ## Step 6 — Verify (proof before merge)
 
-Run checks **in the worktree** (desktop flow or CLI):
+Run checks **in the task workspace** (desktop flow or CLI):
 
 ```bash
 jz task verify "$TASK_ID" \
@@ -100,7 +100,7 @@ jz task verify "$TASK_ID" \
   --cmd "dotnet test"
 ```
 
-Or from inside worktree as agent:
+Or from inside the lease workspace as agent:
 
 ```bash
 jz agent verify --cmd "dotnet test"
@@ -139,7 +139,7 @@ jz task complete "$TASK_ID" --yes
 
 | Habit | Why |
 |-------|-----|
-| One active lease per card | Avoids conflicting worktrees |
+| One active lease per card | Avoids conflicting branches on the same workspace |
 | Verify before merge | Audit trail for “done” |
 | Low risk until process trusted | Critical cap = 1 global lease |
 | Import kanban when team uses Hermes board | Single source of truth |

@@ -1,5 +1,7 @@
 # Development guide
 
+**Product philosophy:** [philosophy.md](philosophy.md) — canonical workspace, JSDP, cognition vs authority.
+
 Contributing: [CONTRIBUTING.md](../CONTRIBUTING.md) (MIT license, PR expectations).
 
 ## Repository layout

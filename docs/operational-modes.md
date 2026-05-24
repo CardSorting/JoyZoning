@@ -20,7 +20,7 @@ Code registry: `JoyZoningOperationalModes` in `src/JoyZoning.Domain/Orchestratio
 Operators think differently at different times:
 
 - **Planning** — “What’s on the board? What should we pull next? Who owns this card?”
-- **Execution** — “What’s running? Which worker? Is the mirror healthy?”
+- **Execution** — “What’s running? Which worker? What changed in the workspace?”
 - **Review** — “What files changed? Did tests pass? Can I merge or should I revoke?”
 - **Habitat** — “Is anything on fire at a glance?” (supplementary, not authoritative)
 
@@ -40,7 +40,7 @@ Collapsing these into a single “dashboard” or a single card type creates the
 
 **Does not own:**
 
-- Worktree paths, mirror roots, or merge state (those belong to execution/review)
+- Workspace paths, lease state, or merge readiness (those belong to execution/review)
 - Human merge/revoke (review only)
 
 **Surfaces:**
@@ -97,7 +97,7 @@ Collapsing these into a single “dashboard” or a single card type creates the
 - `VerificationReport` on the lease (evidence for merge)
 - Human-only `POST .../lease/merge` and `POST .../lease/revoke`
 - Conflict visibility (overlap, git unmerged paths, failed verification)
-- Mirror/worktree paths **after** revoke or failure (never hidden for inspection)
+- Canonical workspace paths **after** revoke or failure (never hidden for inspection)
 
 **Does not own:**
 

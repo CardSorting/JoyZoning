@@ -2,7 +2,7 @@
 
 > **New onboarding hub:** Step-by-step guides, checklists, and non-technical paths live in **[onboarding/](onboarding/README.md)**. This page is the short overview; use the hub for install detail, CLI vs desktop, and troubleshooting playbooks.
 
-JoyZoning is a **desktop operator console** (and optional `jz` CLI) for running multi-agent workflows on one local **diet-hermes** install. You supervise a **Manager** session (planning) and **executor** sessions (DietCode runs) on the same gateway, coordinated through kanban and execution leases.
+JoyZoning is a **desktop operator console** (and optional `jz` CLI) for running multi-agent workflows on one local **diet-hermes** install. You supervise a **Manager** session (planning) and **executor** sessions (DietCode runs) on the same gateway, coordinated through kanban and execution leases in your **canonical workspace** (see [philosophy.md](philosophy.md)).
 
 ---
 
@@ -15,8 +15,9 @@ JoyZoning is a **desktop operator console** (and optional `jz` CLI) for running 
 | **Choosing desktop vs terminal** | [Choose your path](onboarding/choose-your-path.md) |
 | **From Hermes/ChatGPT chat only** | [Coming from Hermes chat](onboarding/coming-from-hermes-chat.md) |
 | **Installing from scratch** | [Installation guide](onboarding/installation.md) · [macOS](onboarding/platform-macos.md) · [Linux](onboarding/platform-linux.md) |
-| **Understanding the product** | [Before you begin](onboarding/before-you-begin.md) · [concepts.md](concepts.md) |
-| **Reviewing file changes before merge** | [workspace-state.md](workspace-state.md) (1:1 card → folder) |
+| **Understanding the product** | [philosophy.md](philosophy.md) · [Before you begin](onboarding/before-you-begin.md) · [concepts.md](concepts.md) |
+| **Sequential multi-role delivery** | [jsdp.md](jsdp.md) |
+| **Reviewing file changes before merge** | [workspace-state.md](workspace-state.md) (1:1 card → workspace) |
 | **Something failed** | [Setup troubleshooting trees](onboarding/troubleshooting-setup.md) · [troubleshooting.md](troubleshooting.md) |
 
 ---
