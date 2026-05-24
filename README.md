@@ -249,6 +249,7 @@ Legacy shell: `./scripts/role-chain-dispatch.sh --create --workspace … --progr
 
 | Learn… | Doc |
 |--------|-----|
+| **Whitepaper** (strategy + thesis) | [whitepaper.md](docs/whitepaper.md) |
 | **Strategy** (cockpit vs engine, pick a path) | [execution-paths.md](docs/execution-paths.md) |
 | **Cursor / IDE workflow** | [external-agent-jsdp.md](docs/external-agent-jsdp.md) |
 | **8-role programs** | [jsdp.md](docs/jsdp.md) |

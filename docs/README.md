@@ -37,6 +37,13 @@ flowchart TD
 
 **Big picture:** [execution-paths.md](execution-paths.md) · [philosophy.md](philosophy.md) · [what-is-joyzoning.md](what-is-joyzoning.md) · [concepts.md](concepts.md) · [jsdp.md](jsdp.md) · **[external-agent-jsdp.md](external-agent-jsdp.md)** · [operational-modes.md](operational-modes.md) · [faq.md](faq.md)
 
+### Concepts / Research
+
+| Doc | Audience |
+|-----|----------|
+| **[whitepaper.md](whitepaper.md)** | Conceptual framework (v1.2): mutation systems, convergence, reviewability, informational debt—JoyZoning as embodiment |
+| [whitepaper-summary.md](whitepaper-summary.md) | One-page digest of the whitepaper |
+
 ### Two execution paths (same merge gate)
 
 | Path | Doc | Typical start |
