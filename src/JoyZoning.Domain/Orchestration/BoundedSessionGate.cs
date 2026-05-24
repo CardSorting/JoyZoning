@@ -18,6 +18,10 @@ public static class BoundedSessionGate
         WorkTaskStatus.Verifying,
         WorkTaskStatus.NeedsApproval,
         WorkTaskStatus.Blocked,
+        WorkTaskStatus.HermesRunning,
+        WorkTaskStatus.ExternalInProgress,
+        WorkTaskStatus.ReadyForReview,
+        WorkTaskStatus.Verified,
     ];
 
     public sealed record PlanEntry(

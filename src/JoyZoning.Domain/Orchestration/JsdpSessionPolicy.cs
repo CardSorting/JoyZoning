@@ -34,4 +34,11 @@ public static class JsdpSessionPolicy
 
     public static string PlanRunSkipReason =>
         "Use `jz delivery-chain queue` or ./scripts/role-chain-dispatch.sh --next.";
+
+    /// <summary>External-agent bounded roles satisfy JSDP without a Hermes lease.</summary>
+    public static bool IsExternalBoundedExecution(WorkTask? task, OperatorSession? session) =>
+        RequiresEnforcement(session) && task?.TaskExecutionMode == TaskExecutionMode.ExternalAgent;
+
+    public static string ExternalExecutionHint =>
+        "External JSDP tasks use branch + review + merge gates; Hermes lease is not required.";
 }

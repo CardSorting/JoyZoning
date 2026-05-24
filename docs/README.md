@@ -32,7 +32,7 @@ flowchart TD
 | 3 | [Setup checklist](onboarding/setup-checklist.md) | 10 min |
 | 4 | [What's next](onboarding/whats-next.md) | 20 min |
 
-**Big picture:** [philosophy.md](philosophy.md) · [what-is-joyzoning.md](what-is-joyzoning.md) · [concepts.md](concepts.md) · [jsdp.md](jsdp.md) · [operational-modes.md](operational-modes.md) · [faq.md](faq.md)
+**Big picture:** [philosophy.md](philosophy.md) · [what-is-joyzoning.md](what-is-joyzoning.md) · [concepts.md](concepts.md) · [jsdp.md](jsdp.md) · [external-agent-jsdp.md](external-agent-jsdp.md) · [operational-modes.md](operational-modes.md) · [faq.md](faq.md)
 
 ### Understand workspace state (recommended)
 
@@ -69,6 +69,7 @@ Before your first **Merge**, read how one kanban card maps to one folder — the
 | **[AGENTS.md](../AGENTS.md)** | **Start here** — do not scan the repo |
 | **[agent-operations.md](agent-operations.md)** | Full agent ops layer reference |
 | [AGENT.md](AGENT.md) | Short agent contract |
+| [external-agent-jsdp.md](external-agent-jsdp.md) | External Cursor/Claude JSDP (no Hermes) |
 | [cli.md](cli.md#agent-operations-layer) | CLI command table |
 
 ### I run JoyZoning day to day
@@ -131,7 +132,7 @@ Also: [first-run-desktop](onboarding/first-run-desktop.md) · [api-keys-and-mode
 
 ## Core concepts (one paragraph)
 
-JoyZoning is a **governed execution runtime for AI-assisted software work**: chat is **cognition**, the **canonical workspace** is **truth**, and **you** merge when satisfied. Agents work in your real project folder on `joyzoning/card-<id>`; multi-role delivery follows **JSDP** (sequential roles, mandatory accept-merge). It is **not** an IDE and **not** a second Hermes. [philosophy.md](philosophy.md) · [what-is-joyzoning.md](what-is-joyzoning.md) · [concepts.md](concepts.md).
+JoyZoning is a **governed execution runtime for AI-assisted software work**: chat is **cognition**, the **canonical workspace** is **truth**, and **you** merge when satisfied. Agents work in your real project folder on `joyzoning/card-<id>`; multi-role delivery follows **JSDP** (sequential roles, mandatory accept-merge). **Hermes is optional** — [external-agent JSDP](external-agent-jsdp.md) supports Cursor, Claude Code, and manual edits with the same merge gate. It is **not** an IDE and **not** a second Hermes. [philosophy.md](philosophy.md) · [what-is-joyzoning.md](what-is-joyzoning.md) · [concepts.md](concepts.md).
 
 ---
 
@@ -178,6 +179,7 @@ JoyZoning.App          →  http://127.0.0.1:9470  →  JoyZoning.ControlPlane
 | [what-is-joyzoning.md](what-is-joyzoning.md) | Everyone — plain-language product explanation |
 | [concepts.md](concepts.md) | Everyone |
 | [jsdp.md](jsdp.md) | Operators / agents — sequential delivery protocol |
+| [external-agent-jsdp.md](external-agent-jsdp.md) | External Cursor/Claude/manual JSDP (no Hermes lease) |
 | [configuration.md](configuration.md) | Operators / ops |
 | [control-plane-api.md](control-plane-api.md) | Integrators |
 | [desktop-ui.md](desktop-ui.md) | Desktop users |

@@ -59,6 +59,7 @@ builder.Services.AddScoped<WorkspaceWorkerObservabilityService>();
 builder.Services.AddScoped<LeaseRuntimeService>();
 builder.Services.AddScoped<AuthorityAutopilotService>();
 builder.Services.AddScoped<KanbanExecutionOrchestrator>();
+builder.Services.AddScoped<ExternalTaskExecutionService>();
 builder.Services.AddScoped<OrchestrationService>();
 builder.Services.AddScoped<WorkspaceSessionConsolidator>();
 builder.Services.AddSingleton<WorkspaceIdentityCoordinator>();

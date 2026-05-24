@@ -9,9 +9,15 @@ internal static class GitTestHelper
         Run("init", root);
         Run("config user.email test@joyzoning.local", root);
         Run("config user.name JoyZoning Test", root);
-        File.WriteAllText(Path.Combine(root, ".gitkeep"), "");
+        File.WriteAllText(Path.Combine(root, "README.md"), "joyzoning test repo");
         Run("add .", root);
         Run("commit -m init", root);
+    }
+
+    public static void CommitAll(string root, string message = "test commit")
+    {
+        Run("add -A", root);
+        Run($"commit -m {message} --allow-empty", root);
     }
 
     private static void Run(string args, string cwd)

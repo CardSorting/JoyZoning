@@ -62,27 +62,65 @@ function WorkerCard({
           </p>
         </div>
         <span className="shrink-0 rounded-full border border-campfire-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-campfire-muted">
-          {worker.leaseStatus}
+          {worker.taskExecutionMode === "ExternalAgent"
+            ? `External: ${worker.externalAgentName ?? worker.executionDriver ?? "agent"}`
+            : worker.leaseStatus}
         </span>
       </div>
 
       <dl className="mt-3 grid gap-1.5 text-[11px] text-campfire-muted">
-        <div className="flex justify-between gap-2">
-          <dt>Execution</dt>
-          <dd className="font-mono text-campfire-text">
-            {worker.executionSessionId ? shortId(worker.executionSessionId) : "—"}
-          </dd>
-        </div>
-        <div className="flex justify-between gap-2">
-          <dt>Hermes session</dt>
-          <dd className="truncate font-mono text-campfire-text">
-            {worker.hermesSessionId ? shortId(worker.hermesSessionId) : "—"}
-          </dd>
-        </div>
-        <div className="flex justify-between gap-2">
-          <dt>Lease</dt>
-          <dd className="font-mono">{shortId(worker.leaseId)}</dd>
-        </div>
+        {worker.taskExecutionMode === "ExternalAgent" ? (
+          <>
+            <div className="flex justify-between gap-2">
+              <dt>Execution</dt>
+              <dd className="text-campfire-text">
+                External: {worker.externalAgentName ?? worker.executionDriver ?? "agent"}
+              </dd>
+            </div>
+            {worker.branchName && (
+              <div className="flex justify-between gap-2">
+                <dt>Branch</dt>
+                <dd className="font-mono text-campfire-text">{worker.branchName}</dd>
+              </div>
+            )}
+            {worker.lastWorkspaceScanAt && (
+              <div className="flex justify-between gap-2">
+                <dt>Last scan</dt>
+                <dd className="font-mono text-campfire-text">
+                  {new Date(worker.lastWorkspaceScanAt).toLocaleString()}
+                </dd>
+              </div>
+            )}
+            {worker.changedFiles && worker.changedFiles.length > 0 && (
+              <div>
+                <dt>Changed files</dt>
+                <dd className="mt-0.5 max-h-20 overflow-y-auto font-mono text-[10px] text-campfire-text">
+                  {worker.changedFiles.slice(0, 8).join(", ")}
+                  {worker.changedFiles.length > 8 ? ` (+${worker.changedFiles.length - 8})` : ""}
+                </dd>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex justify-between gap-2">
+              <dt>Execution</dt>
+              <dd className="font-mono text-campfire-text">
+                {worker.executionSessionId ? shortId(worker.executionSessionId) : "Managed by Hermes"}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt>Hermes session</dt>
+              <dd className="truncate font-mono text-campfire-text">
+                {worker.hermesSessionId ? shortId(worker.hermesSessionId) : "—"}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt>Lease</dt>
+              <dd className="font-mono">{shortId(worker.leaseId)}</dd>
+            </div>
+          </>
+        )}
       </dl>
 
       {worker.workspacePath && (

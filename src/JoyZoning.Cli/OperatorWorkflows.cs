@@ -50,16 +50,54 @@ public static class OperatorWorkflows
         Guid? explicitTaskId,
         CancellationToken cancellationToken = default)
     {
-        var ctx = await LeaseContextResolver.ResolveAsync(client, args, explicitTaskId, cancellationToken);
-        var commands = args.OptAll("--cmd");
-        var workDir = args.Opt("--workdir") ?? ctx.WorktreePath;
+        Guid taskId;
+        string workDir;
+        Guid sessionId;
+
+        if (explicitTaskId is { } explicitId)
+        {
+            var taskResult = await client.GetTaskAsync(explicitId);
+            if (taskResult.IsSuccess && taskResult.Body is not null
+                && taskResult.Body.Value.TryGetProperty("taskExecutionMode", out var mode)
+                && mode.GetInt32() == (int)TaskExecutionMode.ExternalAgent)
+            {
+                taskId = explicitId;
+                sessionId = taskResult.Body.Value.TryGetProperty("operatorSessionId", out var sid)
+                    && Guid.TryParse(sid.GetString(), out var parsed)
+                    ? parsed
+                    : throw new CliUsageException("External task missing operatorSessionId.");
+                workDir = taskResult.Body.Value.TryGetProperty("workspacePath", out var wp)
+                    && wp.ValueKind == JsonValueKind.String
+                    ? wp.GetString() ?? string.Empty
+                    : args.Opt("--workdir") ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(workDir))
+                    throw new CliUsageException("External task has no workspace path; pass --workdir.");
+            }
+            else
+            {
+                var ctx = await LeaseContextResolver.ResolveByTaskAsync(client, explicitId, cancellationToken);
+                taskId = ctx.TaskId;
+                sessionId = ctx.SessionId;
+                workDir = args.Opt("--workdir") ?? ctx.WorktreePath;
+            }
+        }
+        else
+        {
+            var ctx = await LeaseContextResolver.ResolveAsync(client, args, explicitTaskId, cancellationToken);
+            taskId = ctx.TaskId;
+            sessionId = ctx.SessionId;
+            workDir = args.Opt("--workdir") ?? ctx.WorktreePath;
+        }
+
         if (string.IsNullOrWhiteSpace(workDir))
-            throw new CliUsageException("No worktree path on lease; pass --workdir.");
+            throw new CliUsageException("No worktree path; pass --workdir.");
+
+        var commands = args.OptAll("--cmd");
 
         var runs = await VerificationRunner.RunCommandsAsync(workDir, commands, cancellationToken);
-        var report = VerificationRunner.BuildReport(ctx.TaskId, ctx.SessionId, runs);
+        var report = VerificationRunner.BuildReport(taskId, sessionId, runs);
         var supersede = args.Has("--supersede");
-        var api = await client.SubmitVerificationAsync(ctx.TaskId, report, supersede);
+        var api = await client.SubmitVerificationAsync(taskId, report, supersede);
 
         if (!runs.All(r => r.Passed))
         {
@@ -72,11 +110,21 @@ public static class OperatorWorkflows
         return (api, runs);
     }
 
-    public static Task<CliHttpResult> CompleteTaskAsync(
+    public static async Task<CliHttpResult> CompleteTaskAsync(
         JoyZoningCliClient client,
         CliArgs args,
-        Guid taskId) =>
-        client.MergeLeaseAsync(taskId);
+        Guid taskId)
+    {
+        var task = await client.GetTaskAsync(taskId);
+        if (task.IsSuccess && task.Body is not null
+            && task.Body.Value.TryGetProperty("taskExecutionMode", out var mode)
+            && mode.GetInt32() == (int)TaskExecutionMode.ExternalAgent)
+        {
+            return await client.CompleteExternalTaskAsync(taskId, operatorApproved: true);
+        }
+
+        return await client.MergeLeaseAsync(taskId);
+    }
 
     public static async Task<CliHttpResult> FailTaskAsync(
         JoyZoningCliClient client,

@@ -1,3 +1,4 @@
+using JoyZoning.Adapters.Workspace;
 using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Entities;
 using JoyZoning.Domain.Enums;
@@ -137,6 +138,19 @@ public sealed class WorkspaceWorkerObservabilityService
                 cancellationToken));
         }
 
+        foreach (var task in allTasks.Where(t =>
+                     t.TaskExecutionMode == TaskExecutionMode.ExternalAgent
+                     && t.Status is WorkTaskStatus.ExternalInProgress
+                         or WorkTaskStatus.ReadyForReview
+                         or WorkTaskStatus.Verified
+                         or WorkTaskStatus.Blocked))
+        {
+            if (workers.Any(w => w.TaskId == task.Id))
+                continue;
+
+            workers.Add(BuildExternalWorkerEntry(task));
+        }
+
         var profile = _autopilot.ResolveProfile(session);
         var sessionAuthority = new SessionAuthoritySnapshot(
             profile.ToString(),
@@ -240,5 +254,61 @@ public sealed class WorkspaceWorkerObservabilityService
             AuthorityProfileSlug = profileSlug,
             Authority = authority,
         };
+    }
+
+    private static ParallelWorkerEntry BuildExternalWorkerEntry(WorkTask task)
+    {
+        var mergeState = task.Status switch
+        {
+            WorkTaskStatus.ReadyForReview or WorkTaskStatus.Verified => "ready_to_merge",
+            WorkTaskStatus.ExternalInProgress => "external_in_progress",
+            _ => "external_blocked",
+        };
+
+        var changed = TaskGitWorkspace.DeserializeChangedFiles(task.ChangedFilesJson);
+        var verificationLabel = task.ExternalVerificationStatus.ToString();
+        var decision = new OperatorDecisionSummary(
+            task.Id,
+            task.Title,
+            null,
+            Guid.Empty,
+            mergeState,
+            changed.Count,
+            changed.Take(12).ToList(),
+            verificationLabel,
+            "none",
+            null,
+            task.LastObservedCommit,
+            task.WorkspacePath,
+            new OperatorRiskFlags(false, false, false, task.HasUncommittedChanges, false, false, false, false));
+
+        return new ParallelWorkerEntry(
+            TaskId: task.Id,
+            TaskTitle: task.Title,
+            ExecutionSessionId: null,
+            LeaseId: Guid.Empty,
+            HermesSessionId: null,
+            WorkspacePath: task.WorkspacePath,
+            KanbanRevision: task.KanbanRevision,
+            KanbanPushedRevision: task.KanbanPushedRevision,
+            KanbanStatus: task.Status.ToString(),
+            LeaseStatus: "external",
+            MergeState: mergeState,
+            MergeReadiness: null,
+            MergeConflict: null,
+            DecisionSummary: decision,
+            ApproveGuardrails: new OperatorActionGuardrails("accept", false, false, Array.Empty<string>(), Array.Empty<string>()),
+            RevokeGuardrails: new OperatorActionGuardrails("revoke", true, false, Array.Empty<string>(), ["External tasks are not lease-backed."]),
+            RecommendedModeSlug: "execution",
+            AvailableModeTransitions: Array.Empty<ModeTransitionHint>(),
+            AuthorityProfileSlug: string.Empty,
+            Authority: null,
+            TaskExecutionMode: task.TaskExecutionMode,
+            ExecutionDriver: task.ExecutionDriver,
+            ExternalAgentName: task.ExternalAgentName,
+            BranchName: task.BranchName,
+            LastWorkspaceScanAt: task.LastWorkspaceScanAt,
+            ChangedFiles: changed,
+            GeneratedPrompt: task.GeneratedPromptText);
     }
 }

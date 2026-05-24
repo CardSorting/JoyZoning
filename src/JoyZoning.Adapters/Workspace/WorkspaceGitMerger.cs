@@ -69,6 +69,26 @@ public sealed class WorkspaceGitMerger : IWorkspaceGitMerger
         if (destPrevHead is null)
             return Fail(StrategySquashBranch, "Could not resolve HEAD in canonical workspace.");
 
+        if (JsdpWorkspaceExecution.IsCanonicalWorktree(dest, worktree))
+        {
+            var onBranch = destBranchName?.Trim();
+            if (string.Equals(onBranch, branch, StringComparison.Ordinal))
+            {
+                var changed = await GitWorkspaceStatus.TryListChangedFilesAsync(dest, cancellationToken);
+                return Success(
+                    StrategyCanonicalInPlace,
+                    worktree,
+                    branch,
+                    destPrevHead,
+                    dest,
+                    destBranchName,
+                    destPrevHead,
+                    destPrevHead,
+                    changed.Files.Select(f => f.Path).ToList(),
+                    completedAt);
+            }
+        }
+
         if (!request.AllowDirtyDestination)
         {
             var dirty = await GitWorkspaceStatus.TryListChangedFilesAsync(dest, cancellationToken);

@@ -63,6 +63,30 @@ public sealed class JoyZoningCliClient : IDisposable
     public Task<CliHttpResult> GetDeliveryChainQueueAsync(Guid chainId) =>
         GetAsync($"api/delivery-chains/{chainId}/queue");
 
+    public Task<CliHttpResult> DeliveryChainNextExternalAsync(Guid chainId, string agent) =>
+        PostJsonAsync($"api/delivery-chains/{chainId}/next-external", new { agent });
+
+    public Task<CliHttpResult> DeliveryChainPromptAsync(Guid chainId) =>
+        GetAsync($"api/delivery-chains/{chainId}/prompt");
+
+    public Task<CliHttpResult> StartExternalTaskAsync(Guid taskId, string agent) =>
+        PostJsonAsync($"api/tasks/{taskId}/external/start", new { agent });
+
+    public Task<CliHttpResult> GetExternalTaskPromptAsync(Guid taskId) =>
+        GetAsync($"api/tasks/{taskId}/external/prompt");
+
+    public Task<CliHttpResult> GetExternalTaskStatusAsync(Guid taskId, bool refresh = false) =>
+        GetAsync($"api/tasks/{taskId}/external/status?refresh={refresh.ToString().ToLowerInvariant()}");
+
+    public Task<CliHttpResult> GetTaskWorkspaceStatusAsync(Guid taskId) =>
+        GetAsync($"api/tasks/{taskId}/workspace/status");
+
+    public Task<CliHttpResult> MarkExternalReadyForReviewAsync(Guid taskId) =>
+        PostEmptyAsync($"api/tasks/{taskId}/external/ready-for-review");
+
+    public Task<CliHttpResult> CompleteExternalTaskAsync(Guid taskId, bool operatorApproved, bool alreadyMerged = false) =>
+        PostJsonAsync($"api/tasks/{taskId}/external/complete", new { operatorApproved, alreadyMerged });
+
     public Task<CliHttpResult> CreateSessionAsync(string name, string workspaceRoot, string? hermesProfile) =>
         PostJsonAsync("api/sessions", new { name, workspaceRoot, hermesProfile });
 

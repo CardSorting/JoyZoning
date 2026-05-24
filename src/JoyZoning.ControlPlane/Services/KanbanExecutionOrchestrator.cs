@@ -579,6 +579,12 @@ public class KanbanExecutionOrchestrator
             if (string.IsNullOrWhiteSpace(session.WorkspaceRoot) || !Directory.Exists(session.WorkspaceRoot))
                 throw LeaseOrchestrationException.Conflict("Canonical session workspace is missing.");
 
+            if (JsdpWorkspaceExecution.IsCanonicalWorktree(session.WorkspaceRoot, lease.WorktreePath)
+                && !string.IsNullOrWhiteSpace(lease.BranchName))
+            {
+                await TaskGitWorkspace.EnsureBranchAsync(lease.WorktreePath, lease.BranchName, cancellationToken);
+            }
+
             var request = new WorkspaceConvergenceRequest(
                 session.WorkspaceRoot,
                 lease.WorktreePath,

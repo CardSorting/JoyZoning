@@ -190,7 +190,9 @@ public static class RoleDeliveryChainGate
             ? steps.FirstOrDefault(s => s.SessionId == nextSessionId)
             : null;
         var currentStep = steps.FirstOrDefault(s => s.ActiveLease)
-            ?? steps.FirstOrDefault(s => s.TaskStatus is WorkTaskStatus.InProgress or WorkTaskStatus.Verifying or WorkTaskStatus.NeedsApproval or WorkTaskStatus.Blocked);
+            ?? steps.FirstOrDefault(s => s.TaskStatus is WorkTaskStatus.InProgress or WorkTaskStatus.Verifying
+                or WorkTaskStatus.NeedsApproval or WorkTaskStatus.Blocked or WorkTaskStatus.ExternalInProgress
+                or WorkTaskStatus.ReadyForReview or WorkTaskStatus.Verified or WorkTaskStatus.HermesRunning);
         var chainBlockReason = nextStep?.Dispatchable == true
             ? null
             : nextStep?.BlockReason ?? currentStep?.BlockReason;
@@ -218,7 +220,9 @@ public static class RoleDeliveryChainGate
         string? chainBlockReason)
     {
         var current = steps.FirstOrDefault(s => s.ActiveLease)
-            ?? steps.FirstOrDefault(s => s.TaskStatus is WorkTaskStatus.InProgress or WorkTaskStatus.Verifying or WorkTaskStatus.NeedsApproval or WorkTaskStatus.Blocked);
+            ?? steps.FirstOrDefault(s => s.TaskStatus is WorkTaskStatus.InProgress or WorkTaskStatus.Verifying
+                or WorkTaskStatus.NeedsApproval or WorkTaskStatus.Blocked or WorkTaskStatus.ExternalInProgress
+                or WorkTaskStatus.ReadyForReview or WorkTaskStatus.Verified or WorkTaskStatus.HermesRunning);
         var prior = current is not null
             ? steps.Where(s => s.Sequence < current.Sequence).OrderByDescending(s => s.Sequence).FirstOrDefault()
             : nextStep is not null
@@ -267,7 +271,8 @@ public static class RoleDeliveryChainGate
             return "waiting_accept_merge";
         if (blockReason?.Contains("merge gate closed", StringComparison.OrdinalIgnoreCase) == true)
             return "closed";
-        if (task?.Status is WorkTaskStatus.InProgress or WorkTaskStatus.Verifying or WorkTaskStatus.NeedsApproval)
+        if (task?.Status is WorkTaskStatus.InProgress or WorkTaskStatus.Verifying or WorkTaskStatus.NeedsApproval
+            or WorkTaskStatus.ExternalInProgress or WorkTaskStatus.ReadyForReview or WorkTaskStatus.Verified)
             return "waiting_accept_merge";
         return blockReason is null ? "open" : "closed";
     }
@@ -283,10 +288,14 @@ public static class RoleDeliveryChainGate
             return null;
         if (activeLease?.Status == ExecutionLeaseStatus.ReadyForReview || task?.Status == WorkTaskStatus.NeedsApproval)
             return "Review worker output and accept-merge into canonical workspace.";
+        if (task?.Status == WorkTaskStatus.ExternalInProgress)
+            return "Edit in external agent, then: jz task mark-ready <task-id>";
+        if (task?.Status is WorkTaskStatus.ReadyForReview or WorkTaskStatus.Verified)
+            return "Verify and complete: jz task verify <task-id> --cmd \"...\" then jz task complete <task-id> --yes";
         if (activeLease is not null)
             return $"Monitor running lease ({activeLease.Status}) or revoke if stale.";
         if (dispatchable)
-            return "Dispatch this role (--next).";
+            return "Dispatch this role (jz delivery-chain next --external --agent cursor).";
         return blockReason;
     }
 

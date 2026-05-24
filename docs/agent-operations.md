@@ -96,7 +96,10 @@ Dev wrapper: `./scripts/joyzoning` (uses `dist/jz-publish` when present)
 | Command | Purpose |
 |---------|---------|
 | `plan "<goal>" --session <guid>` | Create a task from a goal string |
-| `run <task-id>` | Dispatch and run a task lease |
+| `run <task-id>` | Dispatch and run a task lease (managed) |
+| `task start-external <id> --agent cursor` | External JSDP — no lease ([external-agent-jsdp.md](external-agent-jsdp.md)) |
+| `task prompt / status / mark-ready / complete` | External workflow gates |
+| `delivery-chain create \| queue \| next --external` | Sequential JSDP chain |
 | `task list / read / verify` | Full task workflow (see [cli.md](cli.md)) |
 
 ---

@@ -429,6 +429,72 @@ public static class ApiEndpoints
             return Results.Ok(RoleDeliveryChainApiMapper.ToJson(queue));
         });
 
+        app.MapPost("/api/delivery-chains/{id:guid}/next-external", async (
+            Guid id,
+            DeliveryChainExternalNextRequest req,
+            OrchestrationService orch) =>
+        {
+            try
+            {
+                var result = await orch.DispatchDeliveryChainExternalNextAsync(id, req.Agent);
+                return Results.Ok(new
+                {
+                    roleName = result.Session.Name,
+                    taskId = result.Task.Id,
+                    branchName = result.BranchName,
+                    workspacePath = result.WorkspacePath,
+                    nextHumanAction = result.NextHumanAction,
+                    prompt = result.Prompt,
+                    executionDriver = result.Task.ExecutionDriver,
+                    taskExecutionMode = result.Task.TaskExecutionMode,
+                    status = result.Task.Status,
+                });
+            }
+            catch (Exception ex)
+            {
+                return LeaseApiResults.FromException(ex);
+            }
+        });
+
+        app.MapGet("/api/delivery-chains/{id:guid}/prompt", async (
+            Guid id,
+            IOperatorSessionRepository sessions,
+            IWorkTaskRepository tasks,
+            IExecutionLeaseRepository leases,
+            ExternalTaskExecutionService external,
+            IOptions<LeaseRuntimeOptions> leaseOptions) =>
+        {
+            var chainSessions = await sessions.ListByDeliveryChainIdAsync(id);
+            if (chainSessions.Count == 0)
+                return Results.NotFound();
+
+            var chainTasks = new List<WorkTask>();
+            foreach (var chainSession in chainSessions)
+                chainTasks.AddRange(await tasks.ListBySessionAsync(chainSession.Id));
+
+            var chainLeases = new List<ExecutionLease>();
+            foreach (var chainTask in chainTasks)
+                chainLeases.AddRange(await leases.ListByTaskIdAsync(chainTask.Id));
+
+            var queue = RoleDeliveryChainGate.BuildQueue(
+                id, chainSessions[0].WorkspaceRoot, chainSessions, chainTasks, chainLeases, leaseOptions.Value);
+
+            var taskId = queue.NextTaskId
+                ?? chainTasks.FirstOrDefault(t => t.Status == WorkTaskStatus.ExternalInProgress)?.Id;
+            if (taskId is null)
+                return Results.Json(new { error = "no_active_role", message = queue.BlockReason }, statusCode: 409);
+
+            try
+            {
+                var prompt = await external.GetPromptAsync(taskId.Value);
+                return Results.Ok(new { taskId, prompt });
+            }
+            catch (Exception ex)
+            {
+                return LeaseApiResults.FromException(ex);
+            }
+        });
+
         app.MapPost("/api/sessions/{id:guid}/authority/reconcile", async (
             Guid id,
             AuthorityAutopilotService autopilot,
@@ -711,7 +777,9 @@ public static class ApiEndpoints
         app.MapPost("/api/tasks/{id:guid}/verification", async (
             Guid id,
             SubmitVerificationRequest req,
-            KanbanExecutionOrchestrator exec) =>
+            IWorkTaskRepository tasks,
+            KanbanExecutionOrchestrator exec,
+            ExternalTaskExecutionService external) =>
         {
             try
             {
@@ -719,6 +787,10 @@ public static class ApiEndpoints
                     return Results.Json(
                         new { error = "lease_invalid_request", message = "commandsRun is required." },
                         statusCode: 400);
+
+                var task = await tasks.GetByIdAsync(id);
+                if (task?.TaskExecutionMode == TaskExecutionMode.ExternalAgent)
+                    return Results.Ok(await external.SubmitVerificationAsync(id, req.Report));
 
                 if (req.Report.AllCommandsPassed)
                     return Results.Ok(await exec.SubmitVerificationAsync(id, req.Report, req.Supersede));
@@ -764,6 +836,131 @@ public static class ApiEndpoints
         {
             var result = await orch.ImportKanbanTasksAsync(req.SessionId);
             return Results.Ok(result);
+        });
+
+        app.MapPost("/api/tasks/{id:guid}/external/start", async (
+            Guid id,
+            StartExternalTaskRequest req,
+            ExternalTaskExecutionService external) =>
+        {
+            try
+            {
+                var result = await external.StartExternalAsync(id, req.Agent);
+                return Results.Ok(new
+                {
+                    roleName = result.Session.Name,
+                    taskId = result.Task.Id,
+                    branchName = result.BranchName,
+                    workspacePath = result.WorkspacePath,
+                    nextHumanAction = result.NextHumanAction,
+                    prompt = result.Prompt,
+                    status = result.Task.Status,
+                    executionDriver = result.Task.ExecutionDriver,
+                    taskExecutionMode = result.Task.TaskExecutionMode,
+                });
+            }
+            catch (Exception ex)
+            {
+                return LeaseApiResults.FromException(ex);
+            }
+        });
+
+        app.MapGet("/api/tasks/{id:guid}/external/prompt", async (
+            Guid id,
+            ExternalTaskExecutionService external) =>
+        {
+            try
+            {
+                var prompt = await external.GetPromptAsync(id);
+                return Results.Ok(new { taskId = id, prompt });
+            }
+            catch (Exception ex)
+            {
+                return LeaseApiResults.FromException(ex);
+            }
+        });
+
+        app.MapGet("/api/tasks/{id:guid}/external/status", async (
+            Guid id,
+            bool? refresh,
+            ExternalTaskExecutionService external) =>
+        {
+            try
+            {
+                var status = await external.GetStatusAsync(id, refresh == true);
+                return Results.Ok(MapExternalStatus(status));
+            }
+            catch (Exception ex)
+            {
+                return LeaseApiResults.FromException(ex);
+            }
+        });
+
+        app.MapGet("/api/tasks/{id:guid}/workspace/status", async (
+            Guid id,
+            ExternalTaskExecutionService external) =>
+        {
+            try
+            {
+                var status = await external.GetStatusAsync(id, refreshWorkspace: true);
+                return Results.Ok(MapWorkspaceStatus(status));
+            }
+            catch (Exception ex)
+            {
+                return LeaseApiResults.FromException(ex);
+            }
+        });
+
+        app.MapPost("/api/tasks/{id:guid}/external/ready-for-review", async (
+            Guid id,
+            ExternalTaskExecutionService external) =>
+        {
+            try
+            {
+                var task = await external.MarkReadyForReviewAsync(id);
+                return Results.Ok(task);
+            }
+            catch (Exception ex)
+            {
+                return LeaseApiResults.FromException(ex);
+            }
+        });
+
+        app.MapPost("/api/tasks/{id:guid}/external/verify", async (
+            Guid id,
+            SubmitVerificationRequest req,
+            ExternalTaskExecutionService external) =>
+        {
+            try
+            {
+                if (req.Report.CommandsRun.Count == 0)
+                    return Results.Json(
+                        new { error = "external_task_invalid_request", message = "commandsRun is required." },
+                        statusCode: 400);
+
+                return Results.Ok(await external.SubmitVerificationAsync(id, req.Report));
+            }
+            catch (Exception ex)
+            {
+                return LeaseApiResults.FromException(ex);
+            }
+        });
+
+        app.MapPost("/api/tasks/{id:guid}/external/complete", async (
+            Guid id,
+            ExternalTaskCompleteRequest? req,
+            ExternalTaskExecutionService external) =>
+        {
+            try
+            {
+                var approved = req?.OperatorApproved == true;
+                return Results.Ok(await external.CompleteExternalAsync(
+                    id, approved, req?.AlreadyMerged == true));
+            }
+            catch (Exception ex)
+            {
+                return LeaseApiResults.FromException(ex);
+            }
         });
 
         app.MapPost("/api/tasks/{id:guid}/dispatch", async (
@@ -1129,6 +1326,81 @@ public static class ApiEndpoints
             });
         });
     }
+
+    private static object MapExternalStatus(ExternalTaskStatusResponse status) => new
+    {
+        taskId = status.TaskId,
+        status = status.Status,
+        taskExecutionMode = status.TaskExecutionMode,
+        executionDriver = status.ExecutionDriver,
+        externalAgentName = status.ExternalAgentName,
+        branchName = status.BranchName,
+        workspacePath = status.WorkspacePath,
+        startedExternallyAt = status.StartedExternallyAt,
+        readyForReviewAt = status.ReadyForReviewAt,
+        lastWorkspaceScanAt = status.LastWorkspaceScanAt,
+        verificationStatus = status.VerificationStatus,
+        mergeRequired = status.MergeRequired,
+        externalMergeCompleted = status.ExternalMergeCompleted,
+        blockedReason = status.BlockedReason,
+        readyForReviewAllowed = status.Status == WorkTaskStatus.ExternalInProgress
+            && status.Workspace?.BranchMatches == true
+            && status.Workspace?.HasChanges == true,
+        workspace = status.Workspace is null ? null : MapWorkspaceScan(status.Workspace),
+    };
+
+    private static object MapWorkspaceStatus(ExternalTaskStatusResponse status)
+    {
+        var scan = status.Workspace ?? new TaskWorkspaceScanResult(
+            status.TaskId,
+            status.WorkspacePath ?? string.Empty,
+            status.BranchName,
+            null,
+            false,
+            false,
+            Array.Empty<string>(),
+            null,
+            status.LastWorkspaceScanAt ?? DateTimeOffset.UtcNow,
+            false,
+            Array.Empty<string>(),
+            Array.Empty<string>());
+
+        return new
+        {
+            taskId = status.TaskId,
+            workspacePath = scan.WorkspacePath,
+            branchName = scan.ExpectedBranchName,
+            currentBranch = scan.CurrentBranch,
+            branchMatches = scan.BranchMatches,
+            hasChanges = scan.HasChanges,
+            changedFiles = scan.ChangedFiles,
+            lastCommit = scan.LastCommit,
+            lastScanAt = scan.ScannedAt,
+            executionDriver = status.ExecutionDriver,
+            taskExecutionMode = status.TaskExecutionMode,
+            status = status.Status,
+            readyForReviewAllowed = status.Status == WorkTaskStatus.ExternalInProgress
+                && scan.BranchMatches
+                && scan.HasChanges,
+            blockedReason = status.BlockedReason,
+        };
+    }
+
+    private static object MapWorkspaceScan(TaskWorkspaceScanResult scan) => new
+    {
+        taskId = scan.TaskId,
+        workspacePath = scan.WorkspacePath,
+        branchName = scan.ExpectedBranchName,
+        currentBranch = scan.CurrentBranch,
+        branchMatches = scan.BranchMatches,
+        hasChanges = scan.HasChanges,
+        changedFiles = scan.ChangedFiles,
+        lastCommit = scan.LastCommit,
+        lastScanAt = scan.ScannedAt,
+        hasUncommittedChanges = scan.HasUncommittedChanges,
+        stagedFiles = scan.StagedFiles,
+        untrackedFiles = scan.UntrackedFiles,
+    };
 }
 
 public record OpenWorkspacePathRequest(string Path);
@@ -1146,6 +1418,9 @@ public record CreateDeliveryChainRoleRequest(
     string? Description = null,
     AgentKind AssignedAgent = AgentKind.DietCode,
     RiskLevel Risk = RiskLevel.Low);
+public record DeliveryChainExternalNextRequest(string Agent);
+public record StartExternalTaskRequest(string Agent);
+public record ExternalTaskCompleteRequest(bool OperatorApproved = false, bool AlreadyMerged = false);
 public record CreateTaskRequest(
     Guid SessionId,
     string Title,

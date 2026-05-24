@@ -28,6 +28,7 @@ public class OrchestrationService
     private readonly KanbanSyncService _kanbanSync;
     private readonly KanbanSyncState _kanbanSyncState;
     private readonly KanbanExecutionOrchestrator _executionOrchestrator;
+    private readonly ExternalTaskExecutionService _externalTasks;
     private readonly HermesConnectivityService _hermesConnectivity;
     private readonly HermesRunEventConsumer _runConsumer;
     private readonly ConfigService _config;
@@ -40,6 +41,7 @@ public class OrchestrationService
     private readonly KanbanStatusOutbox _kanbanOutbox;
     private readonly IExecutionLeaseRepository _leases;
     private readonly WorkspaceParallelismOptions _parallelism;
+    private readonly LeaseRuntimeOptions _leaseRuntime;
 
     public OrchestrationService(
         IOperatorSessionRepository sessions,
@@ -51,6 +53,7 @@ public class OrchestrationService
         KanbanSyncService kanbanSync,
         KanbanSyncState kanbanSyncState,
         KanbanExecutionOrchestrator executionOrchestrator,
+        ExternalTaskExecutionService externalTasks,
         HermesConnectivityService hermesConnectivity,
         HermesRunEventConsumer runConsumer,
         ConfigService config,
@@ -62,7 +65,8 @@ public class OrchestrationService
         WorkspaceIdentityCoordinator workspaceIdentity,
         KanbanStatusOutbox kanbanOutbox,
         IExecutionLeaseRepository leases,
-        IOptions<WorkspaceParallelismOptions> parallelism)
+        IOptions<WorkspaceParallelismOptions> parallelism,
+        IOptions<LeaseRuntimeOptions> leaseRuntime)
     {
         _sessions = sessions;
         _tasks = tasks;
@@ -73,6 +77,7 @@ public class OrchestrationService
         _kanbanSync = kanbanSync;
         _kanbanSyncState = kanbanSyncState;
         _executionOrchestrator = executionOrchestrator;
+        _externalTasks = externalTasks;
         _hermesConnectivity = hermesConnectivity;
         _runConsumer = runConsumer;
         _config = config;
@@ -85,6 +90,7 @@ public class OrchestrationService
         _kanbanOutbox = kanbanOutbox;
         _leases = leases;
         _parallelism = parallelism.Value;
+        _leaseRuntime = leaseRuntime.Value;
     }
 
     private void MirrorWorkTaskToBroccoliQ(WorkTask task)
@@ -267,6 +273,33 @@ public class OrchestrationService
                 return new RoleDeliveryChainCreateResult(chainId, normalizedRoot, programName, JsdpProtocol.ProtocolId, members);
             },
             cancellationToken);
+    }
+
+    public async Task<ExternalTaskStartResult> DispatchDeliveryChainExternalNextAsync(
+        Guid chainId,
+        string agent,
+        CancellationToken cancellationToken = default)
+    {
+        var chainSessions = await _sessions.ListByDeliveryChainIdAsync(chainId, cancellationToken);
+        if (chainSessions.Count == 0)
+            throw new InvalidOperationException($"Delivery chain {chainId} not found.");
+
+        var workspaceRoot = chainSessions[0].WorkspaceRoot;
+        var chainTasks = new List<WorkTask>();
+        foreach (var chainSession in chainSessions)
+            chainTasks.AddRange(await _tasks.ListBySessionAsync(chainSession.Id, cancellationToken));
+
+        var chainLeases = new List<ExecutionLease>();
+        foreach (var chainTask in chainTasks)
+            chainLeases.AddRange(await _leases.ListByTaskIdAsync(chainTask.Id, cancellationToken));
+
+        var queue = RoleDeliveryChainGate.BuildQueue(
+            chainId, workspaceRoot, chainSessions, chainTasks, chainLeases, _leaseRuntime);
+
+        if (queue.NextTaskId is null)
+            throw new InvalidOperationException(queue.BlockReason ?? "No eligible role for external dispatch.");
+
+        return await _externalTasks.StartExternalAsync(queue.NextTaskId.Value, agent, cancellationToken);
     }
 
     private async Task<OperatorSession> CreateBoundedRoleSessionCoreAsync(
@@ -459,6 +492,7 @@ public class OrchestrationService
         CancellationToken cancellationToken = default)
     {
         await _executionOrchestrator.ValidateTaskStatusChangeAsync(taskId, status, actor, cancellationToken);
+        await _externalTasks.ValidateTaskStatusChangeAsync(taskId, status, actor, cancellationToken);
         await _tasks.UpdateStatusAsync(taskId, status, cancellationToken);
         var task = await _tasks.GetByIdAsync(taskId, cancellationToken)
             ?? throw new InvalidOperationException($"Task {taskId} not found");

@@ -160,6 +160,47 @@ Example scripts: `scripts/examples/agent-happy-path.sh`, `agent-verification-fai
 | `task fail <id> --reason "..."` | Record dispatch/execution failure evidence |
 | `task recover <id> --mode reopen\|reattach\|replace` | Recovery API; `replace` needs `--yes` |
 
+## External-agent JSDP (no Hermes lease)
+
+JoyZoning supervises the role; you edit in Cursor, Claude Code, Copilot, or by hand. Full guide: [external-agent-jsdp.md](external-agent-jsdp.md).
+
+| Command | Purpose |
+|---------|---------|
+| `task start-external <id> --agent cursor` | Start external work: branch, prompt, `ExternalInProgress` (no lease) |
+| `task prompt <id>` | Print generated JSDP prompt for copy/paste |
+| `task status <id>` | Task + execution driver; `--refresh` rescans git |
+| `task mark-ready <id>` | `ReadyForReview` after branch match + changes |
+| `task verify <id> --cmd "..."` | Run checks; attach evidence (external or managed) |
+| `task complete <id> --yes` | Accept-merge; auto-routes external vs managed |
+
+Agents: `cursor`, `claude-code`, `copilot`, `manual`, or any custom name.
+
+```bash
+jz task start-external "$TASK" --agent cursor
+jz task prompt "$TASK"
+# … edit in Cursor …
+jz task mark-ready "$TASK"
+jz task verify "$TASK" --cmd "npm test"
+jz task complete "$TASK" --yes
+```
+
+## Delivery chain (JSDP)
+
+| Command | Purpose |
+|---------|---------|
+| `delivery-chain create --program "..." --workspace <path>` | Create 8-role chain |
+| `delivery-chain queue <chain-id>` | Merge gate + next role eligibility |
+| `delivery-chain next <chain-id> --external --agent cursor` | Start next role externally (no Hermes) |
+| `delivery-chain prompt <chain-id>` | Prompt for active/next role |
+
+```bash
+jz delivery-chain create --program "My App" --workspace "$HOME/src/myapp"
+jz delivery-chain next "$CHAIN" --external --agent cursor
+jz delivery-chain queue "$CHAIN"
+```
+
+Managed Hermes dispatch for a chain role still uses `jz task dispatch <task-id>` on the role’s task when the queue shows eligible. See [jsdp.md](jsdp.md).
+
 Critical dispatch:
 
 ```bash
@@ -260,6 +301,8 @@ Dangerous raw calls (`DELETE`, merge/revoke paths) require `--yes`.
 
 ## See also
 
+- [external-agent-jsdp.md](external-agent-jsdp.md) — Cursor / Claude Code / manual JSDP without Hermes  
+- [jsdp.md](jsdp.md) — sequential delivery protocol  
 - [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) — terminal architecture and mental model  
 - [README.md](README.md) — documentation index  
 - [lease-lifecycle.md](lease-lifecycle.md) — state machine  

@@ -162,6 +162,22 @@ public static class CliDispatcher
             case "read":
                 return CliOutput.WriteResult(ctx, await client.GetTaskAsync(CliArgs.RequireGuid(a, 2, "task id")));
 
+            case "start-external":
+            {
+                var agent = CliArgs.OptStatic(raw, "--agent")
+                    ?? throw Usage("--agent required (cursor|claude-code|manual|...)");
+                return CliOutput.WriteResult(ctx,
+                    await client.StartExternalTaskAsync(CliArgs.RequireGuid(a, 2, "task id"), agent));
+            }
+
+            case "prompt":
+                return CliOutput.WriteResult(ctx,
+                    await client.GetExternalTaskPromptAsync(CliArgs.RequireGuid(a, 2, "task id")));
+
+            case "mark-ready":
+                return CliOutput.WriteResult(ctx,
+                    await client.MarkExternalReadyForReviewAsync(CliArgs.RequireGuid(a, 2, "task id")));
+
             case "verify":
                 return await RunVerifyAsync(client, ctx, CliArgs.RequireGuid(a, 2, "task id"));
 
@@ -195,6 +211,14 @@ public static class CliDispatcher
                     (RiskLevel)CliArgs.ParseIntOpt(raw, "--risk", (int)RiskLevel.Low)));
 
             case "status":
+            {
+                if (!args.Has("--status"))
+                {
+                    var refresh = args.Has("--refresh");
+                    return CliOutput.WriteResult(ctx,
+                        await client.GetExternalTaskStatusAsync(CliArgs.RequireGuid(a, 2, "task id"), refresh));
+                }
+
                 var status = (WorkTaskStatus)CliArgs.RequireInt(raw, "--status");
                 CliSafety.ForbidDirectComplete(status);
                 AgentGuard.RejectCompleteStatus(status);
@@ -202,6 +226,7 @@ public static class CliDispatcher
                     CliArgs.RequireGuid(a, 2, "task id"),
                     status,
                     (StatusChangeActor)CliArgs.ParseIntOpt(raw, "--actor", (int)StatusChangeActor.Human)));
+            }
 
             case "dispatch":
                 return CliOutput.WriteResult(ctx,
@@ -255,7 +280,7 @@ public static class CliDispatcher
                     args.RequireSessionId(CliArgs.ParseGuidOpt(raw, "--session"))));
 
             default:
-                throw Usage("task run | watch | verify | complete | fail | recover | list | create | ...");
+                throw Usage("task run | start-external | prompt | status | mark-ready | verify | complete | ...");
         }
     }
 
@@ -338,7 +363,7 @@ public static class CliDispatcher
     private static async Task<CliHttpResult> DispatchDeliveryChainAsync(
         JoyZoningCliClient client, CliContext ctx, string[] a)
     {
-        RequireArgs(a, 2, "delivery-chain <create|queue> ...");
+        RequireArgs(a, 2, "delivery-chain <create|queue|next|prompt> ...");
         var raw = ctx.Args.Raw;
         return a[1].ToLowerInvariant() switch
         {
@@ -347,8 +372,23 @@ public static class CliDispatcher
                 CliArgs.OptStatic(raw, "--workspace") ?? throw Usage("--workspace required")),
             "queue" => await client.GetDeliveryChainQueueAsync(
                 CliArgs.RequireGuid(a, 2, "chain id")),
-            _ => throw Usage("delivery-chain create | queue <chain-id>"),
+            "next" => await DispatchDeliveryChainNextAsync(client, ctx, a),
+            "prompt" => await client.DeliveryChainPromptAsync(
+                CliArgs.RequireGuid(a, 2, "chain id")),
+            _ => throw Usage("delivery-chain create | queue | next | prompt"),
         };
+    }
+
+    private static async Task<CliHttpResult> DispatchDeliveryChainNextAsync(
+        JoyZoningCliClient client, CliContext ctx, string[] a)
+    {
+        var raw = ctx.Args.Raw;
+        if (!ctx.Args.Has("--external"))
+            throw Usage("delivery-chain next requires --external --agent <cursor|claude-code|manual>");
+
+        var agent = CliArgs.OptStatic(raw, "--agent")
+            ?? throw Usage("--agent required with --external");
+        return await client.DeliveryChainNextExternalAsync(CliArgs.RequireGuid(a, 2, "chain id"), agent);
     }
 
     private static async Task<CliHttpResult> DispatchSessionAsync(

@@ -16,6 +16,13 @@ export interface ParallelWorkerEntry {
   kanbanPushedRevision: number;
   kanbanStatus: string;
   leaseStatus: string;
+  taskExecutionMode?: string | null;
+  executionDriver?: string | null;
+  externalAgentName?: string | null;
+  branchName?: string | null;
+  lastWorkspaceScanAt?: string | null;
+  changedFiles?: string[] | null;
+  generatedPrompt?: string | null;
   mergeState?: string;
   authorityProfile?: string;
   authority?: {

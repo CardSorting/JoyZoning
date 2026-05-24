@@ -27,13 +27,18 @@ After **dispatch**, work happens on branch `joyzoning/card-<task-id>` in that ro
 Multi-role delivery uses the **JoyZoning Sequential Delivery Protocol (JSDP)**:
 
 - One **bounded session** per role (eight in a standard chain).
-- **One active lease** per session at a time.
+- **One execution per role** — either a managed Hermes lease **or** an external agent path (Cursor, Claude Code, manual) with **no lease**.
 - **Shared canonical workspace** — each role builds on accepted work from the previous role.
-- **Mandatory accept-merge** before the next role dispatches.
+- **Mandatory accept-merge** before the next role starts.
 
 Parallel agents rewriting the same tree from empty sandboxes produce **code soup**. JSDP trades fake speed for **stable convergence**.
 
-Operators: `./scripts/role-chain-dispatch.sh` · Agents: [jsdp.md](jsdp.md) · API: `POST /api/delivery-chains`
+| Path | Who edits files | JoyZoning still enforces |
+|------|-----------------|---------------------------|
+| Managed (`TaskExecutionMode.ManagedAgent`) | Hermes / DietCode via lease | Lease lifecycle, verify, merge |
+| External (`TaskExecutionMode.ExternalAgent`) | Cursor, Claude Code, Copilot, you | Branch, prompt, mark-ready, verify, complete |
+
+Operators: [jsdp.md](jsdp.md) · [external-agent-jsdp.md](external-agent-jsdp.md) · `./scripts/role-chain-dispatch.sh` · `jz delivery-chain next --external`
 
 ---
 
@@ -82,9 +87,15 @@ Discover APIs via manifest — do not guess routes:
 
 ---
 
-## 7. Complement, don’t replace
+## 7. Complement, don’t replace — cockpit, optional engines
 
-JoyZoning is an **operator cockpit**, not an IDE and not a second Hermes install. Edit in VS Code or Cursor; supervise, verify, and merge in JoyZoning.
+JoyZoning is an **operator cockpit**, not an IDE and not a second Hermes install.
+
+- **Hermes** is optional — use it when you want a managed worker lease and tool loop inside JoyZoning.
+- **Cursor, Claude Code, Copilot, and manual edits** are first-class — use `jz task start-external` or `jz delivery-chain next --external` so JoyZoning still owns branch, task state, verification, and merge.
+- The **repo and merge gate** are the authority; chat and external IDEs only change files.
+
+See [external-agent-jsdp.md](external-agent-jsdp.md).
 
 ---
 
@@ -101,7 +112,7 @@ Revoke, block, and recovery flows preserve **git state and evidence** on the lea
 | Branch + path planning | `WorktreePlanner`, `JsdpWorkspaceExecution` |
 | Workspace inspection | `WorkspaceInspection`, `GET /api/tasks/{id}/workspace/*` |
 | Live updates | `WorkspaceEventPublisher` → SignalR `OnWorktreeRefreshed`, `OnTaskLiveUpdated` |
-| Sequential chains | Delivery chain API, `role-chain-dispatch.sh` |
+| Sequential chains | Delivery chain API, external-agent JSDP, `role-chain-dispatch.sh` |
 | Agent entry | [AGENTS.md](../AGENTS.md), [jsdp.md](jsdp.md) |
 
 ---
@@ -111,7 +122,7 @@ Revoke, block, and recovery flows preserve **git state and evidence** on the lea
 | Audience | Doc |
 |----------|-----|
 | New operators | [what-is-joyzoning.md](what-is-joyzoning.md) |
-| JSDP chains | [jsdp.md](jsdp.md) |
+| JSDP chains | [jsdp.md](jsdp.md) · [external-agent-jsdp.md](external-agent-jsdp.md) |
 | Modes (plan / execute / review) | [operational-modes.md](operational-modes.md) |
 | Contributors | [development.md](development.md) |
 | Coding agents | [AGENTS.md](../AGENTS.md) |

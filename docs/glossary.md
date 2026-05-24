@@ -14,13 +14,17 @@ Terms used across JoyZoning docs, UI, and APIs. For the product story, see [phil
 | **Canonical workspace** | `OperatorSession.WorkspaceRoot` — the real project folder; JSDP and leases execute here, not in sandboxes. |
 | **Card branch** | `joyzoning/card-<task-id>` — git branch for dispatched executor work in the canonical workspace. |
 | **JSDP** | JoyZoning Sequential Delivery Protocol — sequential roles, shared workspace, mandatory accept-merge between roles. See [jsdp.md](jsdp.md). |
+| **TaskExecutionMode** | `ManagedAgent` (Hermes lease) or `ExternalAgent` (no lease; Cursor/Claude/manual). |
+| **ExecutionDriver** | Who runs work: `Hermes`, `ExternalCursor`, `ExternalClaudeCode`, `ExternalCopilot`, `ExternalManual`, etc. |
+| **External-agent JSDP** | JSDP role executed without a Hermes lease; JoyZoning owns branch, prompt, verify, merge. See [external-agent-jsdp.md](external-agent-jsdp.md). |
 | **1:1 workspace state** | One selected task resolves to one inspection path (and branch); Workspace, git porcelain, and timeline agree. See [workspace-state.md](workspace-state.md). |
 | **WorkspaceInspection** | Control-plane resolver: task id → workspace root + card branch when leased. |
 | **Manager** | Hermes agent role for planning (Manager Chat); not a separate install. |
 | **Executor / DietCode** | Worker agent role for implementation runs (Execution viewport). |
 | **diet-hermes** | Local [Hermes Agent](https://github.com/NousResearch/hermes-agent) checkout; single install for both roles. |
-| **Dispatch** | `POST /api/tasks/{id}/dispatch` — creates lease + handoff, starts Hermes run. |
-| **Merge** | Human-only `POST .../lease/merge` after passing verification → task **Complete**. |
+| **Dispatch** | `POST /api/tasks/{id}/dispatch` — creates lease + handoff, starts Hermes run (managed only). |
+| **External start** | `POST /api/tasks/{id}/external/start` or `jz task start-external` — branch + prompt, no lease. |
+| **Merge** | Human-only accept-merge after verification → task **Complete** (`jz task complete --yes`; managed uses lease merge, external uses external complete). |
 | **Critical card** | Task with `risk: 3`; requires `humanApprovedCritical` on dispatch/retry; global cap on concurrent critical leases. |
 | **Evidence log** | Append-only JSON on the lease recording transitions, failures, agent actions. |
 | **joy_events** | Append-only audit table; replay via `GET /api/events`, live via SignalR `OnJoyEvent`. |

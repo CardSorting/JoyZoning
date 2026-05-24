@@ -46,6 +46,13 @@ public class JoyZoningDbContext : DbContext
             e.HasKey(x => x.Id);
             e.Property(x => x.Title).HasMaxLength(512).IsRequired();
             e.Property(x => x.HermesKanbanTaskId).HasMaxLength(64);
+            e.Property(x => x.ExternalAgentName).HasMaxLength(128);
+            e.Property(x => x.BranchName).HasMaxLength(256);
+            e.Property(x => x.WorkspacePath).HasMaxLength(2048);
+            e.Property(x => x.LastObservedCommit).HasMaxLength(128);
+            e.Property(x => x.GeneratedPromptPath).HasMaxLength(2048);
+            e.Property(x => x.TaskExecutionMode).HasDefaultValue(TaskExecutionMode.ManagedAgent);
+            e.Property(x => x.ExecutionDriver).HasDefaultValue(ExecutionDriver.Hermes);
             e.Property(x => x.LinkedRunId).HasMaxLength(128);
             e.HasIndex(x => new { x.OperatorSessionId, x.Status });
             e.HasOne(x => x.OperatorSession)

@@ -28,4 +28,13 @@ public static class EventTypes
     public const string GitStatusChanged = "git.status.changed";
     public const string ApprovalGranted = "approval.granted";
     public const string ApprovalDenied = "approval.denied";
+    public const string ExternalWorkStarted = "external.work.started";
+    public const string ExternalAgentPromptGenerated = "external.agent.prompt_generated";
+    public const string ExternalWorkspaceStatusScanned = "external.workspace.status_scanned";
+    public const string ExternalWorkMarkedReadyForReview = "external.work.marked_ready_for_review";
+    public const string ExternalVerificationStarted = "external.verification.started";
+    public const string ExternalVerificationPassed = "external.verification.passed";
+    public const string ExternalVerificationFailed = "external.verification.failed";
+    public const string ExternalWorkMerged = "external.work.merged";
+    public const string ExternalWorkCompleted = "external.work.completed";
 }

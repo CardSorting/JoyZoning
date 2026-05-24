@@ -13,6 +13,11 @@ public static class JsdpMergeGate
         if (task is null)
             return false;
 
+        if (task.TaskExecutionMode == TaskExecutionMode.ExternalAgent)
+        {
+            return task.Status == WorkTaskStatus.Complete && task.ExternalMergeCompleted;
+        }
+
         return task.Status == WorkTaskStatus.Complete
             && taskLeases.Any(l => l.WorkTaskId == task.Id && l.Status == ExecutionLeaseStatus.Merged);
     }

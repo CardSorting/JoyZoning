@@ -16,7 +16,8 @@ JoyZoning separates **cognition** from **authority**.
 | Cockpit | Command | What it is |
 |---------|---------|------------|
 | **Agent cognition** | `hermes --tui` (via `jz hermes tui`) | Full Hermes terminal: multiline chat, slash skills, tool streaming, session resume |
-| **Operator / runtime** | `jz` or `jz tui` | JoyZoning operator shell: leases, dispatch, verify, merge, approvals, live `OnJoyEvent` stream |
+| **External editing** | Cursor, Claude Code, Copilot, manual | Files change outside JoyZoning; state tracked via `jz task start-external` / `delivery-chain next --external` |
+| **Operator / runtime** | `jz` or `jz tui` | JoyZoning operator shell: leases *or* external JSDP, verify, merge, approvals, live `OnJoyEvent` stream |
 
 ```mermaid
 flowchart LR
@@ -41,7 +42,9 @@ flowchart LR
   JZ -.->|launch_only| TUI
 ```
 
-**Rule of thumb:** if the question is “what should the agent think or do next?”, use Hermes. If the question is “what is allowed to become project state?”, use JoyZoning (`jz`, desktop, or REST).
+**Rule of thumb:** if the question is “what should the agent think or do next?”, use Hermes **or** your external IDE (Cursor, etc.) — JoyZoning does not need to run the agent. If the question is “what is allowed to become project state?”, use JoyZoning (`jz`, desktop, or REST): mark-ready, verify, merge.
+
+See [external-agent-jsdp.md](external-agent-jsdp.md).
 
 ---
 

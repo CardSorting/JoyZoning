@@ -4,6 +4,7 @@ JoyZoning is **self-describing software**. Ask the CLI or HTTP API what it is �
 
 **Full reference:** [agent-operations.md](agent-operations.md)  
 **Sequential delivery protocol:** [jsdp.md](jsdp.md) (JSDP — required for bounded role chains)  
+**External-agent JSDP:** [external-agent-jsdp.md](external-agent-jsdp.md) (Cursor / manual — no Hermes lease)  
 **Manifest version:** `1` (JSON field `manifestVersion`)
 
 ## Start here
@@ -38,7 +39,8 @@ Cursor entry: [../AGENTS.md](../AGENTS.md)
 - If `manifest_cache: warn`, re-run `agent-manifest`
 - Never edit `protectedPaths` (`.next/`, `node_modules/`, `generated/`, etc.)
 - Agents stop at **ReadyForReview**; humans merge and Complete
-- Bounded multi-role delivery: follow **[JSDP](jsdp.md)** — `POST /api/delivery-chains`, `./scripts/role-chain-dispatch.sh`
+- Bounded multi-role delivery: follow **[JSDP](jsdp.md)** — managed dispatch or **[external-agent JSDP](external-agent-jsdp.md)** (`jz delivery-chain next --external`, `jz task start-external`)
+- External agents: use the generated prompt; do not mark tasks Complete — operator runs `jz task complete --yes`
 
 ## Task workflow
 

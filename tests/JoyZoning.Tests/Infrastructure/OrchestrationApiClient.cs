@@ -90,6 +90,24 @@ internal sealed class OrchestrationApiClient
     public Task<HttpResponseMessage> GetDeliveryChainQueueAsync(Guid chainId) =>
         _http.GetAsync($"api/delivery-chains/{chainId}/queue");
 
+    public Task<HttpResponseMessage> DeliveryChainNextExternalAsync(Guid chainId, string agent) =>
+        PostJsonAsync($"api/delivery-chains/{chainId}/next-external", new { agent });
+
+    public Task<HttpResponseMessage> StartExternalAsync(Guid taskId, string agent) =>
+        PostJsonAsync($"api/tasks/{taskId}/external/start", new { agent });
+
+    public Task<HttpResponseMessage> GetExternalPromptAsync(Guid taskId) =>
+        _http.GetAsync($"api/tasks/{taskId}/external/prompt");
+
+    public Task<HttpResponseMessage> MarkExternalReadyAsync(Guid taskId) =>
+        _http.PostAsync($"api/tasks/{taskId}/external/ready-for-review", null);
+
+    public Task<HttpResponseMessage> CompleteExternalAsync(Guid taskId) =>
+        PostJsonAsync($"api/tasks/{taskId}/external/complete", new { operatorApproved = true });
+
+    public Task<HttpResponseMessage> GetTaskAsync(Guid taskId) =>
+        _http.GetAsync($"api/tasks/{taskId}");
+
     public async Task<(Guid SessionId, Guid TaskId)> SeedTaskAsync(
         string workspaceRoot,
         RiskLevel risk = RiskLevel.Low)

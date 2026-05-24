@@ -2,7 +2,7 @@
 
 **Do not scan the repo.** JoyZoning is self-describing.
 
-**Execution protocol:** All bounded delivery follows **[JSDP](docs/jsdp.md)** — canonical workspace only (no `.joyzoning/worktrees/` or `.joyzoning/live/`), one role per session, sequential chain, mandatory accept-merge between roles. Philosophy: [docs/philosophy.md](docs/philosophy.md).
+**Execution protocol:** All bounded delivery follows **[JSDP](docs/jsdp.md)** — canonical workspace only (no `.joyzoning/worktrees/` or `.joyzoning/live/`), one role per session, sequential chain, mandatory accept-merge between roles. **Hermes is optional:** external agents (Cursor, Claude Code, manual) use [external-agent JSDP](docs/external-agent-jsdp.md) — JoyZoning owns state; tools only edit files. Philosophy: [docs/philosophy.md](docs/philosophy.md).
 
 ## Start here
 

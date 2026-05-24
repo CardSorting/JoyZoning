@@ -1,3 +1,5 @@
+using JoyZoning.Domain.Enums;
+
 namespace JoyZoning.Domain.Orchestration;
 
 public sealed record SessionAuthoritySnapshot(
@@ -36,7 +38,14 @@ public sealed record ParallelWorkerEntry(
     string RecommendedModeSlug,
     IReadOnlyList<ModeTransitionHint> AvailableModeTransitions,
     string AuthorityProfileSlug,
-    AuthorityAutopilotDecision? Authority);
+    AuthorityAutopilotDecision? Authority,
+    TaskExecutionMode? TaskExecutionMode = null,
+    ExecutionDriver? ExecutionDriver = null,
+    string? ExternalAgentName = null,
+    string? BranchName = null,
+    DateTimeOffset? LastWorkspaceScanAt = null,
+    IReadOnlyList<string>? ChangedFiles = null,
+    string? GeneratedPrompt = null);
 
 public sealed record WorkerObservabilityWarning(
     string Code,

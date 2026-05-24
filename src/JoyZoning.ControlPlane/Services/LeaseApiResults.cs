@@ -15,6 +15,9 @@ internal static class LeaseApiResults
     private static IResult Map(Exception ex) =>
         ex switch
         {
+            ExternalTaskException external => Results.Json(
+                new { error = external.Code, message = external.Message },
+                statusCode: external.StatusCode),
             LeaseOrchestrationException lease => Results.Json(
                 new { error = lease.Code, message = lease.Message },
                 statusCode: lease.StatusCode),

@@ -55,6 +55,7 @@ internal static class JoyZoningTestHostConfigurer
                 o.Stale.RunningMinutes = 1;
                 o.Stale.LeasedMinutes = 1;
                 o.ReconciliationIntervalSeconds = 15;
+                o.AllowDirtyDestination = true;
             });
         });
     }

@@ -2,7 +2,7 @@
 
 JoyZoning is built around one idea: **software work with agents needs an operator**, not just another chat window. You remain accountable for what ships; agents get **bounded authority** inside leases you can audit, recover, and approve.
 
-This page is the conceptual spine. **Philosophy (canonical workspace + JSDP):** [philosophy.md](philosophy.md). **Plain-language overview:** [what-is-joyzoning.md](what-is-joyzoning.md). **Hands-on setup:** [onboarding/README.md](onboarding/README.md). Implementation: [architecture.md](architecture.md), [lease-lifecycle.md](lease-lifecycle.md), [jsdp.md](jsdp.md), [hermes-integration.md](hermes-integration.md). **Terminal split:** [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md).
+This page is the conceptual spine. **Philosophy (canonical workspace + JSDP):** [philosophy.md](philosophy.md). **External-agent JSDP:** [external-agent-jsdp.md](external-agent-jsdp.md). **Plain-language overview:** [what-is-joyzoning.md](what-is-joyzoning.md). **Hands-on setup:** [onboarding/README.md](onboarding/README.md). Implementation: [architecture.md](architecture.md), [lease-lifecycle.md](lease-lifecycle.md), [jsdp.md](jsdp.md), [hermes-integration.md](hermes-integration.md). **Terminal split:** [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md).
 
 ---
 
@@ -27,7 +27,7 @@ JoyZoning is intentionally **multi-mode**. Users think differently when planning
 | Mode | Metaphor | Canonical state |
 |------|----------|-----------------|
 | **Planning** | Jira / Kanban | `WorkTask`, kanban sync |
-| **Execution** | JSDP worker orchestration | leases, Hermes sessions, canonical workspace |
+| **Execution** | JSDP worker orchestration | managed leases **or** external agents (Cursor, etc.), canonical workspace |
 | **Review** | GitHub PR | merge queue, verification, approve/revoke |
 | **Habitat** | Ambient (optional) | pet / atmosphere — not authoritative ops |
 

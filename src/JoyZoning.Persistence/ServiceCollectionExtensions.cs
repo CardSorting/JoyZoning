@@ -80,6 +80,25 @@ public static class ServiceCollectionExtensions
         TryAddColumn(db, "operator_sessions", "ExecutionMode", "INTEGER NOT NULL DEFAULT 0");
         TryAddColumn(db, "operator_sessions", "DeliveryChainId", "TEXT NULL");
         TryAddColumn(db, "operator_sessions", "DeliverySequence", "INTEGER NULL");
+        TryAddColumn(db, "work_tasks", "TaskExecutionMode", "INTEGER NOT NULL DEFAULT 0");
+        TryAddColumn(db, "work_tasks", "ExecutionDriver", "INTEGER NOT NULL DEFAULT 0");
+        TryAddColumn(db, "work_tasks", "ExternalAgentName", "TEXT NULL");
+        TryAddColumn(db, "work_tasks", "BranchName", "TEXT NULL");
+        TryAddColumn(db, "work_tasks", "WorkspacePath", "TEXT NULL");
+        TryAddColumn(db, "work_tasks", "StartedExternallyAt", "TEXT NULL");
+        TryAddColumn(db, "work_tasks", "ReadyForReviewAt", "TEXT NULL");
+        TryAddColumn(db, "work_tasks", "LastWorkspaceScanAt", "TEXT NULL");
+        TryAddColumn(db, "work_tasks", "LastObservedCommit", "TEXT NULL");
+        TryAddColumn(db, "work_tasks", "HasUncommittedChanges", "INTEGER NOT NULL DEFAULT 0");
+        TryAddColumn(db, "work_tasks", "ChangedFilesJson", "TEXT NULL");
+        TryAddColumn(db, "work_tasks", "GeneratedPromptPath", "TEXT NULL");
+        TryAddColumn(db, "work_tasks", "GeneratedPromptText", "TEXT NULL");
+        TryAddColumn(db, "work_tasks", "VerificationRequired", "INTEGER NOT NULL DEFAULT 1");
+        TryAddColumn(db, "work_tasks", "ExternalVerificationStatus", "INTEGER NOT NULL DEFAULT 0");
+        TryAddColumn(db, "work_tasks", "ExternalVerificationReportJson", "TEXT NULL");
+        TryAddColumn(db, "work_tasks", "MergeRequired", "INTEGER NOT NULL DEFAULT 1");
+        TryAddColumn(db, "work_tasks", "ExternalMergeCompleted", "INTEGER NOT NULL DEFAULT 0");
+        TryAddColumn(db, "work_tasks", "ExternalMergedAt", "TEXT NULL");
 
         db.Database.ExecuteSqlRaw("""
              CREATE UNIQUE INDEX IF NOT EXISTS UX_execution_leases_one_active_per_card

@@ -25,6 +25,21 @@ Parallel agents on the same codebase look fast but produce **code soup**: duplic
 
 ---
 
+## Execution modes (managed vs external)
+
+JSDP enforces **one role at a time** and **one merge gate per role**. *How* the role executes is your choice:
+
+| Mode | Driver | Hermes lease? | Typical start |
+|------|--------|---------------|---------------|
+| **ManagedAgent** | `Hermes` / DietCode | Yes | `jz task dispatch`, `jz delivery-chain` + managed dispatch |
+| **ExternalAgent** | `ExternalCursor`, `ExternalClaudeCode`, `ExternalCopilot`, `ExternalManual`, … | **No** | `jz task start-external`, `jz delivery-chain next --external` |
+
+JoyZoning always owns task state, branch, verification, review, and merge. External tools only mutate files.
+
+**Full reference:** [external-agent-jsdp.md](external-agent-jsdp.md)
+
+---
+
 ## Lifecycle (exact)
 
 ```text
@@ -33,46 +48,64 @@ CREATE chain (POST /api/delivery-chains)
   → 8 tasks (one per session)
   → shared physical workspace
 
-FOR each role N:
-  DISPATCH Role N          (--next when gate open)
-    → one lease
-    → agent works in canonical workspace (card branch)
-    → verification → ReadyForReview
-  OPERATOR accept-merge
-    → task status Complete
+FOR each role N (when gate open):
+
+  MANAGED path:
+    DISPATCH Role N  (jz task dispatch / managed --next)
+      → one Hermes lease
+      → worker on canonical workspace (card branch)
+      → verification → lease ReadyForReview
+    OPERATOR accept-merge (jz task complete --yes)
+      → lease Merged, task Complete
+
+  EXTERNAL path:
+    START Role N  (jz delivery-chain next --external --agent cursor)
+      → NO lease; branch joyzoning/card-<task-id>; prompt printed
+      → edit in Cursor / Claude Code / manual
+    MARK READY → VERIFY → COMPLETE (jz task mark-ready / verify / complete --yes)
+      → ExternalMergeCompleted, task Complete
+
   GATE opens for Role N+1
 
 REPEAT until Role 8 Complete
 ```
 
 ```mermaid
-flowchart LR
-  A[Role N dispatch] --> B[One lease / one task]
-  B --> C[Agent deliverables]
-  C --> D[Verification]
-  D --> E[ReadyForReview]
-  E --> F[Operator accept-merge]
-  F --> G[Complete]
-  G --> H{More roles?}
-  H -->|yes| I[Role N+1 dispatch]
-  H -->|no| J[Chain complete]
-  I --> A
+flowchart TB
+  subgraph managed [ManagedAgent]
+    M1[Dispatch + lease] --> M2[Agent work]
+    M2 --> M3[Verify]
+    M3 --> M4[Lease ReadyForReview]
+    M4 --> M5[Accept-merge]
+  end
+  subgraph external [ExternalAgent]
+    E1[start-external] --> E2[Edit outside JoyZoning]
+    E2 --> E3[mark-ready]
+    E3 --> E4[verify]
+    E4 --> E5[complete --yes]
+  end
+  M5 --> C[Task Complete]
+  E5 --> C
+  C --> N{Next role?}
+  N -->|yes| managed
+  N -->|yes| external
 ```
 
-No role may skip accept-merge. Role N+1 **cannot dispatch** while Role N is not `Complete`.
+No role may skip accept-merge (managed: lease `Merged`; external: `ExternalMergeCompleted`). Role N+1 **cannot start** while Role N is not `Complete`.
 
 ---
 
 ## Global rules
 
 1. **Sequential execution only** — one role at a time; no parallel architectural rewrites.
-2. **One bounded session per role** — one task, one active lease max; sessions are not consolidated.
+2. **One bounded session per role** — one task per session; at most one **managed** active lease per session (external roles use **no lease**).
 3. **Shared canonical workspace** — same physical root; extend accepted work, do not fork reality.
-4. **Mandatory convergence gate** — accept-merge after each role before the next dispatch.
+4. **Mandatory convergence gate** — accept-merge (or external complete with `--yes`) after each role before the next role starts.
 5. **Preserve prior accepted intent** — improvements go in Follow-Up Notes, not into this role’s code.
 6. **Product Lock + Architecture Lock** — Roles 1–2 produce `docs/product-lock.md` and `docs/architecture-lock.md`; later roles must read and honor them.
 7. **Scope guardrails** — no whole-app redesign; no scope expansion without operator escalation.
 8. **Human operator authority** — review, reject, pause, or redirect any role.
+9. **Agent-agnostic supervision** — JoyZoning tracks state whether the editor is Hermes, Cursor, or your hands; the merge gate is always the authority.
 
 ---
 
@@ -134,14 +167,33 @@ Why bad: expands scope, skips locks, solves future roles, no completion criteria
 
 ## Operator checklist
 
-1. Create chain: `./scripts/role-chain-dispatch.sh --create --workspace <path> --program "<name>"`
-2. Inspect queue: `./scripts/role-chain-dispatch.sh --chain <id> --status`
-3. Dispatch Role 1 only: `--next` (or `--once`)
-4. When lease is ReadyForReview → **accept-merge** into canonical workspace
-5. Confirm Role 1 task is `Complete` in queue status
-6. Dispatch Role 2 with `--next` — should succeed only after step 5
-7. Repeat through Role 8
-8. Stale lease cleanup: `--cleanup-stale` (revokes leases on completed/blocked steps)
+### Create chain
+
+```bash
+jz delivery-chain create --program "<name>" --workspace <path>
+# or: ./scripts/role-chain-dispatch.sh --create --workspace <path> --program "<name>"
+jz delivery-chain queue <chain-id>
+```
+
+### Per role — managed (Hermes)
+
+1. `jz task dispatch <task-id>` or managed `--next` when queue shows eligible
+2. When lease is `ReadyForReview` → `jz task verify` → `jz task complete <id> --yes`
+3. Confirm task `Complete` in queue
+
+### Per role — external (Cursor / Claude Code / manual)
+
+1. `jz delivery-chain next <chain-id> --external --agent cursor` (or `jz task start-external <task-id> --agent cursor`)
+2. Copy prompt: `jz task prompt <task-id>` or `jz delivery-chain prompt <chain-id>`
+3. Edit in your tool; JoyZoning does **not** dispatch Hermes
+4. `jz task mark-ready <task-id>` when diff is reviewable
+5. `jz task verify <task-id> --cmd "..."` then `jz task complete <task-id> --yes`
+6. Confirm task `Complete` in queue before starting the next role
+
+### Housekeeping
+
+- Stale managed leases: `./scripts/role-chain-dispatch.sh --chain <id> --cleanup-stale`
+- Workspace scan: `jz task status <task-id> --refresh` or `GET /api/tasks/{id}/workspace/status`
 
 Queue API: `GET /api/delivery-chains/{chainId}/queue` returns `jsdp.mergeGateStatus`, `jsdp.nextDispatchEligibility`, `jsdp.nextHumanAction`, and per-step `blockReason`.
 
@@ -149,13 +201,14 @@ Queue API: `GET /api/delivery-chains/{chainId}/queue` returns `jsdp.mergeGateSta
 
 ## Agent checklist
 
-1. Read JSDP rules in your handoff prompt (protocol id: `JSDP`).
+1. Read JSDP rules in your handoff prompt (protocol id: `JSDP`) — managed handoff or **external prompt** from `jz task prompt`.
 2. Read `docs/product-lock.md` and `docs/architecture-lock.md` if they exist (Roles 3+).
-3. Stay inside allowed paths; do not touch forbidden paths.
-4. Produce all seven sections in deliverables.
-5. Include all seven sections in verification command summaries.
-6. Stop at ReadyForReview — do not mark the card done yourself.
-7. Log unrelated discoveries under Follow-Up Notes only.
+3. Work on branch `joyzoning/card-<task-id>` in the canonical workspace path shown in the prompt.
+4. Stay inside allowed paths; do not touch forbidden paths.
+5. Produce all seven sections in deliverables.
+6. Include all seven sections in verification command summaries (managed) or tell the operator to run `jz task verify` (external).
+7. **Do not** mark the task Complete or call merge APIs — operator runs `jz task complete --yes` after review.
+8. Log unrelated discoveries under Follow-Up Notes only.
 
 ---
 
@@ -195,7 +248,8 @@ curl -s -X POST http://127.0.0.1:9470/api/delivery-chains \
 ## Runtime enforcement (not optional)
 
 - **Dispatch order:** `RoleDeliveryChainGate` + `BoundedSessionGate` reject out-of-order or multi-lease dispatch.
-- **Accept-merge gate:** Prior role must be `Complete` **and** have a `Merged` lease. Direct `PUT /status → Complete` is **rejected** for bounded-role sessions.
+- **Accept-merge gate:** Prior role must be `Complete` and converged — managed roles need a `Merged` lease; **external** roles need `ExternalMergeCompleted`. Direct `PUT /status → Complete` is **rejected** for bounded-role sessions.
+- **External execution:** `ExternalTaskExecutionService` — no Hermes lease; branch + prompt + workspace scan + review/verify/complete gates. See [external-agent-jsdp.md](external-agent-jsdp.md).
 - **Autopilot:** Disabled for all JSDP bounded-role sessions — operator must accept-merge manually.
 - **Lock artifacts:** Roles 3+ require `docs/product-lock.md` and `docs/architecture-lock.md` on disk before dispatch.
 - **Handoffs:** Non-compliant task descriptions (missing seven sections) block dispatch.
@@ -220,7 +274,7 @@ If `.joyzoning/worktrees` or `.joyzoning/live` keeps growing:
 
 ### What still requires operator judgment
 
-- YOLO, `jz plan`, and `jz run` are blocked on bounded-role sessions — use `jz delivery-chain` or `role-chain-dispatch.sh`.
+- YOLO, `jz plan`, and `jz run` are blocked on bounded-role sessions — use `jz delivery-chain`, `jz delivery-chain next --external`, or `role-chain-dispatch.sh`.
 - Desktop kanban drag-to-Complete uses accept-merge (same as Move → Complete).
 - Autopilot is off for all `BoundedRole` sessions; operator must accept-merge manually.
 - Verification section checks use summary text matching — agents should still produce real deliverables.
@@ -236,4 +290,4 @@ Implementation details: [bounded-session-audit.md](bounded-session-audit.md) · 
 The objective is not infinite acceleration.  
 The objective is **sustainable convergence**.
 
-One role · one bounded session · one task · one lease · one merge gate · next role only after completion.
+One role · one bounded session · one task · one execution (managed lease **or** external agent) · one merge gate · next role only after completion.
