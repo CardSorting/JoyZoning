@@ -17,7 +17,9 @@
 | **Internet** (first run only) | Installs diet-hermes Python dependencies |
 | **LLM API key** (optional for step 1) | Required before Manager Chat can reply — [api-keys-and-models.md](api-keys-and-models.md) |
 
-You do **not** need two copies of Hermes. JoyZoning uses **one** diet-hermes install.
+You do **not** need two copies of Hermes. JoyZoning uses **one** diet-hermes install when you use **managed** dispatch.
+
+> **Cursor-first?** You can skip Hermes setup for now and use [external-agent JSDP](../external-agent-jsdp.md) after opening a workspace — you still need the control plane from step 2.
 
 ---
 
@@ -89,8 +91,9 @@ Follow the trees: [troubleshooting-setup.md](troubleshooting-setup.md) · [troub
 
 ## Next steps
 
+- [Execution paths](../execution-paths.md) — managed vs Cursor
 - [First run (desktop) — full detail](first-run-desktop.md)
 - [Setup checklist](setup-checklist.md)
-- [What to do after setup](whats-next.md)
+- [What to do after setup](whats-next.md) · [External-agent JSDP](../external-agent-jsdp.md)
 
 [← Onboarding hub](README.md)

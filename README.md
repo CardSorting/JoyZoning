@@ -35,7 +35,7 @@ Most coding agents stop at chat. JoyZoning adds task tracking, branch discipline
 | Verification evidence | Running tools in the repo |
 | Review and merge gates | When to stop coding |
 
-**Hermes is optional.** You can run the same workflow from **Cursor**, **Claude Code**, **Copilot**, or **manual edits** — JoyZoning still supervises. See [External-agent JSDP](docs/external-agent-jsdp.md).
+**Hermes is optional.** You can run the same workflow from **Cursor**, **Claude Code**, **Copilot**, or **manual edits** — JoyZoning still supervises. See [Execution paths](docs/execution-paths.md) · [External-agent JSDP](docs/external-agent-jsdp.md).
 
 JoyZoning is **not**:
 

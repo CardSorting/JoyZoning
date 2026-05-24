@@ -51,6 +51,34 @@ Lease-specific endpoints are documented in [execution-orchestration-api.md](exec
 - `POST .../lease/heartbeat`, `agent-status`, `agent-evidence`, `recover`, `fail`, `dispatch-retry`, `revoke`, `merge`
 - `POST /api/tasks/{id}/verification`
 
+### External execution (no lease)
+
+For `TaskExecutionMode.ExternalAgent` — Cursor, Claude Code, manual. **No** `ExecutionLease` row is created; `GET /api/tasks/{id}/lease` returns `404` by design.
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| `POST` | `/api/tasks/{id}/external/start` | `{ "agent": "cursor" \| "claude-code" \| "copilot" \| "manual" }` | Creates card branch, stores prompt; status → `ExternalInProgress` |
+| `GET` | `/api/tasks/{id}/external/prompt` | — | JSDP handoff text for the external tool |
+| `GET` | `/api/tasks/{id}/external/status` | — | Driver, branch, scan summary |
+| `GET` | `/api/tasks/{id}/workspace/status` | — | Git porcelain + `readyForReviewAllowed` / `blockedReason` |
+| `POST` | `/api/tasks/{id}/external/ready-for-review` | — | Operator gate after edits (branch + diff checks) |
+| `POST` | `/api/tasks/{id}/external/complete` | `{ "operatorApproved": true }` | Accept-merge + `Complete` (same authority as managed merge) |
+
+`POST /api/tasks/{id}/verification` routes to external flow when the task is external. Agents must **not** call `PUT /api/tasks/{id}/status` with `Complete`.
+
+Guide: [external-agent-jsdp.md](external-agent-jsdp.md) · [execution-paths.md](execution-paths.md).
+
+### Delivery chains (JSDP)
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| `POST` | `/api/delivery-chains` | Create chain payload | Eight bounded roles on one workspace |
+| `GET` | `/api/delivery-chains/{id}/queue` | — | Merge gate + `blockReason` per role |
+| `POST` | `/api/delivery-chains/{id}/next-external` | `{ "agent": "cursor" }` | Start next **eligible** role externally |
+| `GET` | `/api/delivery-chains/{id}/prompt` | — | Prompt for active/next chain role |
+
+CLI: `jz delivery-chain create \| queue \| next --external --agent cursor`. Protocol: [jsdp.md](jsdp.md).
+
 ## Manager chat
 
 | Method | Path | Body | Response |
@@ -147,8 +175,16 @@ CORS allows `http://127.0.0.1` and `http://localhost` with credentials.
 | 4 | Verifying |
 | 5 | Blocked |
 | 6 | Complete |
+| 7 | ReadyToStart |
+| 8 | HermesRunning |
+| 9 | ExternalInProgress |
+| 10 | ReadyForReview |
+| 11 | Verified |
+| 12 | Failed |
 
-### `ExecutionLeaseStatus`
+External JSDP commonly uses **9 → 10/11 → 6** after operator `external/complete`. Managed dispatch uses lease statuses below.
+
+### `ExecutionLeaseStatus` (managed only)
 
 | Value | Name |
 |-------|------|

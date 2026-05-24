@@ -60,6 +60,10 @@ External tasks **do not have leases** by design. Use `jz task status <id>` or `G
 
 **No.** Same rule as managed work: only the operator runs `jz task complete <id> --yes` after review and verification.
 
+### Where is the full managed vs external comparison?
+
+[execution-paths.md](execution-paths.md) — decision table, cheat sheet, prerequisites.
+
 ---
 
 ## Product

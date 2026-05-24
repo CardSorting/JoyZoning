@@ -47,7 +47,16 @@ You interact through **surfaces** tuned for supervision — grouped by mode abov
 
 The cockpit is **local-first** (`127.0.0.1` only). Your code stays on disk; the control plane stores **orchestration state**, not source-of-truth repositories.
 
-### 2. One Hermes, two roles
+### 2. Two execution engines, one merge gate
+
+| Engine | When | JoyZoning tracks |
+|--------|------|------------------|
+| **Managed** (Hermes lease) | Dispatch / `jz task run` | `ExecutionLease`, handoff, evidence log |
+| **External** (Cursor, etc.) | `jz task start-external` / `delivery-chain next --external` | Task status, branch, prompt, workspace scan |
+
+Both paths end with **verify** and **operator** `jz task complete --yes`. See [execution-paths.md](execution-paths.md).
+
+### 3. One Hermes, two roles (when using managed path)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -65,7 +74,7 @@ The cockpit is **local-first** (`127.0.0.1` only). Your code stays on disk; the 
 
 Roles are **sessions and toolsets**, not duplicate installs. JoyZoning imports/pushes kanban so the board stays the shared contract between you, the manager agent, and workers.
 
-### 3. Execution lease (governance boundary)
+### 4. Execution lease (governance boundary)
 
 An **execution lease** is the unit of agent authority for one kanban card:
 
@@ -98,7 +107,7 @@ sequenceDiagram
 
 **Merge is the only door to Complete.** Agents may reach `ready_for_review`; they cannot call merge or set `WorkTaskStatus.Complete`. The same rule applies in the desktop UI, REST API, `jz`, and `jz agent` (enforced by `KanbanExecutionRules`, `AgentGuard`, and API 403s).
 
-### 4. One card → one workspace (1:1 inspection)
+### 5. One card → one workspace (1:1 inspection)
 
 Dispatch creates a **lease** on branch `joyzoning/card-<task-id>` in the **session workspace**; the control plane resolves **one inspection path per kanban card**. Workspace, git porcelain, timeline events, and `GET /api/tasks/{id}/workspace/*` all use that path — the same contract as a **GitHub PR “Files changed”** tab tied to one issue.
 

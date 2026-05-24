@@ -2,13 +2,15 @@
 
 ## Overview
 
-JoyZoning is a **human operator cockpit** for multi-agent software workflows on a single local **diet-hermes** install. It is not an IDE, not a chatbot wrapper, and not a VS Code clone.
+JoyZoning is a **human operator cockpit** for multi-agent software workflows on your machine. It is not an IDE, not a chatbot wrapper, and not a VS Code clone.
 
-**Product concepts (read first):** [concepts.md](concepts.md) — operator cockpit, execution leases, human merge, one Hermes / two roles.
+**Hermes is optional.** Work can run as a **managed lease** (diet-hermes) or as **external-agent JSDP** (Cursor, Claude Code, manual) with the same verify + human merge gates. See [execution-paths.md](execution-paths.md).
 
-**Operational modes (do not collapse metaphors):** [operational-modes.md](operational-modes.md) — Planning (kanban), Execution (leases/workers), Review (merge queue), Habitat (ambient watch).
+**Product concepts (read first):** [concepts.md](concepts.md) — operator cockpit, execution leases *or* external tasks, human merge.
 
-**Terminal strategy:** [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) — **cognition vs authority**: Hermes owns agent chat (`hermes --tui`); JoyZoning owns runtime governance (`jz` / `jz tui`). Chat does not hold final authority on merge or Complete.
+**Operational modes (do not collapse metaphors):** [operational-modes.md](operational-modes.md) — Planning (kanban), Execution (managed + external), Review (merge queue), Habitat (ambient watch).
+
+**Terminal strategy:** [hermes-aligned-terminal-strategy.md](hermes-aligned-terminal-strategy.md) — **cognition vs authority**: Hermes (optional) owns agent chat; JoyZoning owns runtime governance (`jz`). Chat does not hold final authority on merge or Complete.
 
 **Stack:** .NET 8, Avalonia 12 desktop, ASP.NET Core control plane, SQLite + EF Core, SignalR, optional `jz` CLI.
 
@@ -68,28 +70,42 @@ The control plane and kanban board coordinate work between manager and executor 
 
 ### Kanban execution orchestration (under existing board)
 
-Each `WorkTask` (kanban card) can hold **one active `ExecutionLease`** at a time:
+Each `WorkTask` runs in one of two modes (`TaskExecutionMode`):
+
+| Mode | Who edits files | State carrier | Convergence |
+|------|-----------------|---------------|-------------|
+| **ManagedAgent** | Hermes / DietCode via lease | `ExecutionLease` + `HandoffPacket` | Lease → `ReadyForReview` → human merge |
+| **ExternalAgent** | Cursor, Claude Code, manual | `WorkTask` external fields + workspace scan | `mark-ready` → verify → `external/complete` |
+
+**Managed path** — one active `ExecutionLease` per card:
 
 ```
 Card → ExecutionLease (leased) → HandoffPacket → DietCode run (running)
      → verification → ready_for_review → human merge/revoke
 ```
 
+**External path** — no lease row:
+
+```
+Card → external/start → branch joyzoning/card-<id> + stored prompt
+     → IDE edits → external/ready-for-review → verification → external/complete
+```
+
 | Concept | Role |
 |---------|------|
-| `ExecutionLease` | Bounded authority: worktree path, branch, path allow/deny, risk, status |
-| `HandoffPacket` | Executor prompt: objective, acceptance criteria, verification commands |
-| `VerificationReport` | Evidence attached to lease; preserved if lease is revoked |
+| `ExecutionLease` | Managed only: bounded authority, branch, risk, status |
+| `ExternalTaskExecutionService` | External only: branch, prompt, scan, gates |
+| `HandoffPacket` / external prompt | Objective, JSDP sections, verification hints |
+| `VerificationReport` | Evidence on lease (managed) or task (external) |
 
-**Rules (enforced in `KanbanExecutionRules` + `KanbanExecutionOrchestrator`):**
+**Rules (enforced in orchestrators + `JsdpMergeGate`):**
 
-- One active lease per card; critical cards need `humanApprovedCritical` on dispatch.
-- Only one **critical** lease in `running`/`verifying` globally.
-- DietCode may transition lease → `blocked` | `verifying` | `ready_for_review` only.
-- DietCode cannot set task `Complete`; merge is human-only after verification passes.
-- Revoke keeps `VerificationReportJson` and appends to `EvidenceLogJson`.
+- One active lease per card **when managed**; critical cards need `humanApprovedCritical` on dispatch.
+- External: branch match + diff gates on `ready-for-review`; no API shortcut to `Complete`.
+- Agents cannot set task `Complete` on bounded/external work — operator `jz task complete --yes` only.
+- JSDP chains: next role blocked until prior role is `Complete` after merge.
 
-**API (control plane):** see [execution-orchestration-api.md](execution-orchestration-api.md) and [control-plane-api.md](control-plane-api.md).
+**API (control plane):** [execution-orchestration-api.md](execution-orchestration-api.md) (leases) · [control-plane-api.md](control-plane-api.md#external-execution-no-lease) (external + delivery chains) · [external-agent-jsdp.md](external-agent-jsdp.md).
 
 **Runtime enforcement:** `LeaseRuntimeService` applies caps (`MaxGlobalActiveLeases`, `MaxCriticalLeases`), heartbeat staleness (`LeaseStaleOptions`), and absolute expiration before orchestrator mutations. Evidence is append-only JSON on the lease row (`EvidenceLogJson`).
 
