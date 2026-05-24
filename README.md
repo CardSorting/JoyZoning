@@ -3,27 +3,29 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4)](global.json)
 
-Supervise AI coding on your machine.
+> ### Supervise AI coding on your machine.
 
-JoyZoning gives you a local cockpit for agent work:
+**JoyZoning** is a local cockpit for agent work:
 
-- plan in chat
-- track work as kanban cards
-- run changes in your real repo
-- verify with tests and builds
-- merge only when you approve
+- **Plan** in chat
+- **Track** work as kanban cards
+- **Run** changes in your real repo
+- **Verify** with tests and builds
+- **Merge** only when you approve
 
-It is not a second IDE.  
-It is not an autonomous auto-merge bot.  
-It is not “the agent said it’s done.”
+> **What it is not**
+>
+> - Not a second IDE
+> - Not an autonomous auto-merge bot
+> - Not “the agent said it’s done”
 
-JoyZoning is for operators who want evidence before completion.
+**For operators who want evidence before completion.**
 
-One local [diet-hermes](https://github.com/NousResearch/hermes-agent). Not a second IDE. Not “the agent said it’s finished.”
+> One local [diet-hermes](https://github.com/NousResearch/hermes-agent). Not a second IDE. Not “the agent said it’s finished.”
 
-**Anchor:** Chat plans; Workspace is truth.
+> **Anchor —** Chat plans; Workspace is truth.
 
-> **New here?** [What's next](docs/onboarding/whats-next.md) (~20 min) after install · [Onboarding hub](docs/onboarding/README.md)
+> **New here?** [What's next](docs/onboarding/whats-next.md) (~20 min after install) · [Onboarding hub](docs/onboarding/README.md)
 
 ---
 
