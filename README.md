@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4)](global.json)
 
-> ### Supervise AI coding on your machine.
+## Supervise AI coding on your machine.
 
 JoyZoning is a local cockpit for agent work:
 
@@ -13,203 +13,135 @@ JoyZoning is a local cockpit for agent work:
 - Verify with tests and builds
 - Merge only when you approve
 
-> **What it is not**
->
-> - Not a second IDE
-> - Not an autonomous auto-merge bot
-> - Not “the agent said it’s done”
+Chat plans. Workspace is truth.
 
-**For operators who want evidence before completion.**
+Most coding agents stop at chat. JoyZoning adds task tracking, real repo execution, verification workflows, audit trails, and merge only when you approve — so work stays reviewable before it becomes “done.”
 
-> Chat plans; Workspace is truth.
+JoyZoning is not:
 
-> **New here?** [What's next](docs/onboarding/whats-next.md) (~20 min after install) · [Onboarding hub](docs/onboarding/README.md)
+- a second IDE
+- an autonomous auto-merge bot
+- “the agent said it’s done”
+
+For operators who want evidence before completion.
+
+→ **New here?** [What's next](docs/onboarding/whats-next.md) (~20 min after install)  
+→ **Full onboarding:** [onboarding/README.md](docs/onboarding/README.md)
 
 ---
 
 ## Onboarding in four steps
 
-```mermaid
-flowchart LR
-  P0[Phase 0 — Decide] --> P1[Phase 1 — Install]
-  P1 --> P2[Phase 2 — First merge]
-  P2 --> P3[Phase 3 — Scale]
-```
-
-| Phase | Goal | Time | Go to |
-|-------|------|------|--------|
-| **0 — Decide** | Confirm JoyZoning matches your workflow | ~5 min | [Before you begin](docs/onboarding/before-you-begin.md) |
-| **1 — Install** | App running, health grade visible, repo opened | ~15 min | [5-minute quickstart](docs/onboarding/quickstart.md) |
-| **2 — First merge** | One card: dispatch → verify → merge → Complete | ~20 min | **[What's next](docs/onboarding/whats-next.md)** ← main walkthrough |
-| **3 — Scale** | Daily habits, CLI, or multi-role JSDP | ongoing | [Setup checklist](docs/onboarding/setup-checklist.md) · [JSDP](docs/jsdp.md) |
-
-> One local [diet-hermes](https://github.com/NousResearch/hermes-agent). Not “the agent said it’s finished.”
+| Step | Goal | Time | Guide |
+|------|------|------|--------|
+| **0 — Decide** | Is this the workflow you want? | ~5 min | [Before you begin](docs/onboarding/before-you-begin.md) |
+| **1 — Install** | App running, repo opened | ~15 min | [Quickstart](docs/onboarding/quickstart.md) |
+| **2 — First merge** | Dispatch → verify → merge → Complete | ~20 min | **[What's next](docs/onboarding/whats-next.md)** |
+| **3 — Daily use** | Desktop, CLI, or both | ongoing | [Setup checklist](docs/onboarding/setup-checklist.md) |
 
 ---
 
-## Phase 0 — Is JoyZoning for you?
+## Step 0 — Fit check
 
-| You want to… | JoyZoning is a good fit |
-|--------------|-------------------------|
-| Supervise agents on a **real repo** with an audit trail | Yes |
-| **Approve** what ships (diff + tests + your sign-off) | Yes |
-| Replace your IDE or use only chat | No — keep Cursor/VS Code; JoyZoning is the **cockpit** |
-| Unattended auto-merge with no human gate | No — merge is always operator-owned |
+| You want… | Good fit? |
+|-----------|-----------|
+| Supervised agent work on a **real repo** with an audit trail | Yes |
+| Review diffs and tests before anything ships | Yes |
+| A replacement IDE or chat-only workflow | No — keep your editor; use JoyZoning to supervise |
 
-**Still unsure?** [Before you begin](docs/onboarding/before-you-begin.md) · [What is JoyZoning?](docs/what-is-joyzoning.md) (plain English)
-
-### Mental model (read once — used in every step)
-
-1. **Chat plans; Workspace is truth** — Manager Chat = thinking; **Workspace** = files on disk (like a PR “Files changed” tab). Trust Workspace, not chat, for sign-off.  
-2. **One card → one branch** — You open one project folder. After **Dispatch**, work is on `joyzoning/card-<task-id>` in that folder (no hidden sandbox copy).  
-3. **Only you merge** — Agents stop at `ready_for_review`; **Complete** is yours after review (and verification if you run it).
-
-[Full philosophy](docs/philosophy.md) · [Which folder am I viewing?](docs/workspace-state.md)
+[What is JoyZoning?](docs/what-is-joyzoning.md) (plain English)
 
 ---
 
-## Phase 1 — Install and open your repo
+## Step 1 — Install
 
-### Prerequisites
-
-- [ ] [.NET 8 SDK](https://dotnet.microsoft.com/download) — `dotnet --version` shows 8.x (`global.json` in repo)
-- [ ] Node.js 18+ and **pnpm**
-- [ ] Python 3.11 (first-time Hermes setup only)
-- [ ] One **diet-hermes** install — [Hermes setup guide](docs/onboarding/hermes-setup.md)
-- [ ] LLM API key (before Manager Chat can reply) — [api-keys-and-models](docs/onboarding/api-keys-and-models.md)
-
-### Commands
+**Need:** [.NET 8](https://dotnet.microsoft.com/download), Node 18+, pnpm, Python 3.11 (first Hermes setup), one [diet-hermes](https://github.com/NousResearch/hermes-agent) install ([guide](docs/onboarding/hermes-setup.md)), LLM API key for chat ([keys](docs/onboarding/api-keys-and-models.md)).
 
 ```bash
 git clone https://github.com/CardSorting/JoyZoning.git
 cd JoyZoning
-pnpm install
-pnpm setup    # interactive: ports, workspace, Python venv
-pnpm dev      # control plane + desktop + watch UI
+pnpm install && pnpm setup && pnpm dev
 ```
 
-**Desktop-only shortcut:** `./scripts/run-dev.sh` after clone — details in [quickstart](docs/onboarding/quickstart.md).
+Or: `./scripts/run-dev.sh` — [quickstart](docs/onboarding/quickstart.md).
 
-### You are ready for Phase 2 when…
-
-| Check | Where to look |
-|-------|----------------|
-| JoyZoning window is open | Desktop app |
-| Health is **Healthy** or **Degraded** (not **Blocked**) | **Getting Started** |
-| Status chips for API / Dashboard are green or yellow | Top status bar — [status indicators](docs/onboarding/status-indicators.md) |
-| Your repo is selected | **Project → Open Workspace** |
-
-First Hermes install can take **3–8 minutes** on a cold machine — normal.
-
-**Ports (local only):** JoyZoning `9470` · Hermes API `8642` · Hermes dashboard `9119`
+**Ready for Step 2 when:** app open, health not **Blocked**, your repo selected (**Project → Open Workspace**). First Hermes setup may take a few minutes.
 
 ---
 
-## Phase 2 — Your first supervised task
+## Step 2 — First task (dispatch → merge)
 
-This is the habit you will repeat for every card. **Step-by-step with screenshots-level detail:** [What's next after setup](docs/onboarding/whats-next.md).
+Full walkthrough: **[What's next](docs/onboarding/whats-next.md)**.
 
-```mermaid
-flowchart LR
-  P[Plan] --> K[Kanban]
-  K --> D[Dispatch]
-  D --> W[Work]
-  W --> V[Verify]
-  V --> R[ready_for_review]
-  R --> M[You merge]
-```
+| Step | Where | What you do | Done when… |
+|------|--------|-------------|------------|
+| **Plan** | Manager Chat | Describe the work | You have a reply |
+| **Track** | Kanban | Create or pick a card | Card is on the board |
+| **Dispatch** | Kanban | Start the agent on that card | Task activity shows a run |
+| **Review files** | Workspace | Check changed files | You see the real diff |
+| **Verify** | Workspace or `jz` | Run tests/build you care about | Status is ready for your review |
+| **Merge** | Workspace → Kanban | Approve the change | Card is **Complete** |
 
-| Step | Open in app | You do | Success signal |
-|------|-------------|--------|----------------|
-| **1. Plan** | **Manager Chat** | Describe the outcome; optional **→ Task** | Assistant replies (needs API key) |
-| **2. Track** | **Kanban** | Create or select a card; use **Low** risk while learning | Card visible on board |
-| **3. Dispatch** | **Kanban** | **Dispatch** (approve if critical) | Execution viewport shows activity |
-| **4. Observe** | **Execution** / **Timeline** | Watch the run — chat is not sign-off | Events in Timeline |
-| **5. Verify** | **Workspace** or Terminal | Run tests/build you care about | Lease → `ready_for_review` |
-| **6. Merge** | **Workspace** → **Kanban** | Review diff; **Merge** when satisfied | Card **Complete** |
+Trust **Workspace**, not chat, for sign-off.
 
-**No Terminal?** [Desktop menu guide](docs/onboarding/desktop-menu-guide.md) — where to click for each step.  
-**Words unfamiliar?** [Plain-language glossary](docs/onboarding/plain-language-glossary.md).
-
-### Terminal (same steps)
+**Menus, not terminal:** [desktop menu guide](docs/onboarding/desktop-menu-guide.md) · **Glossary:** [plain-language](docs/onboarding/plain-language-glossary.md)
 
 ```bash
-./scripts/jz doctor
 jz task run <task-id> --poll 10
 jz task verify <task-id> --cmd "dotnet test"
 jz task complete <task-id> --yes
-jz task watch <task-id>
 ```
 
 ---
 
-## Phase 3 — Choose how you work day to day
+## Step 3 — Daily use
 
-Same rules on every surface — pick what fits you:
+| How you work | Start here |
+|--------------|------------|
+| Desktop (board + diffs) | [quickstart](docs/onboarding/quickstart.md) |
+| Terminal (`jz`) | [first-run-cli](docs/onboarding/first-run-cli.md) |
+| Both | [choose-your-path](docs/onboarding/choose-your-path.md) |
+| Browser UI (`http://127.0.0.1:9470`) | After `pnpm dev` |
 
-| Path | Best for | Start here |
-|------|----------|------------|
-| **Desktop** | Board, diffs, approvals, checklist | [quickstart](docs/onboarding/quickstart.md) |
-| **`jz` CLI** | Scripts, SSH, automation | [first-run-cli](docs/onboarding/first-run-cli.md) |
-| **Both** | Plan in UI, verify in terminal | [choose-your-path](docs/onboarding/choose-your-path.md) |
-| **Browser console** | Watch UI at `http://127.0.0.1:9470` | After `pnpm dev` |
-| **8-role delivery** | Product → architecture → … → QA in sequence | [jsdp.md](docs/jsdp.md) |
+**Habits:** one active task run per card · verify before merge · trust Workspace for review · start with low risk while learning.
 
-### Multi-role programs (JSDP)
-
-One role at a time, **accept-merge between roles**, same repo throughout:
-
-```bash
-./scripts/role-chain-dispatch.sh --create --workspace /path/to/repo --program "My App"
-./scripts/role-chain-dispatch.sh --status
-./scripts/role-chain-dispatch.sh --next
-jz task complete <task-id> --yes
-```
-
-### Habits that scale
-
-| Habit | Why |
-|-------|-----|
-| One active lease per card | Avoids conflicting branches |
-| Verify before merge | Evidence in the audit trail |
-| Trust **Workspace**, not chat, for sign-off | Cognition vs authority |
-| Start at **Low** risk until the loop feels natural | Fewer approval interrupts |
-
-[Use cases](docs/use-cases.md) · [concepts](docs/concepts.md) · [FAQ](docs/faq.md)
-
----
-
-## Pick a shortcut (if you are not doing Phase 0→2 in order)
-
-| You are… | Jump to |
-|----------|---------|
-| New — desktop first | [quickstart](docs/onboarding/quickstart.md) → [whats-next](docs/onboarding/whats-next.md) |
-| From Hermes chat only | [coming-from-hermes-chat](docs/onboarding/coming-from-hermes-chat.md) |
-| Coding agent / Cursor | [AGENTS.md](AGENTS.md) |
-| Something broke | [troubleshooting-setup](docs/onboarding/troubleshooting-setup.md) |
+[Use cases](docs/use-cases.md) · [FAQ](docs/faq.md)
 
 ---
 
 ## Stuck?
 
-| Symptom | Fix |
+| Problem | Fix |
 |---------|-----|
 | App won't open | [Setup troubleshooting](docs/onboarding/troubleshooting-setup.md) |
-| Red **API** or **Dashboard** chip | [status-indicators](docs/onboarding/status-indicators.md) |
-| Manager Chat never replies | [api-keys-and-models](docs/onboarding/api-keys-and-models.md) |
-| Workspace empty after agent worked | Card not **Dispatched** — dispatch, re-select card |
-| `jz` command fails | [first-run-cli](docs/onboarding/first-run-cli.md) |
-| Old `.joyzoning/worktrees` folders on disk | Safe to remove — [jsdp.md](docs/jsdp.md) |
+| Red API / Dashboard | [Status indicators](docs/onboarding/status-indicators.md) |
+| Chat won't reply | [API keys](docs/onboarding/api-keys-and-models.md) |
+| Empty Workspace | Dispatch the card first, then re-select it |
+| `jz` errors | [first-run-cli](docs/onboarding/first-run-cli.md) |
 
 ---
 
-## Documentation map
+## Advanced — multi-role delivery (optional)
 
-| Stage | Docs |
+After the basic loop feels natural, you can run **sequential roles** on one repo (e.g. product → architecture → implementation → QA) with a merge between each role. Same repo throughout; one role at a time.
+
+```bash
+./scripts/role-chain-dispatch.sh --create --workspace /path/to/repo --program "My App"
+./scripts/role-chain-dispatch.sh --next
+jz task complete <task-id> --yes
+```
+
+Details: [jsdp.md](docs/jsdp.md) · Technical background: [philosophy.md](docs/philosophy.md)
+
+---
+
+## Docs
+
+| Topic | Link |
 |-------|------|
-| Onboarding (all guides) | [onboarding/README.md](docs/onboarding/README.md) |
-| Install deep-dive | [installation](docs/onboarding/installation.md) · [macOS](docs/onboarding/platform-macos.md) · [Linux](docs/onboarding/platform-linux.md) |
-| Integrate / API | [control-plane-api](docs/control-plane-api.md) · [hermes-integration](docs/hermes-integration.md) |
+| All onboarding | [onboarding/README.md](docs/onboarding/README.md) |
+| Install (deep) | [installation](docs/onboarding/installation.md) |
+| API | [control-plane-api](docs/control-plane-api.md) |
 | Contribute | [development](docs/development.md) · [CONTRIBUTING](CONTRIBUTING.md) |
 
 ---
