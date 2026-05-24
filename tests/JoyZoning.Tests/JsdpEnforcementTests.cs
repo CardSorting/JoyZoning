@@ -61,9 +61,10 @@ public class JsdpEnforcementTests
             Description = "docs/product-lock.md",
         };
 
-        var packet = HandoffPacketBuilder.Build(task, "/tmp/wt", "branch", "/tmp/ws", null, session);
+        var packet = HandoffPacketBuilder.Build(task, "/tmp/ws", "joyzoning/card-test", "/tmp/ws", null, session);
         var prompt = HandoffPacketBuilder.ToExecutorPrompt(packet);
 
+        Assert.Equal("/tmp/ws", packet.WorktreePath);
         Assert.Equal(JsdpProtocol.ProtocolId, packet.Protocol);
         Assert.True(packet.MergeGateRequired);
         Assert.Equal(JsdpProtocol.RequiredOutputSections, packet.RequiredOutputSections);
@@ -276,7 +277,7 @@ public class JsdpEnforcementTests
             isJsdpEnforcedSession: true);
 
         Assert.False(candidate.IsEligible);
-        Assert.Contains("JSDP", candidate.SkipReason, StringComparison.Ordinal);
+        Assert.Contains("delivery-chain", candidate.SkipReason, StringComparison.OrdinalIgnoreCase);
     }
 
     private static OperatorSession BoundedSession(Guid chainId, int sequence) =>

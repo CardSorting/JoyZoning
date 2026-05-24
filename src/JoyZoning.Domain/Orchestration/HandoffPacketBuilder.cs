@@ -35,6 +35,12 @@ public static class HandoffPacketBuilder
         if (isJsdp)
         {
             constraints.AddRange(JsdpHandoffCompliance.ScopeGuardrails(session!.DeliverySequence));
+            if (JsdpSessionPolicy.UseCanonicalWorkspace(session))
+            {
+                constraints.Add(
+                    "Work in the canonical session workspace only — do not edit .joyzoning/worktrees or .joyzoning/live.");
+            }
+
             foreach (var warning in compliance.Warnings)
                 constraints.Add($"JSDP compliance warning: {warning}");
         }
@@ -54,8 +60,9 @@ public static class HandoffPacketBuilder
             AllowedPaths = allowed,
             ForbiddenPaths = forbidden,
             VerificationCommands = DefaultVerificationCommands(task, risk),
-            RollbackInstructions =
-                $"Discard branch {branchName} and remove worktree at {worktreePath} if execution is revoked.",
+            RollbackInstructions = isJsdp && JsdpSessionPolicy.UseCanonicalWorkspace(session)
+                ? $"Revert uncommitted changes in the canonical workspace and discard branch {branchName} if execution is revoked."
+                : $"Discard branch {branchName} and remove worktree at {worktreePath} if execution is revoked.",
             RiskLevel = risk,
             WorktreePath = worktreePath,
             BranchName = branchName,
@@ -217,7 +224,7 @@ public static class HandoffPacketBuilder
     }
 
     private static List<string> CommonForbiddenPaths() =>
-        [".git/", "node_modules/", ".env", "secrets/", ".joyzoning/worktrees/", ".joyzoning/live/"];
+        [".git/", "node_modules/", ".env", "secrets/", ".joyzoning/"];
 
     public static bool IsMobileStackTask(WorkTask task)
     {

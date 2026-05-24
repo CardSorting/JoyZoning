@@ -55,17 +55,13 @@ builder.Services.AddScoped<EventIngestor>();
 builder.Services.AddScoped<WorkspaceEventPublisher>();
 builder.Services.AddScoped<WorkerMergeObservabilityBuilder>();
 builder.Services.AddScoped<AuthorityAutopilotMergeContextBuilder>();
-builder.Services.AddScoped<WorkspaceLiveMirrorObservabilityService>();
-builder.Services.AddScoped<WorkspaceLiveMirrorService>();
-builder.Services.AddSingleton<LeaseLiveRefreshCoordinator>();
-builder.Services.AddScoped<LeaseWorktreeMonitor>();
+builder.Services.AddScoped<WorkspaceWorkerObservabilityService>();
 builder.Services.AddScoped<LeaseRuntimeService>();
 builder.Services.AddScoped<AuthorityAutopilotService>();
 builder.Services.AddScoped<KanbanExecutionOrchestrator>();
 builder.Services.AddScoped<OrchestrationService>();
 builder.Services.AddScoped<WorkspaceSessionConsolidator>();
 builder.Services.AddSingleton<WorkspaceIdentityCoordinator>();
-builder.Services.AddSingleton<WorkspaceLiveMirrorRegistry>();
 builder.Services.AddScoped<ApprovalService>();
 builder.Services.AddScoped<ConfigService>();
 builder.Services.AddSingleton<HermesConnectivityService>();
@@ -91,7 +87,6 @@ builder.Services.AddSingleton<BroccoliQProcessService>();
 builder.Services.AddHostedService<BroccoliQWorkerHostedService>();
 builder.Services.AddHostedService<KanbanAutoSyncHostedService>();
 builder.Services.AddHostedService<LeaseReconciliationHostedService>();
-builder.Services.AddHostedService<LeaseWorktreeMonitorHostedService>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -116,7 +111,6 @@ var app = builder.Build();
 
 app.Services.EnsureDatabaseCreated();
 
-// Mark interrupted executions on startup
 using (var scope = app.Services.CreateScope())
 {
     var executions = scope.ServiceProvider.GetRequiredService<JoyZoning.Persistence.Repositories.IExecutionRepository>();

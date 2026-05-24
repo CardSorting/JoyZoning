@@ -8,6 +8,7 @@ public sealed class WorkspaceGitMerger : IWorkspaceGitMerger
     private const string StrategySquashBranch = "squash_branch";
     private const string StrategyPatchApply = "patch_apply";
     private const string StrategyFilesystemCopy = "filesystem_copy";
+    private const string StrategyCanonicalInPlace = JsdpWorkspaceExecution.CanonicalStrategy;
 
     public Task<WorkspaceConvergenceResult> PreflightAsync(
         WorkspaceConvergenceRequest request,

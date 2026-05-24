@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { isIdle, pollIntervalMs } from "@/lib/presentation";
 import type { JoyEvent, LiveTaskSnapshot, StreamLine } from "@/lib/types";
+import { buildWorkspaceTaskSnapshot } from "@/lib/workspace-snapshot";
 import { useSignalR } from "./useSignalR";
 
 function newLine(kind: StreamLine["kind"], text: string): StreamLine {
@@ -32,6 +33,7 @@ export function useLiveTask(
   const eventsSince = useRef(0);
   const knownFiles = useRef(new Set<string>());
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevFileCount = useRef(0);
 
   const pushStream = useCallback((kind: StreamLine["kind"], text: string) => {
     setStream((prev) => [...prev.slice(-199), newLine(kind, text)]);
@@ -54,8 +56,9 @@ export function useLiveTask(
       if (fresh.size > 0) {
         setTimeout(() => setNewFilePaths(new Set()), 2500);
       }
+      return paths;
     } catch {
-      /* worktree may not be git yet */
+      return [];
     }
   }, []);
 
@@ -64,8 +67,8 @@ export function useLiveTask(
     setLoading(true);
     setError(null);
     try {
-      const [live, ev] = await Promise.all([
-        api.live(taskId),
+      const [paths, ev] = await Promise.all([
+        loadFiles(taskId),
         api.events(taskId, eventsSince.current || undefined),
       ]);
       if (ev.length) {
@@ -73,20 +76,46 @@ export function useLiveTask(
         eventsSince.current = maxId;
         setEvents((prev) => [...prev, ...ev].slice(-80));
       }
-      await loadFiles(taskId);
-      if ((live.progress?.filesCopiedThisTick ?? 0) > 0) {
-        pushStream(
-          "sync",
-          live.liveMirrorRoot
-            ? `Synced ${live.progress!.filesCopiedThisTick} file(s) to live mirror`
-            : `Synced ${live.progress!.filesCopiedThisTick} file(s) to your project folder`,
-        );
+
+      let leaseStatus: string | null = null;
+      let title: string | undefined;
+      let worktreePath: string | null = null;
+      let sessionRoot: string | null = null;
+
+      if (sessionId) {
+        try {
+          const workers = await api.parallelWorkers(sessionId);
+          sessionRoot = workers.sessionWorkspaceRoot;
+          const worker = workers.workers.find((w) => w.taskId === taskId);
+          if (worker) {
+            leaseStatus = worker.leaseStatus;
+            title = worker.taskTitle;
+            worktreePath = worker.workspacePath ?? worker.mergeReadiness?.worktreePath ?? null;
+          }
+        } catch {
+          /* session workers optional */
+        }
       }
+
+      const copied = Math.max(0, paths.length - prevFileCount.current);
+      prevFileCount.current = paths.length;
+      if (copied > 0) {
+        pushStream("sync", `Workspace updated · ${copied} changed file(s)`);
+      }
+
+      const live = buildWorkspaceTaskSnapshot(taskId, {
+        title,
+        leaseStatus,
+        worktreePath,
+        sessionWorkspaceRoot: sessionRoot,
+        fileCount: paths.length,
+        filesCopiedThisTick: copied,
+        idleMessage: leaseStatus ? undefined : "No active lease — JSDP runs in the canonical workspace.",
+      });
+
       setSnapshot(live);
       const mode = live.display?.pollMode ?? "normal";
-      setConnLabel(
-        `Live · ${new Date().toLocaleTimeString()} · ${mode}`,
-      );
+      setConnLabel(`Workspace · ${new Date().toLocaleTimeString()} · ${mode}`);
       return live;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to load";
@@ -96,7 +125,7 @@ export function useLiveTask(
     } finally {
       setLoading(false);
     }
-  }, [taskId, loadFiles, pushStream]);
+  }, [taskId, sessionId, loadFiles, pushStream]);
 
   const schedulePoll = useCallback(
     (live: LiveTaskSnapshot | null) => {
@@ -115,6 +144,7 @@ export function useLiveTask(
 
   useEffect(() => {
     knownFiles.current.clear();
+    prevFileCount.current = 0;
     setStream([]);
     setFiles([]);
     setEvents([]);
@@ -134,7 +164,7 @@ export function useLiveTask(
   useSignalR(sessionId, taskId, {
     onWorktreeRefreshed: () => void refresh(),
     onTaskLiveUpdated: (_id, copied) => {
-      if (copied > 0) pushStream("sync", `Mirror updated · ${copied} file(s)`);
+      if (copied > 0) pushStream("sync", `Workspace updated · ${copied} file(s)`);
       void refresh();
     },
     onTerminalOutput: (_id, text) => pushStream("tool", text),
@@ -147,15 +177,9 @@ export function useLiveTask(
 
   const forceRefresh = useCallback(async () => {
     if (!taskId) return;
-    try {
-      const live = await api.refreshLive(taskId);
-      setSnapshot(live);
-      await loadFiles(taskId);
-      schedulePoll(live);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Refresh failed");
-    }
-  }, [taskId, loadFiles, schedulePoll]);
+    const live = await refresh();
+    if (live) schedulePoll(live);
+  }, [taskId, refresh, schedulePoll]);
 
   return {
     snapshot,

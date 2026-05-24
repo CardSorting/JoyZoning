@@ -9,11 +9,7 @@ public static class WorktreeSeeder
         "node_modules",
     ];
 
-    private static readonly string[] SkipJoyZoningSubdirs =
-    [
-        "worktrees",
-        "live",
-    ];
+    private const string JoyZoningDir = ".joyzoning";
 
     public sealed record SeedResult(int FilesCopied, bool SkippedExistingContent);
 
@@ -93,9 +89,7 @@ public static class WorktreeSeeder
         if (SkipPrefixSegments.Contains(segments[0], StringComparer.OrdinalIgnoreCase))
             return true;
 
-        if (segments.Length >= 2
-            && segments[0].Equals(".joyzoning", StringComparison.OrdinalIgnoreCase)
-            && SkipJoyZoningSubdirs.Contains(segments[1], StringComparer.OrdinalIgnoreCase))
+        if (segments[0].Equals(JoyZoningDir, StringComparison.OrdinalIgnoreCase))
             return true;
 
         return false;

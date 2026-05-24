@@ -49,15 +49,13 @@ public class KanbanExecutionOrchestratorTests : IDisposable
         {
             o.AutopilotEnabled = true;
             o.DefaultProfile = AuthorityProfileKind.Conservative;
-            o.SessionProfileOverrides["autopilot-yolo"] = AuthorityProfileKind.BalancedAuto;
+            o.SessionProfileOverrides["autopilot"] = AuthorityProfileKind.BalancedAuto;
         });
         services.AddScoped<LeaseRuntimeService>();
-        services.AddSingleton<WorkspaceLiveMirrorRegistry>();
-        services.Configure<WorkspaceOptions>(o => o.MirrorToSessionRoot = false);
+        services.Configure<WorkspaceOptions>(_ => { });
         services.Configure<WorkspaceParallelismOptions>(_ => { });
         services.AddScoped<WorkerMergeObservabilityBuilder>();
-        services.AddScoped<WorkspaceLiveMirrorObservabilityService>();
-        services.AddScoped<WorkspaceLiveMirrorService>();
+        services.AddScoped<WorkspaceWorkerObservabilityService>();
 
         var mockProxy = new Mock<IClientProxy>();
         mockProxy
@@ -166,7 +164,10 @@ public class KanbanExecutionOrchestratorTests : IDisposable
         var orchestrator = _services.GetRequiredService<KanbanExecutionOrchestrator>();
 
         var (lease, _) = await orchestrator.BeginLeaseAsync(cardId);
-        await WriteWorkerFileAsync(lease.WorktreePath, "done.txt", "ok");
+        var sessions = _services.GetRequiredService<IOperatorSessionRepository>();
+        var task = await _services.GetRequiredService<IWorkTaskRepository>().GetByIdAsync(cardId);
+        var session = await sessions.GetByIdAsync(task!.OperatorSessionId);
+        await CommitWorkerFileAsync(session!.WorkspaceRoot, lease.BranchName, "done.txt", "ok");
         await orchestrator.RecordDispatchAttemptAsync(cardId);
         await orchestrator.MarkLeaseRunningAsync(cardId, Guid.NewGuid());
         await orchestrator.AgentTransitionLeaseAsync(cardId, ExecutionLeaseStatus.Verifying);
@@ -185,7 +186,10 @@ public class KanbanExecutionOrchestratorTests : IDisposable
 
         var (lease, _) = await orchestrator.BeginLeaseAsync(cardId);
         Assert.True(Directory.Exists(lease.WorktreePath));
-        await WriteWorkerFileAsync(lease.WorktreePath, "worker-change.txt", "from worker");
+        var sessions = _services.GetRequiredService<IOperatorSessionRepository>();
+        var task = await _services.GetRequiredService<IWorkTaskRepository>().GetByIdAsync(cardId);
+        var session = await sessions.GetByIdAsync(task!.OperatorSessionId);
+        await CommitWorkerFileAsync(session!.WorkspaceRoot, lease.BranchName, "worker-change.txt", "from worker");
 
         await orchestrator.MarkLeaseRunningAsync(cardId, Guid.NewGuid());
         await orchestrator.AgentTransitionLeaseAsync(cardId, ExecutionLeaseStatus.Verifying);
@@ -195,11 +199,7 @@ public class KanbanExecutionOrchestratorTests : IDisposable
         Assert.Equal(WorkTaskStatus.Complete, response.Task.Status);
         Assert.NotNull(response.GitConvergence);
         Assert.True(response.GitConvergence!.Succeeded, response.GitConvergence.ErrorMessage);
-        Assert.NotEqual(
-            response.GitConvergence.DestinationPreviousHead,
-            response.GitConvergence.DestinationNewHead);
-
-        Assert.True(File.Exists(Path.Combine(lease.WorktreePath, "worker-change.txt")));
+        Assert.True(File.Exists(Path.Combine(session!.WorkspaceRoot, "worker-change.txt")));
         var leases = _services.GetRequiredService<IExecutionLeaseRepository>();
         var history = await leases.ListByTaskIdAsync(cardId);
         Assert.Contains(history, l => l.EvidenceLogJson.Contains("git.convergence.succeeded", StringComparison.Ordinal));
@@ -253,11 +253,11 @@ public class KanbanExecutionOrchestratorTests : IDisposable
     [Fact]
     public async Task Accept_result_fails_when_worktree_missing()
     {
-        var (_, cardId) = await SeedCardWithGitAsync(RiskLevel.Low);
+        var (_, cardId) = await SeedCardWithGitAsync(RiskLevel.Critical);
         var orchestrator = _services.GetRequiredService<KanbanExecutionOrchestrator>();
         var leases = _services.GetRequiredService<IExecutionLeaseRepository>();
 
-        var (lease, _) = await orchestrator.BeginLeaseAsync(cardId);
+        var (lease, _) = await orchestrator.BeginLeaseAsync(cardId, humanApprovedCritical: true);
         await orchestrator.MarkLeaseRunningAsync(cardId, Guid.NewGuid());
         await orchestrator.AgentTransitionLeaseAsync(cardId, ExecutionLeaseStatus.Verifying);
         await orchestrator.SubmitVerificationAsync(cardId, PassingReport(cardId));
@@ -313,7 +313,10 @@ public class KanbanExecutionOrchestratorTests : IDisposable
         var orchestrator = _services.GetRequiredService<KanbanExecutionOrchestrator>();
 
         var (lease, _) = await orchestrator.BeginLeaseAsync(cardId);
-        await WriteWorkerFileAsync(lease.WorktreePath, "done.txt", "ok");
+        var sessions = _services.GetRequiredService<IOperatorSessionRepository>();
+        var task = await _services.GetRequiredService<IWorkTaskRepository>().GetByIdAsync(cardId);
+        var session = await sessions.GetByIdAsync(task!.OperatorSessionId);
+        await CommitWorkerFileAsync(session!.WorkspaceRoot, lease.BranchName, "done.txt", "ok");
         await orchestrator.MarkLeaseRunningAsync(cardId, Guid.NewGuid());
         await orchestrator.AgentTransitionLeaseAsync(cardId, ExecutionLeaseStatus.Verifying);
         await orchestrator.SubmitVerificationAsync(cardId, PassingReport(cardId));
@@ -356,7 +359,10 @@ public class KanbanExecutionOrchestratorTests : IDisposable
         var orchestrator = _services.GetRequiredService<KanbanExecutionOrchestrator>();
 
         var (lease, _) = await orchestrator.BeginLeaseAsync(cardId);
-        await WriteWorkerFileAsync(lease.WorktreePath, "once.txt", "once");
+        var sessions = _services.GetRequiredService<IOperatorSessionRepository>();
+        var task = await _services.GetRequiredService<IWorkTaskRepository>().GetByIdAsync(cardId);
+        var session = await sessions.GetByIdAsync(task!.OperatorSessionId);
+        await CommitWorkerFileAsync(session!.WorkspaceRoot, lease.BranchName, "once.txt", "once");
         await orchestrator.MarkLeaseRunningAsync(cardId, Guid.NewGuid());
         await orchestrator.AgentTransitionLeaseAsync(cardId, ExecutionLeaseStatus.Verifying);
         await orchestrator.SubmitVerificationAsync(cardId, PassingReport(cardId, ["once.txt"]));
@@ -372,18 +378,21 @@ public class KanbanExecutionOrchestratorTests : IDisposable
     [Fact]
     public async Task Autopilot_accept_records_system_actor_on_git_convergence()
     {
-        var (_, cardId) = await SeedCardWithGitAsync(RiskLevel.Low, sessionName: "autopilot-yolo");
+        var (_, cardId) = await SeedCardWithGitAsync(RiskLevel.Low, sessionName: "autopilot");
         var orchestrator = _services.GetRequiredService<KanbanExecutionOrchestrator>();
         var leases = _services.GetRequiredService<IExecutionLeaseRepository>();
 
         var (lease, _) = await orchestrator.BeginLeaseAsync(cardId);
-        await WriteWorkerFileAsync(lease.WorktreePath, "readme.md", "autopilot");
+        var sessions = _services.GetRequiredService<IOperatorSessionRepository>();
+        var task = await _services.GetRequiredService<IWorkTaskRepository>().GetByIdAsync(cardId);
+        var session = await sessions.GetByIdAsync(task!.OperatorSessionId);
+        await CommitWorkerFileAsync(session!.WorkspaceRoot, lease.BranchName, "done.txt", "autopilot");
 
         await orchestrator.MarkLeaseRunningAsync(cardId, Guid.NewGuid());
         await orchestrator.AgentTransitionLeaseAsync(cardId, ExecutionLeaseStatus.Verifying);
         await orchestrator.SubmitVerificationAsync(
             cardId,
-            PassingReport(cardId, ["readme.md"]));
+            PassingReport(cardId, ["done.txt"]));
 
         var history = await leases.ListByTaskIdAsync(cardId);
         var merged = history.First(l => l.Status == ExecutionLeaseStatus.Merged);
@@ -396,18 +405,20 @@ public class KanbanExecutionOrchestratorTests : IDisposable
     [Fact]
     public async Task Autopilot_auto_accepts_low_risk_after_verification()
     {
-        var (_, cardId) = await SeedCardWithGitAsync(RiskLevel.Low, sessionName: "autopilot-yolo");
+        var (_, cardId) = await SeedCardWithGitAsync(RiskLevel.Low, sessionName: "autopilot");
         var orchestrator = _services.GetRequiredService<KanbanExecutionOrchestrator>();
         var tasks = _services.GetRequiredService<IWorkTaskRepository>();
-
         var (lease, _) = await orchestrator.BeginLeaseAsync(cardId);
-        await WriteWorkerFileAsync(lease.WorktreePath, "readme.md", "autopilot");
+        var sessions = _services.GetRequiredService<IOperatorSessionRepository>();
+        var seeded = await tasks.GetByIdAsync(cardId);
+        var session = await sessions.GetByIdAsync(seeded!.OperatorSessionId);
+        await CommitWorkerFileAsync(session!.WorkspaceRoot, lease.BranchName, "done.txt", "autopilot");
 
         await orchestrator.MarkLeaseRunningAsync(cardId, Guid.NewGuid());
         await orchestrator.AgentTransitionLeaseAsync(cardId, ExecutionLeaseStatus.Verifying);
         await orchestrator.SubmitVerificationAsync(
             cardId,
-            PassingReport(cardId, ["readme.md"]));
+            PassingReport(cardId, ["done.txt"]));
 
         var task = await tasks.GetByIdAsync(cardId);
         Assert.Equal(WorkTaskStatus.Complete, task!.Status);
@@ -426,6 +437,20 @@ public class KanbanExecutionOrchestratorTests : IDisposable
     {
         Directory.CreateDirectory(worktreePath);
         await File.WriteAllTextAsync(Path.Combine(worktreePath, fileName), content);
+    }
+
+    private static async Task CommitWorkerFileAsync(
+        string workspaceRoot,
+        string branchName,
+        string fileName,
+        string content)
+    {
+        var checkout = await GitCommandRunner.RunAsync(workspaceRoot, $"checkout \"{branchName}\"", default);
+        if (checkout.ExitCode != 0)
+            await GitCommandRunner.RunAsync(workspaceRoot, $"checkout -b \"{branchName}\"", default);
+        await WriteWorkerFileAsync(workspaceRoot, fileName, content);
+        await GitCommandRunner.RunAsync(workspaceRoot, $"add \"{fileName}\"", default);
+        await GitCommandRunner.RunAsync(workspaceRoot, $"commit -m \"{fileName}\"", default);
     }
 
     private static async Task GitInitCommitOnBranchAsync(

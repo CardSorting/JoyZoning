@@ -1,5 +1,5 @@
 import { apiUrl } from "./config";
-import type { JoyEvent, LiveTaskSnapshot, WatchBootstrap } from "./types";
+import type { JoyEvent, WatchBootstrap } from "./types";
 import type { ParallelWorkersSnapshot } from "./parallel-workers";
 import type { MergeQueueSnapshot } from "./merge-queue";
 import type { DecisionPreflightSnapshot, OperatorDecisionAction } from "./operator-decision";
@@ -42,12 +42,6 @@ export const api = {
       registryTransitions: { targetMode: string; label: string; reason: string }[];
     }>("/api/operational-modes"),
   bootstrap: () => fetchJson<WatchBootstrap>("/api/watch/bootstrap"),
-  live: (taskId: string) =>
-    fetchJson<LiveTaskSnapshot>(`/api/tasks/${taskId}/live`),
-  refreshLive: (taskId: string) =>
-    fetchJson<LiveTaskSnapshot>(`/api/tasks/${taskId}/live/refresh`, {
-      method: "POST",
-    }),
   tasks: (sessionId: string) =>
     fetchJson<{ id: string; title: string; status: number }[]>(
       `/api/tasks?sessionId=${encodeURIComponent(sessionId)}`,

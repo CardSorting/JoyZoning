@@ -21,11 +21,11 @@ export function findWorkerForTask(
 export function workspacePathForWorker(worker: ConsoleWorker | null): string | null {
   if (!worker) return null;
   const merge = worker as MergeWorkerEntry;
+  const parallel = worker as ParallelWorkerEntry;
   return (
     merge.mergeReadiness?.worktreePath ??
+    parallel.workspacePath ??
     worker.worktreePath ??
-    merge.mergeReadiness?.liveMirrorPath ??
-    worker.liveMirrorPath ??
     null
   );
 }

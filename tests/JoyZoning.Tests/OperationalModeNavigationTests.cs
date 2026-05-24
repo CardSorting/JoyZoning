@@ -93,26 +93,19 @@ public class OperationalModeNavigationTests
         Assert.Contains(transitions, t => t.TargetModeSlug == OperationalModeNavigation.SlugHabitat);
     }
 
-    private static ParallelWorkerMirrorEntry ShellWorker(string mergeState, string leaseStatus)
+    private static ParallelWorkerEntry ShellWorker(string mergeState, string leaseStatus)
     {
-        var worker = new ParallelWorkerMirrorEntry(
+        var worker = new ParallelWorkerEntry(
             TaskId: Guid.NewGuid(),
             TaskTitle: "card",
             ExecutionSessionId: Guid.NewGuid(),
             LeaseId: Guid.NewGuid(),
             HermesSessionId: "h1",
-            LiveMirrorPath: "/mirror",
-            LiveMarkdownPath: null,
-            HealthState: "active",
-            LifecycleStatus: "active",
-            LastMirroredAt: DateTimeOffset.UtcNow,
+            WorkspacePath: "/wt",
             KanbanRevision: 1,
             KanbanPushedRevision: 1,
             KanbanStatus: "NeedsApproval",
             LeaseStatus: leaseStatus,
-            WorktreePath: "/wt",
-            IsSharedSessionRootMirror: false,
-            RegistryCollision: null,
             MergeState: mergeState,
             MergeReadiness: null,
             MergeConflict: null,

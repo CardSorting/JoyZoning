@@ -18,7 +18,7 @@ internal static class OperatorDecisionApiMapper
         baseCommit = s.BaseCommit,
         headCommit = s.HeadCommit,
         worktreePath = s.WorktreePath,
-        liveMirrorPath = s.LiveMirrorPath,
+        workspacePath = s.WorktreePath,
         riskFlags = MapRiskFlags(s.RiskFlags),
     };
 
@@ -41,7 +41,7 @@ internal static class OperatorDecisionApiMapper
         guardrails = MapGuardrails(p.Guardrails),
     };
 
-    public static object MapWorkerDecisionFields(ParallelWorkerMirrorEntry w) => new
+    public static object MapWorkerDecisionFields(ParallelWorkerEntry w) => new
     {
         decisionSummary = MapSummary(w.DecisionSummary),
         approveGuardrails = MapGuardrails(w.ApproveGuardrails),
@@ -57,7 +57,6 @@ internal static class OperatorDecisionApiMapper
         overlapsWithOtherReadyWorker = f.OverlapsWithOtherReadyWorker,
         largeChangeSet = f.LargeChangeSet,
         staleWorker = f.StaleWorker,
-        mirrorMissing = f.MirrorMissing,
         unknownHeadCommit = f.UnknownHeadCommit,
         active = f.ActiveFlagNames(),
     };

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Execution Mode — live worker orchestration (leases, mirrors, parallel Hermes sessions).
+ * Execution Mode — JSDP worker orchestration (canonical workspace, sequential roles).
  * @see docs/operational-modes.md
  */
 
@@ -9,12 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Copy, ExternalLink, Layers, Shield } from "lucide-react";
 import { api } from "@/lib/api";
 import { copyPath, openPathInShell } from "@/lib/path-actions";
-import {
-  healthLabel,
-  healthTone,
-  type ParallelWorkersSnapshot,
-  type ParallelWorkerEntry,
-} from "@/lib/parallel-workers";
+import type { ParallelWorkersSnapshot, ParallelWorkerEntry } from "@/lib/parallel-workers";
 import { ModeHandoffLink } from "./ModeHandoffLink";
 import type { JoyZoningOperationalMode } from "@/lib/operational-modes";
 import { isOperationalMode } from "@/lib/operational-modes";
@@ -66,10 +61,8 @@ function WorkerCard({
             {worker.kanbanRevision}
           </p>
         </div>
-        <span
-          className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${healthTone(worker.healthState)}`}
-        >
-          {healthLabel(worker.healthState)}
+        <span className="shrink-0 rounded-full border border-campfire-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-campfire-muted">
+          {worker.leaseStatus}
         </span>
       </div>
 
@@ -90,23 +83,11 @@ function WorkerCard({
           <dt>Lease</dt>
           <dd className="font-mono">{shortId(worker.leaseId)}</dd>
         </div>
-        {worker.lastMirroredAt && (
-          <div className="flex justify-between gap-2">
-            <dt>Last mirrored</dt>
-            <dd>{new Date(worker.lastMirroredAt).toLocaleString()}</dd>
-          </div>
-        )}
       </dl>
 
-      {worker.registryCollision && (
-        <p className="mt-2 text-[10px] text-orange-300">
-          Collision with lease {shortId(worker.registryCollision.occupyingLeaseId)}
-        </p>
-      )}
-
-      {worker.liveMirrorPath && (
+      {worker.workspacePath && (
         <p className="mt-2 break-all font-mono text-[10px] text-campfire-muted/90">
-          {worker.liveMirrorPath}
+          {worker.workspacePath}
         </p>
       )}
     </>
@@ -122,13 +103,13 @@ function WorkerCard({
         <div>{summary}</div>
       )}
 
-      {worker.liveMirrorPath && (
+      {worker.workspacePath && (
         <div className="mt-2 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => {
-              void copyPath(worker.liveMirrorPath!).then((res) =>
-                onPathNotice(res.ok ? "Mirror path copied" : res.error, res.ok ? "info" : "error"),
+              void copyPath(worker.workspacePath!).then((res) =>
+                onPathNotice(res.ok ? "Workspace path copied" : res.error, res.ok ? "info" : "error"),
               );
             }}
             className="inline-flex items-center gap-1 rounded-lg border border-campfire-border px-2 py-1 text-[10px] text-campfire-muted hover:text-campfire-text"
@@ -139,8 +120,8 @@ function WorkerCard({
           <button
             type="button"
             onClick={() => {
-              void openPathInShell(worker.liveMirrorPath!).then((res) =>
-                onPathNotice(res.ok ? "Opened mirror in shell" : res.error, res.ok ? "info" : "error"),
+              void openPathInShell(worker.workspacePath!).then((res) =>
+                onPathNotice(res.ok ? "Opened workspace" : res.error, res.ok ? "info" : "error"),
               );
             }}
             className="inline-flex items-center gap-1 rounded-lg border border-campfire-border px-2 py-1 text-[10px] text-campfire-muted hover:text-campfire-text"
@@ -260,10 +241,7 @@ export function ParallelWorkersPanel({
 
   if (!sessionId) return null;
 
-  const perExecution =
-    data?.liveMirrorMode === "PerExecution" || data?.liveMirrorMode === "2";
-  const legacyShared =
-    data?.workers.some((w) => w.isSharedSessionRootMirror) ?? false;
+  const protocol = data?.protocol ?? "jsdp";
 
   return (
     <section
@@ -278,31 +256,10 @@ export function ParallelWorkersPanel({
             Parallel workers
           </h3>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {perExecution && (
-            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
-              Parallel isolated
-            </span>
-          )}
-          {legacyShared && (
-            <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-200">
-              Legacy session root
-            </span>
-          )}
-          {data?.sharedSessionRootMirroringSuppressed && (
-            <span className="rounded-full border border-orange-500/40 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-200">
-              Shared root guard
-            </span>
-          )}
-        </div>
+        <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-300">
+          {protocol}
+        </span>
       </div>
-
-      {data && !data.sessionRootIsCanonicalLiveState && (
-        <p className={`mb-3 flex gap-2 text-xs ${muted}`}>
-          <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          {data.canonicalLiveStateHint}
-        </p>
-      )}
 
       {inspectOnly && (
         <p className={`mb-3 text-xs ${muted}`}>
@@ -338,13 +295,13 @@ export function ParallelWorkersPanel({
       )}
 
       {data && data.workers.length === 0 && (
-        <p className={`text-xs ${muted}`}>No active workers with live mirrors on this workspace.</p>
+        <p className={`text-xs ${muted}`}>No active workers on this workspace.</p>
       )}
 
       <div className="grid gap-2 sm:grid-cols-2">
         {data?.workers.map((w) => (
           <WorkerCard
-            key={`${w.leaseId}-${w.liveMirrorPath}`}
+            key={`${w.leaseId}-${w.workspacePath ?? w.taskId}`}
             worker={w}
             isSelected={selectedTaskId === w.taskId}
             onSelect={onSelectTask ? () => onSelectTask(w.taskId) : undefined}

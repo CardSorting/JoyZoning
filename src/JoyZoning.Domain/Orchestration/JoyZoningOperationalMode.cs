@@ -71,7 +71,7 @@ public static class JoyZoningOperationalModes
             MentalModel: "What is running right now? Where is the worker? What is it doing?",
             CanonicalMetaphor: "Runtime orchestration / worker fleet",
             IsCanonicalOperationalSurface: true,
-            CanonicalSurfaces: ["ExecutionViewport", "ParallelWorkersPanel", "live snapshot", "Timeline"],
+            CanonicalSurfaces: ["ExecutionViewport", "ParallelWorkersPanel", "Timeline"],
             ForbiddenInMode: ["final_merge_approve", "final_merge_revoke", "kanban_backlog_edit"],
             PrimaryEntities:
             [
@@ -79,19 +79,16 @@ public static class JoyZoningOperationalModes
                 "ExecutionSession",
                 "HermesSessionId",
                 "WorktreePath",
-                "WorkspaceLiveMirror",
             ],
             DesktopSurfaces: ["ExecutionViewport", "Timeline", "Workspace"],
             WatchComponents:
             [
                 "ParallelWorkersPanel",
-                "live task snapshot",
                 "activity stream",
                 "PetObservatory (technical)",
             ],
             ApiRouteHints:
             [
-                "GET /api/tasks/{id}/live",
                 "GET /api/sessions/{id}/parallel-workers",
                 "POST /api/tasks/{id}/dispatch",
                 "lease heartbeat / verify",
@@ -144,7 +141,7 @@ public static class JoyZoningOperationalModes
                 "kanban_mutation",
                 "authoritative_merge_actions",
             ],
-            PrimaryEntities: ["WorkspaceLivePresentation", "CareMeters", "PetMood"],
+            PrimaryEntities: ["CareMeters", "PetMood"],
             DesktopSurfaces: [],
             WatchComponents:
             [
@@ -173,8 +170,9 @@ public static class JoyZoningOperationalModes
             || p.Contains("/lease/revoke"))
             return JoyZoningOperationalMode.Review;
 
-        if (p.Contains("/parallel-workers") || p.Contains("/live") || p.Contains("/dispatch")
-            || p.Contains("/lease/heartbeat") || p.Contains("/lease/verify"))
+        if (p.Contains("/parallel-workers") || p.Contains("/dispatch")
+            || p.Contains("/lease/heartbeat") || p.Contains("/lease/verify")
+            || p.Contains("/workspace/"))
             return JoyZoningOperationalMode.Execution;
 
         if (p.Contains("/tasks") || p.Contains("kanban"))

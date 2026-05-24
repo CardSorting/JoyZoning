@@ -184,6 +184,8 @@ public class WorktreeSeederTests
     {
         Assert.True(WorktreeSeeder.ShouldSkipRelativePath(".git/config"));
         Assert.True(WorktreeSeeder.ShouldSkipRelativePath(".joyzoning/worktrees/abc/file.ts"));
+        Assert.True(WorktreeSeeder.ShouldSkipRelativePath(".joyzoning/live/task-id/file.ts"));
+        Assert.True(WorktreeSeeder.ShouldSkipRelativePath(".joyzoning/agent-manifest.json"));
         Assert.True(WorktreeSeeder.ShouldSkipRelativePath("node_modules/pkg/index.js"));
         Assert.False(WorktreeSeeder.ShouldSkipRelativePath("docs/product-spec.md"));
         Assert.False(WorktreeSeeder.ShouldSkipRelativePath("app/_layout.tsx"));

@@ -5,39 +5,28 @@ public sealed record SessionAuthoritySnapshot(
     string ProfileLabel,
     bool AutopilotEnabled);
 
+/// <summary>Workers and merge state for a workspace (JSDP — canonical workspace only).</summary>
 public sealed record ParallelWorkersResponse(
     Guid SessionId,
     string SessionWorkspaceRoot,
     DateTimeOffset UpdatedAt,
     bool ParallelActive,
-    string LiveMirrorMode,
-    bool DisableSharedSessionRootMirrorWhenParallel,
-    bool SharedSessionRootMirroringSuppressed,
-    bool SessionRootIsCanonicalLiveState,
-    string CanonicalLiveStateHint,
-    string? IndexJsonPath,
+    string Protocol,
     SessionAuthoritySnapshot Authority,
-    IReadOnlyList<ParallelWorkerMirrorEntry> Workers,
-    IReadOnlyList<MirrorObservabilityWarning> Warnings);
+    IReadOnlyList<ParallelWorkerEntry> Workers,
+    IReadOnlyList<WorkerObservabilityWarning> Warnings);
 
-public sealed record ParallelWorkerMirrorEntry(
+public sealed record ParallelWorkerEntry(
     Guid TaskId,
     string TaskTitle,
     Guid? ExecutionSessionId,
     Guid LeaseId,
     string? HermesSessionId,
-    string? LiveMirrorPath,
-    string? LiveMarkdownPath,
-    string HealthState,
-    string LifecycleStatus,
-    DateTimeOffset? LastMirroredAt,
+    string? WorkspacePath,
     long KanbanRevision,
     long KanbanPushedRevision,
     string KanbanStatus,
     string LeaseStatus,
-    string? WorktreePath,
-    bool IsSharedSessionRootMirror,
-    MirrorCollisionInfo? RegistryCollision,
     string MergeState,
     WorkerMergeReadiness? MergeReadiness,
     MergeConflictDetail? MergeConflict,
@@ -49,12 +38,7 @@ public sealed record ParallelWorkerMirrorEntry(
     string AuthorityProfileSlug,
     AuthorityAutopilotDecision? Authority);
 
-public sealed record MirrorCollisionInfo(
-    Guid OccupyingLeaseId,
-    Guid? OccupyingTaskId,
-    string? OccupyingMirrorRoot);
-
-public sealed record MirrorObservabilityWarning(
+public sealed record WorkerObservabilityWarning(
     string Code,
     string Message,
     Guid? LeaseId,

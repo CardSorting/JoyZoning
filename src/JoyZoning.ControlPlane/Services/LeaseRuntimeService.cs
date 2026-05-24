@@ -18,6 +18,7 @@ public class LeaseRuntimeService
 {
     private readonly IExecutionLeaseRepository _leases;
     private readonly IWorkTaskRepository _tasks;
+    private readonly IOperatorSessionRepository _sessions;
     private readonly IExecutionRepository _executions;
     private readonly EventIngestor _events;
     private readonly IServiceScopeFactory _scopeFactory;
@@ -27,6 +28,7 @@ public class LeaseRuntimeService
     public LeaseRuntimeService(
         IExecutionLeaseRepository leases,
         IWorkTaskRepository tasks,
+        IOperatorSessionRepository sessions,
         IExecutionRepository executions,
         EventIngestor events,
         IServiceScopeFactory scopeFactory,
@@ -35,6 +37,7 @@ public class LeaseRuntimeService
     {
         _leases = leases;
         _tasks = tasks;
+        _sessions = sessions;
         _executions = executions;
         _events = events;
         _scopeFactory = scopeFactory;
@@ -179,8 +182,22 @@ public class LeaseRuntimeService
         var active = await _leases.ListActiveAsync(cancellationToken);
         foreach (var lease in active)
         {
+            var task = await _tasks.GetByIdAsync(lease.WorkTaskId, cancellationToken);
+            var session = task is null
+                ? null
+                : await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken);
+
             if (!Directory.Exists(lease.WorktreePath))
             {
+                if (session is not null
+                    && JsdpSessionPolicy.UseCanonicalWorkspace(session)
+                    && Directory.Exists(session.WorkspaceRoot))
+                {
+                    if (JsdpWorkspaceExecution.TryAlignLeaseToCanonical(lease, session, task!, out _))
+                        await _leases.UpdateAsync(lease, cancellationToken);
+                    continue;
+                }
+
                 await RepairInvalidAsync(
                     lease,
                     $"Worktree missing at {lease.WorktreePath}",
@@ -208,7 +225,6 @@ public class LeaseRuntimeService
                 }
             }
 
-            var task = await _tasks.GetByIdAsync(lease.WorkTaskId, cancellationToken);
             if (task?.Status == WorkTaskStatus.Complete && lease.Status != ExecutionLeaseStatus.Merged)
             {
                 await RepairMergedTaskActiveLeaseAsync(lease, cancellationToken);

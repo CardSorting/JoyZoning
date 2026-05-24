@@ -3,7 +3,6 @@ namespace JoyZoning.Domain.Orchestration;
 public sealed record WorkerMergeReadiness(
     Guid? ExecutionSessionId,
     string? WorktreePath,
-    string? LiveMirrorPath,
     string MergeTargetWorkspaceRoot,
     string? MergeTargetBranch,
     string? HeadCommit,
@@ -25,9 +24,9 @@ public sealed record MergeQueueResponse(
     Guid SessionId,
     string SessionWorkspaceRoot,
     DateTimeOffset UpdatedAt,
-    IReadOnlyList<ParallelWorkerMirrorEntry> ReadyToMerge,
-    IReadOnlyList<ParallelWorkerMirrorEntry> MergeConflicts,
-    IReadOnlyList<ParallelWorkerMirrorEntry> CompletedWorkers,
-    IReadOnlyList<ParallelWorkerMirrorEntry> RevokedAbandoned,
-    IReadOnlyList<ParallelWorkerMirrorEntry> AllWorkers,
-    IReadOnlyList<MirrorObservabilityWarning> Warnings);
+    IReadOnlyList<ParallelWorkerEntry> ReadyToMerge,
+    IReadOnlyList<ParallelWorkerEntry> MergeConflicts,
+    IReadOnlyList<ParallelWorkerEntry> CompletedWorkers,
+    IReadOnlyList<ParallelWorkerEntry> RevokedAbandoned,
+    IReadOnlyList<ParallelWorkerEntry> AllWorkers,
+    IReadOnlyList<WorkerObservabilityWarning> Warnings);

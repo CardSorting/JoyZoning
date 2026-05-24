@@ -201,6 +201,21 @@ curl -s -X POST http://127.0.0.1:9470/api/delivery-chains \
 - **Handoffs:** Non-compliant task descriptions (missing seven sections) block dispatch.
 - **Verification:** Passing reports missing JSDP sections are rejected on bounded-role sessions.
 - **Consolidation:** `WorkspaceSessionConsolidator` skips `BoundedRole` sessions.
+- **Canonical workspace:** JSDP bounded roles execute in the **main project folder** (`session.WorkspaceRoot`), not isolated `.joyzoning/worktrees/<id>` sandboxes. Implementation: `JsdpWorkspaceExecution` + `WorktreePlanner` (pass bounded session).
+- **Canonical workspace only:** execution uses the session root directly (`joyzoning/card-*` branch). Legacy `.joyzoning/worktrees/` and `.joyzoning/live/` folders are pruned on merge/revoke.
+- **Legacy lease heal:** Re-dispatch and reconciliation rewrite leases that still point at sandbox paths to the canonical workspace (`TryAlignLeaseToCanonical`).
+- **Post-merge hygiene:** After accept-merge, `PruneLegacyMirrorArtifacts` deletes `.joyzoning/worktrees` and `.joyzoning/live` under the project root.
+- **Seeding:** `WorktreeSeeder` never copies `.joyzoning/` into sandboxes (non-JSDP).
+- **Accept-merge:** Git convergence uses branch squash when the worker branch exists, or `canonical_inplace` when worktree equals workspace.
+
+### Troubleshooting worktree/live spiral
+
+If `.joyzoning/worktrees` or `.joyzoning/live` keeps growing:
+
+1. **Rebuild and restart** the control plane (`dotnet build JoyZoning.sln` then restart `:9470`).
+2. **Revoke stale leases** — `jz task revoke <taskId> --yes --reason "cleanup"` or `./scripts/role-chain-dispatch.sh --chain <id> --cleanup-stale`.
+3. **Manually prune** the project: `rm -rf <workspace>/.joyzoning/worktrees <workspace>/.joyzoning/live`.
+4. **Re-dispatch** the role — legacy sandbox paths on existing leases are auto-aligned to canonical on dispatch.
 - **Visibility:** Queue endpoint, delivery-plan, and `--status` expose gate state and block reasons.
 
 ### What still requires operator judgment

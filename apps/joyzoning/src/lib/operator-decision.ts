@@ -8,7 +8,6 @@ export interface OperatorRiskFlags {
   overlapsWithOtherReadyWorker: boolean;
   largeChangeSet: boolean;
   staleWorker: boolean;
-  mirrorMissing: boolean;
   unknownHeadCommit: boolean;
   active: string[];
 }
@@ -26,7 +25,7 @@ export interface OperatorDecisionSummary {
   baseCommit?: string | null;
   headCommit?: string | null;
   worktreePath?: string | null;
-  liveMirrorPath?: string | null;
+  workspacePath?: string | null;
   riskFlags: OperatorRiskFlags;
 }
 
@@ -66,6 +65,5 @@ export const RISK_FLAG_LABELS: Record<string, string> = {
   overlaps_with_other_ready_worker: "Overlaps other worker",
   large_change_set: "Large change set",
   stale_worker: "Stale worker",
-  mirror_missing: "Mirror missing",
   unknown_head_commit: "Unknown HEAD",
 };

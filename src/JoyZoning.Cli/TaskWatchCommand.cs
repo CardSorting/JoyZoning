@@ -1,77 +1,55 @@
-using System.Diagnostics;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace JoyZoning.Cli;
 
-/// <summary>Runs the workspace-live.sh progress tracker (friendly terminal UI).</summary>
+/// <summary>Polls task workspace changes from the control plane (JSDP canonical workspace).</summary>
 public static class TaskWatchCommand
 {
-    public static int Run(CliContext ctx, Guid taskId)
+    public static async Task<int> RunAsync(CliContext ctx, Guid taskId)
     {
-        var script = FindWorkspaceLiveScript();
-        if (script is null)
-        {
-            CliOutput.WriteUsageError(
-                "workspace-live.sh not found. Set JOYZONING_ROOT to your JoyZoning checkout, " +
-                "or run from the repo: ./scripts/workspace-live.sh <task-id> [workspace]");
-            return 2;
-        }
-
-        var workspace = CliArgs.OptStatic(ctx.Args.Raw, "--workspace")
-            ?? Environment.GetEnvironmentVariable("JOYZONING_WORKSPACE")
-            ?? Directory.GetCurrentDirectory();
-
-        var psi = new ProcessStartInfo
-        {
-            FileName = script,
-            ArgumentList = { taskId.ToString(), workspace },
-            UseShellExecute = false,
-        };
-
-        if (ctx.Args.Has("--once"))
-            psi.ArgumentList.Add("--once");
-        if (ctx.Args.Has("--simple"))
-            psi.ArgumentList.Add("--simple");
-        if (ctx.Args.Has("--paths"))
-            psi.ArgumentList.Add("--paths");
-        if (ctx.Args.Has("--notify"))
-            psi.Environment["JOYZONING_LIVE_NOTIFY"] = "1";
-        if (CliArgs.OptStatic(ctx.Args.Raw, "--interval") is { } interval)
-            psi.Environment["JOYZONING_LIVE_INTERVAL"] = interval;
-
         var url = CliArgs.OptStatic(ctx.Args.Raw, "--base-url")
             ?? Environment.GetEnvironmentVariable("JOYZONING_URL")
             ?? "http://127.0.0.1:9470";
-        psi.Environment["JOYZONING_URL"] = url;
+        var baseUrl = url.TrimEnd('/');
+        var once = ctx.Args.Has("--once");
+        var intervalSec = 5;
+        if (CliArgs.OptStatic(ctx.Args.Raw, "--interval") is { } intervalRaw
+            && int.TryParse(intervalRaw, out var parsed)
+            && parsed > 0)
+            intervalSec = parsed;
 
-        using var proc = Process.Start(psi);
-        if (proc is null)
-            return 1;
+        using var http = new HttpClient { BaseAddress = new Uri(baseUrl + "/") };
+        http.DefaultRequestHeaders.Add("Accept", "application/json");
 
-        proc.WaitForExit();
-        return proc.ExitCode;
-    }
-
-    internal static string? FindWorkspaceLiveScript()
-    {
-        var candidates = new List<string>();
-        var root = Environment.GetEnvironmentVariable("JOYZONING_ROOT");
-        if (!string.IsNullOrWhiteSpace(root))
-            candidates.Add(Path.Combine(root, "scripts", "workspace-live.sh"));
-
-        var dir = Directory.GetCurrentDirectory();
-        for (var i = 0; i < 6 && !string.IsNullOrEmpty(dir); i++)
+        do
         {
-            candidates.Add(Path.Combine(dir, "scripts", "workspace-live.sh"));
-            var parent = Directory.GetParent(dir);
-            dir = parent?.FullName ?? "";
-        }
+            try
+            {
+                var response = await http.GetFromJsonAsync<JsonElement>(
+                    $"api/tasks/{taskId}/workspace/changed");
+                var files = response.TryGetProperty("files", out var f) && f.ValueKind == JsonValueKind.Array
+                    ? f.EnumerateArray().Select(e => e.GetString()).Where(s => s is not null).ToList()
+                    : new List<string?>();
+                var count = files.Count;
+                Console.WriteLine($"[{DateTimeOffset.Now:HH:mm:ss}] task {taskId}: {count} changed file(s)");
+                foreach (var path in files.Take(12))
+                    Console.WriteLine($"  • {path}");
+                if (count > 12)
+                    Console.WriteLine($"  … and {count - 12} more");
+            }
+            catch (Exception ex)
+            {
+                CliOutput.WriteUsageError($"Failed to poll workspace: {ex.Message}");
+                return 1;
+            }
 
-        foreach (var path in candidates)
-        {
-            if (File.Exists(path))
-                return path;
-        }
+            if (once)
+                break;
 
-        return null;
+            await Task.Delay(TimeSpan.FromSeconds(intervalSec));
+        } while (true);
+
+        return 0;
     }
 }

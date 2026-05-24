@@ -534,7 +534,16 @@ public class OrchestrationService
         var existingLease = await _executionOrchestrator.GetActiveLeaseAsync(taskId, cancellationToken);
         if (existingLease?.Status == ExecutionLeaseStatus.Leased)
         {
-            handoff = HandoffPacketBuilder.Deserialize(existingLease.HandoffPacketJson);
+            if (JsdpWorkspaceExecution.TryAlignLeaseToCanonical(existingLease, session, task, out var aligned))
+            {
+                await _leases.UpdateAsync(existingLease, cancellationToken);
+                handoff = aligned!;
+            }
+            else
+            {
+                handoff = HandoffPacketBuilder.Deserialize(existingLease.HandoffPacketJson);
+            }
+
             await DispatchStepAsync(
                 "RecordDispatchAttempt",
                 () => _executionOrchestrator.RecordDispatchAttemptAsync(taskId, op, cancellationToken),

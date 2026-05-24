@@ -93,17 +93,15 @@ public class OperatorDecisionSafetyTests
     }
 
     [Fact]
-    public void Decision_summary_includes_mirror_and_worktree_paths()
+    public void Decision_summary_includes_workspace_path()
     {
         var worker = Worker(
-            worktree: "/wt/path",
-            mirror: "/mirror/path",
+            workspace: "/wt/path",
             readiness: Readiness(changedCount: 1, summary: ["x.cs"]));
 
         var (summary, _, _) = OperatorDecisionSafety.BuildForWorker(worker);
 
         Assert.Equal("/wt/path", summary.WorktreePath);
-        Assert.Equal("/mirror/path", summary.LiveMirrorPath);
     }
 
     [Fact]
@@ -112,43 +110,33 @@ public class OperatorDecisionSafetyTests
         var worker = Worker(
             mergeState: "revoked",
             leaseStatus: ExecutionLeaseStatus.Revoked.ToString(),
-            worktree: "/wt/revoked",
-            mirror: "/mirror/revoked");
+            workspace: "/wt/revoked");
 
         var (summary, _, revoke) = OperatorDecisionSafety.BuildForWorker(worker);
 
         Assert.Equal("/wt/revoked", summary.WorktreePath);
-        Assert.Equal("/mirror/revoked", summary.LiveMirrorPath);
         Assert.False(revoke.Blocked);
     }
 
-    private static ParallelWorkerMirrorEntry Worker(
+    private static ParallelWorkerEntry Worker(
         string mergeState = "ready_to_merge",
         string leaseStatus = "ReadyForReview",
         WorkerMergeReadiness? readiness = null,
         MergeConflictDetail? conflict = null,
-        string? worktree = "/tmp/wt",
-        string? mirror = "/tmp/mirror")
+        string? workspace = "/tmp/wt")
     {
         readiness ??= Readiness();
-        var entry = new ParallelWorkerMirrorEntry(
+        var entry = new ParallelWorkerEntry(
             TaskId: Guid.NewGuid(),
             TaskTitle: "test-card",
             ExecutionSessionId: Guid.NewGuid(),
             LeaseId: Guid.NewGuid(),
             HermesSessionId: "hermes-1",
-            LiveMirrorPath: mirror,
-            LiveMarkdownPath: null,
-            HealthState: "active",
-            LifecycleStatus: "active",
-            LastMirroredAt: DateTimeOffset.UtcNow,
+            WorkspacePath: workspace,
             KanbanRevision: 1,
             KanbanPushedRevision: 1,
             KanbanStatus: "NeedsApproval",
             LeaseStatus: leaseStatus,
-            WorktreePath: worktree,
-            IsSharedSessionRootMirror: false,
-            RegistryCollision: null,
             MergeState: mergeState,
             MergeReadiness: readiness,
             MergeConflict: conflict,
@@ -177,7 +165,6 @@ public class OperatorDecisionSafetyTests
         new(
             ExecutionSessionId: Guid.NewGuid(),
             WorktreePath: "/tmp/wt",
-            LiveMirrorPath: "/tmp/mirror",
             MergeTargetWorkspaceRoot: "/workspace",
             MergeTargetBranch: "main",
             HeadCommit: "abc1234",

@@ -89,6 +89,14 @@ public class JsdpChainIntegrationTests : IAsyncLifetime
         Assert.Contains("jsdp_convergence_required", completeMessage!, StringComparison.OrdinalIgnoreCase);
 
         await _api.DispatchAsync(role1Task);
+
+        var (leaseStatus, leaseBody, _, _) = await OrchestrationApiClient.ReadAsync(
+            await _api.GetLeaseAsync(role1Task));
+        Assert.Equal(HttpStatusCode.OK, leaseStatus);
+        var worktreePath = leaseBody!.Value.GetProperty("worktreePath").GetString()!;
+        Assert.Equal(Path.GetFullPath(root), Path.GetFullPath(worktreePath));
+        Assert.False(Directory.Exists(Path.Combine(root, ".joyzoning", "worktrees", role1Task.ToString("N")[..8])));
+
         await _api.AgentStatusAsync(role1Task, ExecutionLeaseStatus.Verifying);
         await _api.VerificationAsync(role1Task, JsdpPassingReport(role1Task));
         var (mergeStatus, mergeBody, mergeError, mergeMessage) = await OrchestrationApiClient.ReadAsync(

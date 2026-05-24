@@ -8,7 +8,6 @@ public sealed record OperatorRiskFlags(
     bool OverlapsWithOtherReadyWorker,
     bool LargeChangeSet,
     bool StaleWorker,
-    bool MirrorMissing,
     bool UnknownHeadCommit)
 {
     public IReadOnlyList<string> ActiveFlagNames()
@@ -21,7 +20,6 @@ public sealed record OperatorRiskFlags(
         if (OverlapsWithOtherReadyWorker) names.Add("overlaps_with_other_ready_worker");
         if (LargeChangeSet) names.Add("large_change_set");
         if (StaleWorker) names.Add("stale_worker");
-        if (MirrorMissing) names.Add("mirror_missing");
         if (UnknownHeadCommit) names.Add("unknown_head_commit");
         return names;
     }
@@ -40,7 +38,6 @@ public sealed record OperatorDecisionSummary(
     string? BaseCommit,
     string? HeadCommit,
     string? WorktreePath,
-    string? LiveMirrorPath,
     OperatorRiskFlags RiskFlags);
 
 public sealed record OperatorActionGuardrails(

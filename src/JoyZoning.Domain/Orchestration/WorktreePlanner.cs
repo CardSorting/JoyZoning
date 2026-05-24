@@ -1,9 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
+using JoyZoning.Domain.Entities;
 
 namespace JoyZoning.Domain.Orchestration;
 
-/// <summary>Plans isolated git worktree/branch metadata for a card lease.</summary>
+/// <summary>Plans execution workspace metadata — JSDP uses the canonical session root only.</summary>
 public static class WorktreePlanner
 {
     private static readonly HashSet<char> SafeHex = "0123456789abcdef".ToHashSet();
@@ -14,16 +15,22 @@ public static class WorktreePlanner
         out string worktreePath,
         out string branchName,
         out string? error) =>
-        TryPlan(workspaceRoot, cardId, hermesKanbanTaskId: null, out worktreePath, out branchName, out error);
+        TryPlan(workspaceRoot, cardId, hermesKanbanTaskId: null, boundedSession: null, out worktreePath, out branchName, out error);
 
-    /// <summary>
-    /// When <paramref name="hermesKanbanTaskId"/> is set, worktree path is stable for the logical Hermes card
-    /// (duplicate local task rows share one sandbox directory).
-    /// </summary>
     public static bool TryPlan(
         string workspaceRoot,
         Guid cardId,
         string? hermesKanbanTaskId,
+        out string worktreePath,
+        out string branchName,
+        out string? error) =>
+        TryPlan(workspaceRoot, cardId, hermesKanbanTaskId, boundedSession: null, out worktreePath, out branchName, out error);
+
+    public static bool TryPlan(
+        string workspaceRoot,
+        Guid cardId,
+        string? hermesKanbanTaskId,
+        OperatorSession? boundedSession,
         out string worktreePath,
         out string branchName,
         out string? error)
@@ -64,23 +71,12 @@ public static class WorktreePlanner
         var shortId = ResolveWorktreeSegment(cardId, hermesKanbanTaskId);
         if (shortId is null)
         {
-            error = "Card id cannot be used for worktree paths.";
+            error = "Card id cannot be used for branch naming.";
             return false;
         }
 
         branchName = $"joyzoning/card-{shortId}";
-        var worktreesRoot = WorkspacePaths.NormalizeComparable(
-            Path.GetFullPath(Path.Combine(workspaceFull, ".joyzoning", "worktrees")));
-        worktreePath = WorkspacePaths.NormalizeComparable(
-            Path.GetFullPath(Path.Combine(worktreesRoot, shortId)));
-
-        if (!worktreePath.StartsWith(worktreesRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-            && !worktreePath.Equals(worktreesRoot, StringComparison.OrdinalIgnoreCase))
-        {
-            error = "Worktree path would escape the workspace sandbox.";
-            return false;
-        }
-
+        worktreePath = WorkspacePaths.NormalizeComparable(workspaceFull);
         return true;
     }
 

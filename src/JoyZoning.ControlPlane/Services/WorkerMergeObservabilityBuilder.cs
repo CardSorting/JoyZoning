@@ -12,10 +12,7 @@ public sealed class WorkerMergeObservabilityBuilder
             ExecutionLease lease,
             WorkTask task,
             string sessionWorkspaceRoot,
-            string? liveMirrorPath,
             ExecutionPhase? executionPhase,
-            string? mirrorLifecycleStatus,
-            string? persistedMergeState,
             IReadOnlyDictionary<Guid, HashSet<string>> readyWorkerFileMap,
             CancellationToken cancellationToken)
     {
@@ -57,8 +54,8 @@ public sealed class WorkerMergeObservabilityBuilder
             lease,
             task,
             executionPhase,
-            mirrorLifecycleStatus,
-            persistedMergeState,
+            mirrorLifecycleStatus: null,
+            persistedMergeState: null,
             passing,
             failed,
             overlapping,
@@ -76,9 +73,7 @@ public sealed class WorkerMergeObservabilityBuilder
                 .ToList();
 
             if (conflict is { Category: "overlapping_files" } && conflict.ConflictFiles.Count == 0 && overlapFiles.Count > 0)
-            {
                 conflict = conflict with { ConflictFiles = overlapFiles };
-            }
             else if (conflict is null && overlapFiles.Count > 0)
             {
                 conflict = new MergeConflictDetail(
@@ -89,9 +84,7 @@ public sealed class WorkerMergeObservabilityBuilder
         }
 
         if (state == WorkerMergeState.MergeConflict && conflict is not null && conflict.ConflictFiles.Count == 0 && gitConflicts.Count > 0)
-        {
             conflict = conflict with { ConflictFiles = gitConflicts };
-        }
 
         var testsRun = passing?.CommandsRun.Count > 0 || failed?.CommandsRun.Count > 0;
         var verificationPassed = passing is not null && VerificationReportValidator.IsPassingReport(passing);
@@ -106,7 +99,6 @@ public sealed class WorkerMergeObservabilityBuilder
         var readiness = new WorkerMergeReadiness(
             ExecutionSessionId: lease.ExecutionSessionId,
             WorktreePath: lease.WorktreePath,
-            LiveMirrorPath: liveMirrorPath,
             MergeTargetWorkspaceRoot: sessionWorkspaceRoot,
             MergeTargetBranch: git?.BranchName ?? lease.BranchName,
             HeadCommit: git?.HeadCommit,
@@ -166,8 +158,8 @@ public sealed class WorkerMergeObservabilityBuilder
     public static MergeQueueResponse BuildQueue(
         Guid sessionId,
         string sessionRoot,
-        IReadOnlyList<ParallelWorkerMirrorEntry> workers,
-        IReadOnlyList<MirrorObservabilityWarning> warnings)
+        IReadOnlyList<ParallelWorkerEntry> workers,
+        IReadOnlyList<WorkerObservabilityWarning> warnings)
     {
         var ready = workers
             .Where(w => w.MergeState == WorkerMergeStateNames.ToApiString(WorkerMergeState.ReadyToMerge))

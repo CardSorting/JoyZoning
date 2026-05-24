@@ -65,17 +65,14 @@ public class LeaseRuntimeServiceTests : IDisposable
         services.AddSingleton<IAgentAdapter>(sp => sp.GetRequiredService<TestHermesAdapter>());
         services.AddSingleton<AgentAdapterRegistry>(sp =>
             new AgentAdapterRegistry(sp.GetServices<IAgentAdapter>()));
-        services.AddSingleton<LeaseLiveRefreshCoordinator>();
         services.AddSingleton<HermesRunEventConsumer>();
         services.Configure<ExecutorOptions>(_ => { });
         services.AddLogging();
         services.AddScoped<LeaseRuntimeService>();
-        services.AddSingleton<WorkspaceLiveMirrorRegistry>();
-        services.Configure<WorkspaceOptions>(o => o.MirrorToSessionRoot = false);
+        services.Configure<WorkspaceOptions>(_ => { });
         services.Configure<WorkspaceParallelismOptions>(_ => { });
         services.AddScoped<WorkerMergeObservabilityBuilder>();
-        services.AddScoped<WorkspaceLiveMirrorObservabilityService>();
-        services.AddScoped<WorkspaceLiveMirrorService>();
+        services.AddScoped<WorkspaceWorkerObservabilityService>();
         services.Configure<AuthorityOptions>(o =>
         {
             o.AutopilotEnabled = true;

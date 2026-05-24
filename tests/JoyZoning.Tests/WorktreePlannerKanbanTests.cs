@@ -27,8 +27,9 @@ public class WorktreePlannerKanbanTests
         var root = Path.Combine(Path.GetTempPath(), "jz-wt-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
 
-        Assert.True(WorktreePlanner.TryPlan(root, Guid.NewGuid(), out var wtA, out _, out _));
-        Assert.True(WorktreePlanner.TryPlan(root, Guid.NewGuid(), out var wtB, out _, out _));
-        Assert.NotEqual(wtA, wtB);
+        Assert.True(WorktreePlanner.TryPlan(root, Guid.NewGuid(), out var wtA, out var branchA, out _));
+        Assert.True(WorktreePlanner.TryPlan(root, Guid.NewGuid(), out var wtB, out var branchB, out _));
+        Assert.Equal(wtA, wtB);
+        Assert.NotEqual(branchA, branchB);
     }
 }

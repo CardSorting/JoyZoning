@@ -57,8 +57,7 @@ export function buildConvergenceModel(
     snapshot.worktreePath?.trim() ||
     null;
 
-  const workerMirrorPath =
-    readiness?.liveMirrorPath?.trim() || worker?.liveMirrorPath?.trim() || null;
+  const workerMirrorPath = workerWorktreePath;
 
   const mergeState = mergeWorker?.mergeState;
   const gitConv = readiness?.gitConvergence ?? null;

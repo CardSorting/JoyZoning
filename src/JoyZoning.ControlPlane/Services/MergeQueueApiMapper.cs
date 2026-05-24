@@ -23,6 +23,6 @@ internal static class MergeQueueApiMapper
         }),
     };
 
-    private static object MapWorker(ParallelWorkerMirrorEntry w) =>
+    private static object MapWorker(ParallelWorkerEntry w) =>
         ParallelWorkersApiMapper.MapWorker(w);
 }

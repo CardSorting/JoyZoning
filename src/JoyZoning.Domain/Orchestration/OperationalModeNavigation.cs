@@ -19,7 +19,7 @@ public static class OperationalModeNavigation
     public const string SlugReview = "review";
     public const string SlugHabitat = "habitat";
 
-    public static OperationalModeContextHints ForWorker(ParallelWorkerMirrorEntry worker)
+    public static OperationalModeContextHints ForWorker(ParallelWorkerEntry worker)
     {
         var recommended = RecommendModeSlugForWorker(worker);
         return new OperationalModeContextHints(recommended, BuildTransitionsForWorker(worker, recommended));
@@ -34,7 +34,7 @@ public static class OperationalModeNavigation
         return new OperationalModeContextHints(recommended, BuildTransitionsForLive(leaseStatus, mergeState, recommended));
     }
 
-    public static string RecommendModeSlugForWorker(ParallelWorkerMirrorEntry worker)
+    public static string RecommendModeSlugForWorker(ParallelWorkerEntry worker)
     {
         if (worker.MergeState is "ready_to_merge" or "merge_conflict" or "merge_failed")
             return SlugReview;
@@ -81,14 +81,14 @@ public static class OperationalModeNavigation
     }
 
     public static IReadOnlyList<ModeTransitionHint> BuildTransitionsForWorker(
-        ParallelWorkerMirrorEntry worker,
+        ParallelWorkerEntry worker,
         string? recommended = null)
     {
         recommended ??= RecommendModeSlugForWorker(worker);
         var transitions = new List<ModeTransitionHint>();
 
         AddIfNotCurrent(transitions, recommended, SlugPlanning, "View on board", "Kanban intent for this card", "planning_task");
-        AddIfNotCurrent(transitions, recommended, SlugExecution, "Watch worker", "Live mirrors, lease health, activity", "execution_worker");
+        AddIfNotCurrent(transitions, recommended, SlugExecution, "Watch worker", "Lease health and workspace activity", "execution_worker");
 
         var reviewReady = worker.MergeState is "ready_to_merge" or "merge_conflict" or "merge_failed"
             || worker.LeaseStatus is "ReadyForReview";

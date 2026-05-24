@@ -42,7 +42,7 @@ public class JoyZoningOperationalModesTests
     [Theory]
     [InlineData("/api/sessions/x/merge-queue", JoyZoningOperationalMode.Review)]
     [InlineData("/api/sessions/x/parallel-workers", JoyZoningOperationalMode.Execution)]
-    [InlineData("/api/tasks/x/live", JoyZoningOperationalMode.Execution)]
+    [InlineData("/api/tasks/x/workspace/changed", JoyZoningOperationalMode.Execution)]
     [InlineData("/api/tasks", JoyZoningOperationalMode.Planning)]
     public void Infers_mode_from_api_path(string path, JoyZoningOperationalMode expected)
     {

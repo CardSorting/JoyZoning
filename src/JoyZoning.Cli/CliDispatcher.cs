@@ -179,7 +179,7 @@ public static class CliDispatcher
                     await OperatorWorkflows.RecoverTaskAsync(client, args, CliArgs.RequireGuid(a, 2, "task id")));
 
             case "watch":
-                return TaskWatchCommand.Run(ctx, CliArgs.RequireGuid(a, 2, "task id"));
+                return TaskWatchCommand.RunAsync(ctx, CliArgs.RequireGuid(a, 2, "task id")).GetAwaiter().GetResult();
 
             case "list":
                 return CliOutput.WriteResult(ctx, await client.ListTasksAsync(

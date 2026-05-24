@@ -27,7 +27,6 @@ export interface GitConvergenceReadiness {
 export interface MergeReadiness {
   executionSessionId?: string | null;
   worktreePath?: string | null;
-  liveMirrorPath?: string | null;
   mergeTargetWorkspaceRoot: string;
   mergeTargetBranch?: string | null;
   headCommit?: string | null;

@@ -6,30 +6,25 @@ public class LeaseRuntimeOptions
     public const string SectionName = "LeaseRuntime";
 
     public int MaxGlobalActiveLeases { get; set; } = 4;
-    /// <summary>Hard cap per session — default 1 (single bounded agent).</summary>
     public int MaxActiveLeasesPerSession { get; set; } = 1;
     public int MaxCriticalLeases { get; set; } = 1;
     public int ReconciliationIntervalSeconds { get; set; } = 30;
 
-    /// <summary>Background scan of active lease worktrees for git/mtime changes.</summary>
-    public bool WorktreeMonitorEnabled { get; set; } = true;
+    /// <summary>Disabled — JSDP uses canonical workspace; no worktree mirror monitor.</summary>
+    public bool WorktreeMonitorEnabled { get; set; }
 
     public int WorktreeMonitorIntervalSeconds { get; set; } = 8;
 
-    /// <summary>When true, absolute ExpiresAt transitions to revoked; otherwise blocked.</summary>
     public bool AbsoluteExpirationRevokes { get; set; }
 
     public LeaseDurationOptions Duration { get; set; } = new();
     public LeaseStaleOptions Stale { get; set; } = new();
 
-    /// <summary>
-    /// When true, <c>POST …/lease/merge</c> only updates lease/task metadata (legacy).
-    /// Default false: git convergence must succeed before Merged/Complete.
-    /// </summary>
-    public bool MetadataOnlyAcceptResult { get; set; }
+  public bool MetadataOnlyAcceptResult { get; set; }
 
-    /// <summary>When false, a dirty canonical workspace blocks accept (no auto-stash).</summary>
     public bool AllowDirtyDestination { get; set; }
+
+    public int LargeChangeSetFileThreshold { get; set; } = 20;
 }
 
 public class LeaseDurationOptions

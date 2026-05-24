@@ -60,7 +60,7 @@ export const OPERATIONAL_MODES: Record<JoyZoningOperationalMode, OperationalMode
       "ActivityTimeline",
       "PetObservatory",
     ],
-    apiHints: ["/api/tasks/{id}/live", "/api/sessions/{id}/parallel-workers"],
+    apiHints: ["/api/sessions/{id}/parallel-workers", "/api/tasks/{id}/workspace/changed"],
   },
   review: {
     slug: "review",

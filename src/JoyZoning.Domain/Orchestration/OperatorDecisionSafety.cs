@@ -2,14 +2,14 @@ using JoyZoning.Domain.Enums;
 
 namespace JoyZoning.Domain.Orchestration;
 
-/// <summary>Read-model guardrails for human approve/revoke/inspect decisions on parallel workers.</summary>
+/// <summary>Read-model guardrails for human approve/revoke/inspect decisions on workers.</summary>
 public static class OperatorDecisionSafety
 {
     public const int DefaultLargeChangeSetThreshold = 20;
 
     public static (OperatorDecisionSummary Summary, OperatorActionGuardrails Approve, OperatorActionGuardrails Revoke)
         BuildForWorker(
-            ParallelWorkerMirrorEntry worker,
+            ParallelWorkerEntry worker,
             int largeChangeSetThreshold = DefaultLargeChangeSetThreshold)
     {
         var summary = BuildSummary(worker, largeChangeSetThreshold);
@@ -21,7 +21,7 @@ public static class OperatorDecisionSafety
     public static OperatorDecisionPreflight BuildPreflight(
         Guid sessionId,
         string action,
-        ParallelWorkerMirrorEntry worker,
+        ParallelWorkerEntry worker,
         int largeChangeSetThreshold = DefaultLargeChangeSetThreshold)
     {
         var (summary, approve, revoke) = BuildForWorker(worker, largeChangeSetThreshold);
@@ -43,7 +43,7 @@ public static class OperatorDecisionSafety
     }
 
     public static OperatorDecisionSummary BuildSummary(
-        ParallelWorkerMirrorEntry worker,
+        ParallelWorkerEntry worker,
         int largeChangeSetThreshold = DefaultLargeChangeSetThreshold)
     {
         var r = worker.MergeReadiness;
@@ -61,10 +61,7 @@ public static class OperatorDecisionSafety
             DirtyWorktree: r?.IsDirty == true,
             OverlapsWithOtherReadyWorker: c?.Category == "overlapping_files",
             LargeChangeSet: changedCount >= largeChangeSetThreshold,
-            StaleWorker: worker.MergeState == WorkerMergeStateNames.ToApiString(WorkerMergeState.Stale)
-                || worker.HealthState == "stale"
-                || string.Equals(worker.LifecycleStatus, "stale", StringComparison.OrdinalIgnoreCase),
-            MirrorMissing: IsMirrorMissing(worker),
+            StaleWorker: worker.MergeState == WorkerMergeStateNames.ToApiString(WorkerMergeState.Stale),
             UnknownHeadCommit: !string.IsNullOrWhiteSpace(r?.WorktreePath)
                 && string.IsNullOrWhiteSpace(r.HeadCommit));
 
@@ -80,8 +77,7 @@ public static class OperatorDecisionSafety
             ConflictStatus: conflictStatus,
             BaseCommit: r?.BaseCommit,
             HeadCommit: r?.HeadCommit,
-            WorktreePath: worker.WorktreePath ?? r?.WorktreePath,
-            LiveMirrorPath: worker.LiveMirrorPath ?? r?.LiveMirrorPath,
+            WorktreePath: worker.WorkspacePath ?? r?.WorktreePath,
             RiskFlags: flags);
     }
 
@@ -91,19 +87,13 @@ public static class OperatorDecisionSafety
         var warnings = new List<string>();
 
         if (summary.MergeState == WorkerMergeStateNames.ToApiString(WorkerMergeState.MergeConflict))
-        {
             blocks.Add("Worker is in merge_conflict — resolve conflicts before approving merge.");
-        }
 
         if (summary.MergeState == WorkerMergeStateNames.ToApiString(WorkerMergeState.MergeFailed))
-        {
             blocks.Add("Worker is in merge_failed — verification or merge preconditions failed.");
-        }
 
         if (summary.RiskFlags.HasConflicts && blocks.Count == 0)
-        {
-            blocks.Add("Unresolved merge conflicts detected in the worktree or overlap with another worker.");
-        }
+            blocks.Add("Unresolved merge conflicts detected in the workspace.");
 
         if (summary.RiskFlags.VerificationMissing)
             warnings.Add("No passing verification report on this lease.");
@@ -115,19 +105,16 @@ public static class OperatorDecisionSafety
             warnings.Add("Changed files overlap another worker that is also ready to merge.");
 
         if (summary.RiskFlags.DirtyWorktree)
-            warnings.Add("Worktree has uncommitted or unstaged changes.");
+            warnings.Add("Workspace has uncommitted or unstaged changes.");
 
         if (summary.RiskFlags.LargeChangeSet)
             warnings.Add($"Large change set ({summary.ChangedFilesCount} files) — review carefully before merge.");
 
         if (summary.RiskFlags.StaleWorker)
-            warnings.Add("Worker or mirror is stale — confirm the run is still current.");
-
-        if (summary.RiskFlags.MirrorMissing)
-            warnings.Add("Live mirror path is missing — inspect the worktree directly.");
+            warnings.Add("Worker is stale — confirm the run is still current.");
 
         if (summary.RiskFlags.UnknownHeadCommit)
-            warnings.Add("Head commit could not be resolved from the worktree.");
+            warnings.Add("Head commit could not be resolved from the workspace.");
 
         var blocked = blocks.Count > 0;
         return new OperatorActionGuardrails(
@@ -145,17 +132,17 @@ public static class OperatorDecisionSafety
         if (summary.ChangedFilesCount > 0)
         {
             warnings.Add(
-                $"Worktree has {summary.ChangedFilesCount} changed file(s). Revoke preserves the worktree and mirror for inspection.");
+                $"Workspace has {summary.ChangedFilesCount} changed file(s). Revoke preserves the canonical workspace for inspection.");
         }
 
         if (summary.RiskFlags.HasConflicts)
-            warnings.Add("Conflicts are present — revoking will not delete worktree/mirror paths.");
+            warnings.Add("Conflicts are present — revoking does not revert committed changes.");
 
         if (summary.RiskFlags.VerificationFailed)
             warnings.Add("Verification failed on this worker — revoke if abandoning the run.");
 
-        if (string.IsNullOrWhiteSpace(summary.WorktreePath) && string.IsNullOrWhiteSpace(summary.LiveMirrorPath))
-            warnings.Add("No worktree or mirror path recorded — evidence may be limited.");
+        if (string.IsNullOrWhiteSpace(summary.WorktreePath))
+            warnings.Add("No workspace path recorded — evidence may be limited.");
 
         return new OperatorActionGuardrails(
             OperatorDecisionActions.Revoke,
@@ -169,9 +156,7 @@ public static class OperatorDecisionSafety
     {
         var warnings = new List<string>();
         if (summary.RiskFlags.HasConflicts)
-            warnings.Add("Inspect conflict files in the worktree and mirror before resolving.");
-        if (summary.RiskFlags.MirrorMissing && !string.IsNullOrWhiteSpace(summary.WorktreePath))
-            warnings.Add("Mirror is missing — use the worktree path for inspection.");
+            warnings.Add("Inspect conflict files in the workspace before resolving.");
 
         return new OperatorActionGuardrails(
             OperatorDecisionActions.Inspect,
@@ -181,20 +166,11 @@ public static class OperatorDecisionSafety
             BlockReasons: Array.Empty<string>());
     }
 
-    private static bool HasConflicts(ParallelWorkerMirrorEntry worker, MergeConflictDetail? c) =>
+    private static bool HasConflicts(ParallelWorkerEntry worker, MergeConflictDetail? c) =>
         worker.MergeState is "merge_conflict" or "merge_failed" || c is not null;
 
-    private static bool IsMirrorMissing(ParallelWorkerMirrorEntry worker)
-    {
-        var path = worker.MergeReadiness?.LiveMirrorPath ?? worker.LiveMirrorPath;
-        if (string.IsNullOrWhiteSpace(path))
-            return worker.MergeState is not "merged" and not "revoked" and not "abandoned";
-
-        return !Directory.Exists(path);
-    }
-
     private static string ResolveVerificationStatus(
-        ParallelWorkerMirrorEntry worker,
+        ParallelWorkerEntry worker,
         WorkerMergeReadiness? r)
     {
         if (worker.MergeState == WorkerMergeStateNames.ToApiString(WorkerMergeState.MergeFailed))
@@ -211,14 +187,12 @@ public static class OperatorDecisionSafety
 
         if (worker.LeaseStatus == ExecutionLeaseStatus.ReadyForReview.ToString()
             || worker.MergeState == WorkerMergeStateNames.ToApiString(WorkerMergeState.ReadyToMerge))
-        {
             return "missing";
-        }
 
         return "not_run";
     }
 
-    private static string ResolveConflictStatus(ParallelWorkerMirrorEntry worker, MergeConflictDetail? c)
+    private static string ResolveConflictStatus(ParallelWorkerEntry worker, MergeConflictDetail? c)
     {
         if (c is not null)
             return $"{c.Category}: {c.Reason}";

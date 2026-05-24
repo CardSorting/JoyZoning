@@ -44,9 +44,8 @@ public class OperatorDecisionActionsTests
             BaseCommit: "abc",
             HeadCommit: "def",
             WorktreePath: "/wt",
-            LiveMirrorPath: "/m",
             RiskFlags: new OperatorRiskFlags(
-                false, false, false, false, false, false, false, false, false));
+                false, false, false, false, false, false, false, false));
 
         var guardrails = OperatorDecisionSafety.BuildApproveGuardrails(summary);
         Assert.Equal(OperatorDecisionActions.Accept, guardrails.Action);

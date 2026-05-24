@@ -67,7 +67,6 @@ public sealed class AuthorityAutopilotMergeContextBuilder
             ?? throw new InvalidOperationException("Task not found for lease.");
 
         ExecutionPhase? executionPhase = null;
-        string? mirrorLifecycleStatus = null;
         if (lease.ExecutionSessionId is { } execId && execId != Guid.Empty)
         {
             var execution = await _executions.GetByIdAsync(execId, cancellationToken);
@@ -78,10 +77,7 @@ public sealed class AuthorityAutopilotMergeContextBuilder
             lease,
             task,
             sessionRoot,
-            liveMirrorPath: null,
             executionPhase,
-            mirrorLifecycleStatus,
-            persistedMergeState: null,
             readyFileMap,
             cancellationToken);
 
@@ -156,7 +152,7 @@ public sealed class AuthorityAutopilotMergeContextBuilder
         }
     }
 
-    public static AutopilotMergeSnapshot FromMirrorEntry(
+    public static AutopilotMergeSnapshot FromWorkerEntry(
         string mergeState,
         WorkerMergeReadiness? readiness,
         MergeConflictDetail? conflict,

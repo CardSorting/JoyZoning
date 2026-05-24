@@ -20,7 +20,6 @@ public class HermesRunEventConsumer
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IHostEnvironment _environment;
     private readonly ExecutorOptions _executorOptions;
-    private readonly LeaseLiveRefreshCoordinator _liveRefresh;
     private readonly ILogger<HermesRunEventConsumer> _logger;
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _activeRuns = new();
     private readonly ConcurrentDictionary<string, int> _streamResumeAttempts = new();
@@ -30,14 +29,12 @@ public class HermesRunEventConsumer
         IServiceScopeFactory scopeFactory,
         IHostEnvironment environment,
         IOptions<ExecutorOptions> executorOptions,
-        LeaseLiveRefreshCoordinator liveRefresh,
         ILogger<HermesRunEventConsumer> logger)
     {
         _agents = agents;
         _scopeFactory = scopeFactory;
         _environment = environment;
         _executorOptions = executorOptions.Value;
-        _liveRefresh = liveRefresh;
         _logger = logger;
     }
 
@@ -125,8 +122,6 @@ public class HermesRunEventConsumer
                     await IngestSafeAsync(events, cid, source, evt, cancellationToken);
                     await PushUiEventsAsync(hub, agentKind, cid, evt, cancellationToken);
                     await PushAgentActivityAsync(events, hub, cid, evt, cancellationToken);
-                    if (ShouldTriggerFastLiveRefresh(evt.EventType))
-                        _liveRefresh.RequestRefresh(cid);
                 }
 
                 if (IsApprovalRequest(evt.EventType))
@@ -371,21 +366,6 @@ public class HermesRunEventConsumer
             new { execution.Id, runId },
             cancellationToken);
 
-        try
-        {
-            var lease = await orchestrator.GetActiveLeaseAsync(execution.WorkTaskId, cancellationToken);
-            if (lease is not null)
-            {
-                using var mirrorScope = _scopeFactory.CreateScope();
-                var mirror = mirrorScope.ServiceProvider.GetRequiredService<WorkspaceLiveMirrorService>();
-                await mirror.MarkMirrorStaleForExecutionEndAsync(lease, cancellationToken);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Live mirror stale mark failed for task {TaskId}", execution.WorkTaskId);
-        }
-
         if (agentKind == AgentKind.DietCode)
         {
             try
@@ -464,18 +444,6 @@ public class HermesRunEventConsumer
                 new ManagerChatCompleteDto(sessionId),
                 cancellationToken);
         }
-    }
-
-    private static bool ShouldTriggerFastLiveRefresh(string eventType)
-    {
-        if (string.IsNullOrEmpty(eventType))
-            return false;
-
-        return eventType.Contains("tool", StringComparison.OrdinalIgnoreCase)
-            || eventType.Contains("terminal", StringComparison.OrdinalIgnoreCase)
-            || eventType.Contains("write_file", StringComparison.OrdinalIgnoreCase)
-            || eventType.Contains("patch", StringComparison.OrdinalIgnoreCase)
-            || eventType.Contains("message.delta", StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task PushAgentActivityAsync(

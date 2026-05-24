@@ -99,14 +99,14 @@ function DecisionSummaryBody({
           </button>
         </div>
       )}
-      {summary.liveMirrorPath && (
+      {summary.workspacePath ?? summary.worktreePath && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate font-mono text-[10px] text-campfire-muted">{summary.liveMirrorPath}</span>
+          <span className="truncate font-mono text-[10px] text-campfire-muted">{summary.workspacePath ?? summary.worktreePath}</span>
           <button
             type="button"
             className="inline-flex items-center gap-1 text-[10px] text-campfire-accent"
             onClick={() => {
-              void openPathInShell(summary.liveMirrorPath!).then((res) => {
+              void openPathInShell(summary.workspacePath ?? summary.worktreePath!).then((res) => {
                 if (!res.ok) onPathError(res.error);
               });
             }}
@@ -226,7 +226,7 @@ export function WorkerDecisionConfirmDialog({
   async function onConfirm() {
     if (!canConfirm) return;
     if (action === "inspect") {
-      const path = s?.worktreePath ?? s?.liveMirrorPath ?? worker.liveMirrorPath;
+      const path = s?.worktreePath ?? s?.liveMirrorPath ?? worker.workspacePath;
       if (path) {
         const res = await openPathInShell(path);
         if (!res.ok) {

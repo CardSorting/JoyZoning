@@ -3,19 +3,22 @@ using JoyZoning.Domain.Enums;
 
 namespace JoyZoning.Domain.Orchestration;
 
-/// <summary>Central JSDP session classification — all enforcement surfaces use this.</summary>
+/// <summary>JoyZoning Sequential Delivery Protocol — default execution model for all delivery.</summary>
 public static class JsdpSessionPolicy
 {
     public const string InvalidSessionCode = "jsdp_invalid_session";
     public const string EnforcedSessionCode = "jsdp_enforced_session";
 
-    /// <summary>Any bounded-role execution mode requires JSDP gates (including orphan rows).</summary>
+    /// <summary>All bounded-role sessions use JSDP gates (including orphan rows).</summary>
     public static bool RequiresEnforcement(OperatorSession? session) =>
         session?.ExecutionMode == SessionExecutionMode.BoundedRole;
 
     /// <summary>Valid sequential chain member (chain id + sequence present).</summary>
     public static bool IsValidChainMember(OperatorSession? session) =>
         session?.IsBoundedRoleSession == true;
+
+    /// <summary>All execution uses the canonical workspace — no isolated sandboxes or live mirrors.</summary>
+    public static bool UseCanonicalWorkspace(OperatorSession? session) => true;
 
     public static string? ValidateSessionIntegrity(OperatorSession session)
     {
@@ -30,8 +33,8 @@ public static class JsdpSessionPolicy
     }
 
     public static string YoloSkipReason =>
-        "JSDP bounded-role session: use delivery-chain queue and accept-merge between roles, not YOLO.";
+        "Use delivery-chain commands or role-chain-dispatch.sh — YOLO is not the default execution path.";
 
     public static string PlanRunSkipReason =>
-        "JSDP bounded-role session: use `jz delivery-chain queue` or ./scripts/role-chain-dispatch.sh --next.";
+        "Use `jz delivery-chain queue` or ./scripts/role-chain-dispatch.sh --next.";
 }

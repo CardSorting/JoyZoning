@@ -25,7 +25,6 @@ public class KanbanExecutionOrchestrator
     private readonly EventIngestor _events;
     private readonly LeaseRuntimeService _runtime;
     private readonly LeaseRuntimeOptions _options;
-    private readonly WorkspaceLiveMirrorService _liveMirror;
     private readonly IWorkspaceGitMerger _gitMerger;
     private readonly AuthorityAutopilotService _autopilot;
 
@@ -36,7 +35,6 @@ public class KanbanExecutionOrchestrator
         EventIngestor events,
         LeaseRuntimeService runtime,
         IOptions<LeaseRuntimeOptions> options,
-        WorkspaceLiveMirrorService liveMirror,
         IWorkspaceGitMerger gitMerger,
         AuthorityAutopilotService autopilot)
     {
@@ -46,7 +44,6 @@ public class KanbanExecutionOrchestrator
         _events = events;
         _runtime = runtime;
         _options = options.Value;
-        _liveMirror = liveMirror;
         _gitMerger = gitMerger;
         _autopilot = autopilot;
     }
@@ -79,12 +76,18 @@ public class KanbanExecutionOrchestrator
                 session.WorkspaceRoot,
                 cardId,
                 task.HermesKanbanTaskId,
+                session,
                 out var worktreePath,
                 out var branchName,
                 out var pathError))
             throw LeaseOrchestrationException.BadRequest(pathError!);
 
-        Directory.CreateDirectory(worktreePath);
+        var useCanonicalWorkspace = JsdpSessionPolicy.UseCanonicalWorkspace(session);
+        if (!useCanonicalWorkspace)
+            Directory.CreateDirectory(worktreePath);
+        else if (!JsdpWorkspaceExecution.IsCanonicalWorktree(session.WorkspaceRoot, worktreePath))
+            throw LeaseOrchestrationException.Conflict(
+                $"{JsdpSessionPolicy.EnforcedSessionCode}: JSDP lease must use canonical workspace, not an isolated sandbox.");
 
         var sessionTasks = await _tasks.ListBySessionAsync(session.Id, cancellationToken);
         var activeLeases = await _leases.ListActiveAsync(cancellationToken);
@@ -128,7 +131,9 @@ public class KanbanExecutionOrchestrator
         if (boundedError is not null)
             throw LeaseOrchestrationException.Conflict(boundedError);
 
-        var seedResult = WorktreeSeeder.TrySeedFromSession(session.WorkspaceRoot, worktreePath);
+        var seedResult = useCanonicalWorkspace
+            ? new WorktreeSeeder.SeedResult(0, SkippedExistingContent: true)
+            : WorktreeSeeder.TrySeedFromSession(session.WorkspaceRoot, worktreePath);
         var handoff = HandoffPacketBuilder.Build(
             task, worktreePath, branchName, session.WorkspaceRoot, seedResult, session);
         var now = DateTimeOffset.UtcNow;
@@ -489,6 +494,9 @@ public class KanbanExecutionOrchestrator
         if (KanbanExecutionRules.IsTerminal(lease.Status))
             return lease;
 
+        var task = await _tasks.GetByIdAsync(cardId, cancellationToken)
+            ?? throw LeaseOrchestrationException.NotFound($"Task {cardId} not found.");
+
         var error = KanbanExecutionRules.ValidateHumanRevoke(lease);
         if (error is not null)
             throw LeaseOrchestrationException.Conflict(error);
@@ -514,10 +522,10 @@ public class KanbanExecutionOrchestrator
         await _events.IngestAsync(cardId, EventSource.JoyZoning, EventTypes.ExecutionLeaseRevoked,
             new { lease.Id, reason }, cancellationToken);
 
-        await _liveMirror.CompleteMirrorForLeaseAsync(
-            lease,
-            WorkerMergeState.Revoked,
-            cancellationToken);
+        var session = await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken);
+        if (session is not null)
+            JsdpWorkspaceExecution.PruneLegacyMirrorArtifacts(session.WorkspaceRoot);
+
         return lease;
     }
 
@@ -634,10 +642,7 @@ public class KanbanExecutionOrchestrator
         await _events.IngestAsync(cardId, EventSource.JoyZoning, EventTypes.ExecutionLeaseMerged,
             new { lease.Id, gitConvergence = convergence?.Strategy }, cancellationToken);
 
-        await _liveMirror.CompleteMirrorForLeaseAsync(
-            lease,
-            WorkerMergeState.Merged,
-            cancellationToken);
+        JsdpWorkspaceExecution.PruneLegacyMirrorArtifacts(session.WorkspaceRoot);
 
         return new AcceptResultResponse(task, convergence, _options.MetadataOnlyAcceptResult);
     }
@@ -688,6 +693,10 @@ public class KanbanExecutionOrchestrator
         bool humanApprovedCritical,
         CancellationToken cancellationToken)
     {
+        var session = await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken);
+        if (session is not null)
+            JsdpWorkspaceExecution.TryAlignLeaseToCanonical(lease, session, task, out _);
+
         var from = lease.Status;
         var now = DateTimeOffset.UtcNow;
         lease.Status = ExecutionLeaseStatus.Leased;
@@ -712,6 +721,10 @@ public class KanbanExecutionOrchestrator
         bool humanApprovedCritical,
         CancellationToken cancellationToken)
     {
+        var session = await _sessions.GetByIdAsync(task.OperatorSessionId, cancellationToken);
+        if (session is not null)
+            JsdpWorkspaceExecution.TryAlignLeaseToCanonical(lease, session, task, out _);
+
         if (!Directory.Exists(lease.WorktreePath))
             throw LeaseOrchestrationException.Conflict("Worktree path is missing; use ReplacementLease or recreate worktree.");
 
@@ -757,13 +770,13 @@ public class KanbanExecutionOrchestrator
         var worktreePath = prior?.WorktreePath ?? "";
         var branchName = prior?.BranchName ?? "";
         if (string.IsNullOrEmpty(worktreePath)
-            || !WorktreePlanner.TryPlan(session.WorkspaceRoot, task.Id, task.HermesKanbanTaskId, out worktreePath, out branchName, out _))
+            || !WorktreePlanner.TryPlan(session.WorkspaceRoot, task.Id, task.HermesKanbanTaskId, session, out worktreePath, out branchName, out _))
         {
-            if (!WorktreePlanner.TryPlan(session.WorkspaceRoot, task.Id, task.HermesKanbanTaskId, out worktreePath, out branchName, out var pathError))
+            if (!WorktreePlanner.TryPlan(session.WorkspaceRoot, task.Id, task.HermesKanbanTaskId, session, out worktreePath, out branchName, out var pathError))
                 throw LeaseOrchestrationException.BadRequest(pathError!);
         }
 
-        if (!Directory.Exists(worktreePath))
+        if (!JsdpSessionPolicy.UseCanonicalWorkspace(session) && !Directory.Exists(worktreePath))
             Directory.CreateDirectory(worktreePath);
 
         var (newLease, _) = await BeginLeaseAsync(
