@@ -13,6 +13,7 @@ You are always the **operator** (approve, merge, revoke). Agents work inside **l
 | **Desktop app** | Visual kanban, diffs, approvals, Getting Started checklist | VS Code, Linear, Docker Desktop |
 | **`jz` CLI** | Scripts, CI, SSH sessions, automation | `gh`, `kubectl`, `docker compose` |
 | **Both** | Plan in desktop, verify in terminal (or vice versa) | Many DevOps workflows |
+| **Cursor / IDE-first** | JSDP prompts + branch discipline; edit in your editor | Cursor, Claude Code, Copilot |
 
 ```mermaid
 flowchart TB
@@ -58,6 +59,21 @@ Answer one question:
 2. `jz` for verification commands in CI or repeatable scripts  
 
 Use one **workspace folder** and one **session** — both surfaces read the same SQLite state on `:9470`.
+
+### “I already work in Cursor — do I need Hermes dispatch?”
+
+**No.** Use external-agent JSDP:
+
+```bash
+jz task start-external <task-id> --agent cursor
+jz task prompt <task-id>
+# edit in Cursor …
+jz task mark-ready <task-id>
+jz task verify <task-id> --cmd "npm test"
+jz task complete <task-id> --yes
+```
+
+Full guide: [external-agent-jsdp.md](../external-agent-jsdp.md). For 8-role programs: `jz delivery-chain next <chain-id> --external --agent cursor`.
 
 ---
 

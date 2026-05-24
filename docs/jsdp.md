@@ -4,6 +4,14 @@ You are operating under the **JoyZoning Sequential Delivery Protocol (JSDP)**.
 
 **Operate like a line dance, not a jazz band.** One step. One role. One merge. Next step.
 
+### Quick pick
+
+| You work in… | Start with |
+|--------------|------------|
+| JoyZoning + Hermes dispatch | [Operator checklist — managed](#operator-checklist) below |
+| **Cursor / Claude Code / manual** | [external-agent-jsdp.md](external-agent-jsdp.md) · `jz delivery-chain next <chain-id> --external --agent cursor` |
+| Unsure | Read [Execution modes](#execution-modes-managed-vs-external) — same gates, different engine |
+
 ---
 
 ## Why JSDP exists
@@ -22,6 +30,8 @@ Parallel agents on the same codebase look fast but produce **code soup**: duplic
 | Sessions merged together | Roles collapse into one messy session | Bounded-role sessions never consolidate |
 | Handoffs with no structure | Agents guess scope | Seven required sections; verification rejected if missing |
 | Scope creep mid-chain | “While I’m here…” refactors | Guardrails + Product/Architecture Lock artifacts |
+| Cursor edits without task discipline | “Done” in chat, no merge record | External-agent JSDP: branch + mark-ready + verify + complete |
+| Hermes required for every role | Friction for IDE-native teams | `ExternalAgent` mode — no lease, same merge gate |
 
 ---
 

@@ -131,7 +131,24 @@ CLI:
 jz task complete "$TASK_ID" --yes
 ```
 
-**You should see:** Card **Complete**; evidence log preserved on lease.
+**You should see:** Card **Complete**; evidence log preserved on lease (managed) or external audit events (external path).
+
+---
+
+## Alternative — Cursor-first (no Hermes dispatch)
+
+If you prefer editing in **Cursor** instead of dispatching Hermes for this card:
+
+```bash
+jz task start-external "$TASK_ID" --agent cursor
+jz task prompt "$TASK_ID"              # copy into Cursor
+# … edit in Cursor on branch joyzoning/card-* …
+jz task mark-ready "$TASK_ID"
+jz task verify "$TASK_ID" --cmd "dotnet test"
+jz task complete "$TASK_ID" --yes
+```
+
+No Hermes lease is created. Same merge authority. Full guide: [external-agent-jsdp.md](../external-agent-jsdp.md).
 
 ---
 

@@ -44,6 +44,22 @@ Yes — **Project → Open Workspace** when ready. [first-run-desktop.md](onboar
 
 [coming-from-hermes-chat.md](onboarding/coming-from-hermes-chat.md)
 
+### Can I use Cursor instead of Hermes for a task?
+
+**Yes.** Use `jz task start-external <task-id> --agent cursor`. JoyZoning creates the card branch and a JSDP prompt; you edit in Cursor; you run `mark-ready`, `verify`, and `complete --yes`. No Hermes lease is created. [external-agent-jsdp.md](external-agent-jsdp.md)
+
+### Do I need Hermes for JSDP delivery chains?
+
+**No.** Each role can be external: `jz delivery-chain next <chain-id> --external --agent cursor`. Role 2 stays blocked until Role 1 is **Complete** after your merge — same gate as managed roles.
+
+### Why does `GET /api/tasks/{id}/lease` return 404 for my external task?
+
+External tasks **do not have leases** by design. Use `jz task status <id>` or `GET /api/tasks/{id}/external/status`.
+
+### Can agents mark external tasks Complete?
+
+**No.** Same rule as managed work: only the operator runs `jz task complete <id> --yes` after review and verification.
+
 ---
 
 ## Product

@@ -1,6 +1,6 @@
 # JoyZoning documentation
 
-**The operator cockpit for multi-agent development** — supervise Hermes Manager and executor agents on one local install; govern work with **execution leases** and **human merge**.
+**The operator cockpit for multi-agent development** — supervise AI-assisted work on your machine with **human merge** as the authority. **Hermes is optional:** the same gates apply when you work in **Cursor**, **Claude Code**, or by hand ([external-agent-jsdp.md](external-agent-jsdp.md)).
 
 **License:** [MIT](../LICENSE) · **Source:** https://github.com/CardSorting/JoyZoning
 
@@ -18,9 +18,11 @@ flowchart TD
   Q -->|GUI| QS[onboarding/quickstart.md]
   Q -->|Terminal| CLI[onboarding/first-run-cli.md]
   Q -->|Learn first| WI[what-is-joyzoning.md]
+  Q -->|Cursor / IDE-first| EXT[external-agent-jsdp.md]
   WI --> C[concepts.md]
   QS --> CHK[onboarding/setup-checklist.md]
   CLI --> CHK
+  EXT --> CHK
   CHK --> NEXT[onboarding/whats-next.md]
 ```
 
@@ -31,8 +33,17 @@ flowchart TD
 | 2 | [5-minute quickstart](onboarding/quickstart.md) or [Choose your path](onboarding/choose-your-path.md) | 5–20 min |
 | 3 | [Setup checklist](onboarding/setup-checklist.md) | 10 min |
 | 4 | [What's next](onboarding/whats-next.md) | 20 min |
+| — | **Cursor-first?** [external-agent-jsdp.md](external-agent-jsdp.md) | 15 min |
 
-**Big picture:** [philosophy.md](philosophy.md) · [what-is-joyzoning.md](what-is-joyzoning.md) · [concepts.md](concepts.md) · [jsdp.md](jsdp.md) · [external-agent-jsdp.md](external-agent-jsdp.md) · [operational-modes.md](operational-modes.md) · [faq.md](faq.md)
+**Big picture:** [philosophy.md](philosophy.md) · [what-is-joyzoning.md](what-is-joyzoning.md) · [concepts.md](concepts.md) · [jsdp.md](jsdp.md) · **[external-agent-jsdp.md](external-agent-jsdp.md)** · [operational-modes.md](operational-modes.md) · [faq.md](faq.md)
+
+### Two execution paths (same merge gate)
+
+| Path | Doc | Typical start |
+|------|-----|----------------|
+| **Managed** (Hermes lease) | [whats-next.md](onboarding/whats-next.md) | `jz task run <id>` |
+| **External** (Cursor / manual) | [external-agent-jsdp.md](external-agent-jsdp.md) | `jz task start-external <id> --agent cursor` |
+| **JSDP 8-role chain** | [jsdp.md](jsdp.md) | `jz delivery-chain next <id> --external` or managed dispatch per role |
 
 ### Understand workspace state (recommended)
 

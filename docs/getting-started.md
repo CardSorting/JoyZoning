@@ -2,7 +2,7 @@
 
 > **New onboarding hub:** Step-by-step guides, checklists, and non-technical paths live in **[onboarding/](onboarding/README.md)**. This page is the short overview; use the hub for install detail, CLI vs desktop, and troubleshooting playbooks.
 
-JoyZoning is a **desktop operator console** (and optional `jz` CLI) for running multi-agent workflows on one local **diet-hermes** install. You supervise a **Manager** session (planning) and **executor** sessions (DietCode runs) on the same gateway, coordinated through kanban and execution leases in your **canonical workspace** (see [philosophy.md](philosophy.md)).
+JoyZoning is a **desktop operator console** (and optional `jz` CLI) for supervising AI-assisted work on your machine. **Hermes is optional:** you can run managed executor sessions on diet-hermes *or* work in **Cursor / Claude Code / manual** while JoyZoning owns task state, branch, verification, and merge ([external-agent-jsdp.md](external-agent-jsdp.md)). See [philosophy.md](philosophy.md) for canonical workspace and JSDP.
 
 ---
 
@@ -17,6 +17,7 @@ JoyZoning is a **desktop operator console** (and optional `jz` CLI) for running 
 | **Installing from scratch** | [Installation guide](onboarding/installation.md) · [macOS](onboarding/platform-macos.md) · [Linux](onboarding/platform-linux.md) |
 | **Understanding the product** | [philosophy.md](philosophy.md) · [Before you begin](onboarding/before-you-begin.md) · [concepts.md](concepts.md) |
 | **Sequential multi-role delivery** | [jsdp.md](jsdp.md) |
+| **Cursor / IDE-first (no Hermes lease)** | [external-agent-jsdp.md](external-agent-jsdp.md) |
 | **Reviewing file changes before merge** | [workspace-state.md](workspace-state.md) (1:1 card → workspace) |
 | **Something failed** | [Setup troubleshooting trees](onboarding/troubleshooting-setup.md) · [troubleshooting.md](troubleshooting.md) |
 
@@ -27,7 +28,7 @@ JoyZoning is a **desktop operator console** (and optional `jz` CLI) for running 
 | Requirement | Notes |
 |-------------|--------|
 | **.NET 8 SDK** | Pinned in `global.json` — see [installation § .NET 8](onboarding/installation.md#net-8-on-macos) |
-| **diet-hermes** | One checkout; [hermes-setup.md](onboarding/hermes-setup.md) |
+| **diet-hermes** | Required for **managed** dispatch only; [hermes-setup.md](onboarding/hermes-setup.md) |
 | **macOS** (primary) | `.app` targets arm64; control plane runs on Linux |
 | **LLM API keys** | Before Manager Chat replies — [api-keys-and-models.md](onboarding/api-keys-and-models.md) |
 
