@@ -3,251 +3,172 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4)](global.json)
 
-**The operator cockpit for bounded agent development** — sequential **role delivery chains** (JSDP), **canonical workspace** execution, verify with evidence, and **merge only when you approve**.
+**Supervise AI coding work on your machine** — one kanban card at a time, real files in your real repo, tests as proof, and **you** merge when it is ready to ship.
 
-Works with one local [diet-hermes](https://github.com/NousResearch/hermes-agent) install. Not a second IDE. Not unattended auto-ship.
+Works with one local [diet-hermes](https://github.com/NousResearch/hermes-agent) install. Not a second IDE. Not “the agent said done.”
 
-**Repository:** https://github.com/CardSorting/JoyZoning · **Docs:** [docs/README.md](docs/README.md) · **Philosophy:** [docs/philosophy.md](docs/philosophy.md) · **What is JoyZoning?** [docs/what-is-joyzoning.md](docs/what-is-joyzoning.md)
-
----
-
-## Development philosophy (short)
-
-JoyZoning is opinionated on purpose:
-
-| Principle | What it means |
-|-----------|----------------|
-| **Canonical workspace** | Agents edit your real project folder on `joyzoning/card-<id>` — no `.joyzoning/worktrees/` sandboxes or `.joyzoning/live/` mirrors |
-| **JSDP by default** | Multi-role delivery is **sequential**: one role, one merge gate, then the next — [docs/jsdp.md](docs/jsdp.md) |
-| **Cognition vs authority** | Chat plans; **workspace + verification + your merge** ship |
-| **One card → one truth** | Pick a card → Workspace, git, and timeline agree on the same path — [docs/workspace-state.md](docs/workspace-state.md) |
-
-Full write-up: **[docs/philosophy.md](docs/philosophy.md)**
+**Full onboarding hub:** [docs/onboarding/README.md](docs/onboarding/README.md) · **5-minute start:** [docs/onboarding/quickstart.md](docs/onboarding/quickstart.md)
 
 ---
 
-## What is JoyZoning?
+## Start here — pick your path
 
-JoyZoning is a **governed execution runtime for AI-assisted software work** on your machine. AI can plan and code; your project still needs **review, boundaries, verification, and human ownership** — JoyZoning supplies those boundaries locally (kanban queue, branch-scoped work per card, audit trail, merge only when you approve).
+| You are… | Start with | Time |
+|----------|------------|------|
+| **New — want the desktop app** | [5-minute quickstart](docs/onboarding/quickstart.md) → [What's next](docs/onboarding/whats-next.md) (first dispatch → merge) | ~20 min |
+| **Prefer menus, not Terminal** | [Desktop menu guide](docs/onboarding/desktop-menu-guide.md) · [Plain-language glossary](docs/onboarding/plain-language-glossary.md) | 10 min read |
+| **Terminal-first operator** | [First run CLI](docs/onboarding/first-run-cli.md) · `jz` recipes in [docs/cli.md](docs/cli.md) | ~15 min |
+| **Multi-role delivery (8 agents, one repo)** | [JSDP guide](docs/jsdp.md) · `./scripts/role-chain-dispatch.sh --create` | Plan 1–2 h |
+| **Coding agent (Cursor, CI)** | [AGENTS.md](AGENTS.md) · [docs/agent-operations.md](docs/agent-operations.md) | 5 min |
+| **Something broke** | [Setup troubleshooting](docs/onboarding/troubleshooting-setup.md) | — |
 
-| | |
-|---|---|
-| **Chat** | Cognition — planning and conversation (Hermes) |
-| **Workspace** | Truth — files and diffs you review before merge |
-
-**Plain-language guide:** [docs/what-is-joyzoning.md](docs/what-is-joyzoning.md) · **Technical concepts:** [docs/concepts.md](docs/concepts.md)
-
----
-
-## One card, one workspace, one truth
-
-JoyZoning mirrors patterns you already know from **GitHub PR reviews**, **VS Code Source Control**, and **feature branches**:
-
-| You pick… | JoyZoning shows… |
-|-----------|------------------|
-| A **kanban card** (not yet dispatched) | Your **session workspace** — the project folder you opened |
-| A **dispatched card** | The **same folder** on branch `joyzoning/card-<task-id>` |
-
-**Workspace**, **Timeline** (Git/Workspace), and **`jz task watch`** all read the **same path** for that card. Chat and Hermes TUI are for **planning**; Workspace is for **what actually changed on disk** before you merge.
-
-```mermaid
-flowchart LR
-  Card[Kanban card] --> CP[Control plane resolves path + branch]
-  CP --> WS[Workspace diff]
-  CP --> TL[Timeline audit]
-  CP --> Git[git status porcelain]
-  WS --> You[Human merge]
-```
-
-**New operators:** [docs/workspace-state.md](docs/workspace-state.md) · [Desktop menu guide](docs/onboarding/desktop-menu-guide.md)
+Not sure JoyZoning fits your workflow? Read [Before you begin](docs/onboarding/before-you-begin.md) first.
 
 ---
 
-## Why JoyZoning exists
+## Three ideas to learn before you click anything
 
-Agent tools are good at **doing**. Operators still need **accountability**: what ran, in which folder, under what approval, with what proof, and who signed it off.
+These shape every screen and command. Details: [docs/philosophy.md](docs/philosophy.md).
 
-JoyZoning adds a control plane between you and Hermes:
+**1. Chat plans; the workspace is truth.**  
+Manager Chat and Hermes TUI are for thinking. **Workspace** shows what actually changed on disk — like a PR “Files changed” tab for the card you selected.
 
-| Without zoning | With JoyZoning |
-|----------------|----------------|
-| One chat, overlapping context | **Manager** session plans; **executor** works on bounded branches in the canonical workspace |
-| “The agent said it’s done” | **Verify** → `ready_for_review` → **human merge** → Complete |
-| Risky tools fire quietly | **Approvals** inbox + scoped grants |
-| Opaque restarts | **SQLite + timeline**; recovery for interrupted runs |
-| Eight agents, eight sandboxes | **JSDP** — sequential roles, one merge gate at a time |
+**2. One card → one place in git.**  
+You open **one project folder** per session. After **Dispatch**, the agent works on branch `joyzoning/card-<task-id>` in that same folder — not a hidden sandbox copy.
 
-**Read the full model:** [docs/concepts.md](docs/concepts.md) · [docs/philosophy.md](docs/philosophy.md)
+**3. Only you merge.**  
+Agents may reach `ready_for_review`. **Complete** happens only after you verify (optional but recommended) and **merge**. Same rule in the desktop app, `jz`, and the API.
 
 ---
 
-## How it works (60 seconds)
+## Install (first time)
 
-```mermaid
-flowchart TB
-  subgraph you [You — operator]
-    Plan[Manager Chat]
-    Board[Kanban]
-    Review[Workspace diff]
-    Sign[Merge / Approve]
-  end
-
-  subgraph jz [JoyZoning :9470]
-    Lease[Execution lease]
-    Events[Timeline + evidence]
-  end
-
-  subgraph hermes [diet-hermes :8642]
-    Mgr[Manager run]
-    Exec[DietCode run]
-    KB[Kanban sync]
-  end
-
-  Plan --> Mgr
-  Board --> Lease
-  Lease --> Exec
-  Exec --> Review
-  Review --> Sign
-  Sign --> Lease
-  jz --> Events
-  Board --> KB
-```
-
-1. **Plan** — Manager Chat (Hermes lead).  
-2. **Track** — Kanban card per task (syncs with Hermes board).  
-3. **Dispatch** — Control plane creates an **execution lease** on `joyzoning/card-<id>`.  
-4. **Work** — DietCode / `jz agent` in the canonical workspace (cannot merge or Complete).  
-5. **Verify** — Commands run in the task workspace; report attached to lease.  
-6. **Merge** — You review diff and approve → task **Complete**.
-
-For **multi-role delivery**, use JSDP: [docs/jsdp.md](docs/jsdp.md) · `./scripts/role-chain-dispatch.sh`
-
-Critical tasks (`risk: 3`) require explicit approval on every dispatch. One active critical lease globally by default.
-
----
-
-## Three surfaces, one policy
-
-| Surface | For | Examples |
-|---------|-----|----------|
-| **Desktop** (`JoyZoning.App`) | Visual supervision | Kanban drag, Execution TUI, Approvals, Timeline |
-| **`jz`** | Human operator shell | `task run`, `task verify`, `task complete --yes` |
-| **`jz agent`** | Worker in lease workspace | `agent verify`, `agent done` → review only |
-
-Desktop, REST (`:9470`), and CLI all call the same orchestrator — **no back door to Complete**.
-
----
-
-## Quick start
+**You need:** [.NET 8 SDK](https://dotnet.microsoft.com/download) (`global.json`), Node.js 18+, pnpm, Python 3.11 (for Hermes on first setup). One diet-hermes install — [Hermes setup](docs/onboarding/hermes-setup.md).
 
 ```bash
 git clone https://github.com/CardSorting/JoyZoning.git
 cd JoyZoning
-
-# 1. Install workspace dependencies
 pnpm install
-
-# 2. Run the interactive setup wizard (configures ports, workspace, Python venv)
-pnpm setup
-
-# 3. Start the entire dev stack (Control Plane + UI + Proxy Server + Desktop App)
-pnpm dev
+pnpm setup    # ports, workspace, Python venv — interactive
+pnpm dev      # control plane + desktop + watch UI
 ```
 
+**Faster path (desktop only):** clone → `./scripts/run-dev.sh` — see [quickstart](docs/onboarding/quickstart.md).
+
+**You should see:** JoyZoning window, **Getting Started** with health grade **Healthy** or **Degraded**, then **Manager Chat** or the checklist. First Hermes install can take several minutes — that is normal.
+
+**Open your repo:** **Project → Open Workspace** in the desktop app (or point a session at your path via CLI).
+
+---
+
+## The operator loop (your daily habit)
+
+This is the journey every new operator practices once, then repeats for every card.
+
+```mermaid
+flowchart LR
+  P[Plan — Manager Chat] --> K[Kanban card]
+  K --> D[Dispatch]
+  D --> W[Work on card branch]
+  W --> V[Verify]
+  V --> R[ready_for_review]
+  R --> M[You merge]
+  M --> Done[Complete]
+```
+
+| Step | Where | What you do |
+|------|--------|-------------|
+| **1. Plan** | **Manager Chat** | Describe the outcome; optional **→ Task** to create a card |
+| **2. Track** | **Kanban** | One card per piece of work; start with **Low** risk while learning |
+| **3. Dispatch** | **Kanban** | Starts an execution lease on `joyzoning/card-<id>` |
+| **4. Observe** | **Execution** / **Timeline** | Watch the Hermes run; terminal is conversation, not sign-off |
+| **5. Verify** | **Workspace** + `jz task verify` | Run tests/build; evidence attaches to the lease |
+| **6. Merge** | **Workspace** diff → **Merge** | Review files like a PR; only you approve → **Complete** |
+
+**Walkthrough with “you should see…” checks:** [What's next after setup](docs/onboarding/whats-next.md)  
+**Which folder am I looking at?** [workspace-state.md](docs/workspace-state.md)  
+**Menu map (no Terminal):** [desktop-menu-guide.md](docs/onboarding/desktop-menu-guide.md)
+
+### Terminal equivalents
+
 ```bash
-# Optional: terminal-only operator commands
 ./scripts/jz doctor
 jz task run <task-id> --poll 10
 jz task verify <task-id> --cmd "dotnet test"
 jz task complete <task-id> --yes
-
-# JSDP delivery chain (8 roles, sequential merge gates)
-./scripts/role-chain-dispatch.sh --create --workspace <path> --program "<name>"
+jz task watch <task-id>          # poll workspace changes
 ```
-
-**Prerequisites:** [.NET 8 SDK](https://dotnet.microsoft.com/download) (`global.json`), Node.js (v18+), pnpm, and Python 3.11.
-
-**Documentation:** [Philosophy](docs/philosophy.md) · [JSDP](docs/jsdp.md) · [Onboarding hub](docs/onboarding/README.md) · [5-min quickstart](docs/onboarding/quickstart.md) · [Agent operations](docs/agent-operations.md)
 
 ---
 
-## What you get
+## Multi-role programs (JSDP)
 
-### Operator surfaces
+When one agent should not rewrite the whole app alone, use the **JoyZoning Sequential Delivery Protocol (JSDP)**: eight bounded roles, **one merge gate per role**, same canonical workspace throughout.
 
-| # | Surface | Role |
-|---|---------|------|
-| 1 | **Getting Started** | Health grade, setup checklist, playbooks |
-| 2 | **Manager Chat** | Planning; parse reply → tasks |
-| 3 | **Kanban** | Board, dispatch, critical approval, lease merge |
-| 4 | **Execution** | Run steps, terminal, Hermes TUI (dashboard PTY) |
-| 5 | **Workspace** | 1:1 card → canonical path; PR-style changed files + diff |
-| 6 | **Approvals** | Once / Task / Session / Deny |
-| 7 | **Timeline** | Audit stream + JSON inspector |
-
-[docs/desktop-ui.md](docs/desktop-ui.md)
-
-### Execution lease (the governance primitive)
-
-```
-Dispatch → leased → running → verifying → ready_for_review → merge → Complete
-              └→ blocked / revoked (git state + evidence preserved)
+```bash
+./scripts/role-chain-dispatch.sh --create --workspace /path/to/your/repo --program "My App"
+./scripts/role-chain-dispatch.sh --status
+./scripts/role-chain-dispatch.sh --next    # when previous role is Complete
+jz task complete <task-id> --yes           # accept-merge between roles
 ```
 
-- One active lease per card.  
-- Work on branch `joyzoning/card-<id>` in `<workspaceRoot>`.  
-- Append-only **evidence** on every transition.  
-
-[docs/lease-lifecycle.md](docs/lease-lifecycle.md) · [docs/execution-orchestration-api.md](docs/execution-orchestration-api.md)
+**Read:** [docs/jsdp.md](docs/jsdp.md) · **Mental model:** line dance, not jazz band — [philosophy § JSDP](docs/philosophy.md#2-jsdp-by-default--line-dance-not-jazz-band)
 
 ---
 
-## Architecture
+## Surfaces you will use
 
-| Project | Role |
-|---------|------|
-| `JoyZoning.App` | Avalonia 12 desktop |
-| `JoyZoning.ControlPlane` | REST + SignalR + lease scheduler |
-| `JoyZoning.Cli` | `jz` / `jz agent` |
-| `JoyZoning.Domain` | Rules, entities, verification |
-| `JoyZoning.Persistence` | SQLite + EF Core |
-| `JoyZoning.Agents` | Hermes / DietCode adapters |
-| `JoyZoning.Adapters` | Workspace + git diff |
+| Surface | Use it for |
+|---------|------------|
+| **Getting Started** | Health grade, setup checklist |
+| **Manager Chat** | Planning (cognition) |
+| **Kanban** | Queue, dispatch, merge |
+| **Workspace** | File list + diff before merge (authority) |
+| **Execution** | Live run steps, Hermes TUI |
+| **Approvals** | Risky tool grants (Once / Task / Session / Deny) |
+| **Timeline** | Audit trail |
+| **Watch UI** (`http://127.0.0.1:9470`) | Browser operator console |
 
-```
-App ──► Control plane :9470 ──► SQLite
-                    └──► Hermes API :8642 / dashboard :9119
-```
-
-[docs/architecture.md](docs/architecture.md)
+Same rules everywhere: **`jz`** for operators, **`jz agent`** inside a lease (cannot merge). [docs/desktop-ui.md](docs/desktop-ui.md)
 
 ---
 
-## Documentation
+## Stuck?
 
-| Start here | …then |
-|------------|-------|
-| [philosophy.md](docs/philosophy.md) | **Why we build this way** — canonical workspace, JSDP, authority |
-| [what-is-joyzoning.md](docs/what-is-joyzoning.md) | Plain English product story |
-| [workspace-state.md](docs/workspace-state.md) | 1:1 card → folder/branch |
-| [jsdp.md](docs/jsdp.md) | Sequential role delivery |
-| [concepts.md](docs/concepts.md) | Leases, human merge, one Hermes |
-| [onboarding/README.md](docs/onboarding/README.md) | GUI-first path, glossary, menu map |
-
-**Full index:** [docs/README.md](docs/README.md) — API, Hermes integration, troubleshooting, glossary, roadmap.
+| Symptom | Fix |
+|---------|-----|
+| App won't open | [troubleshooting-setup § App won't start](docs/onboarding/troubleshooting-setup.md) |
+| Red API / Dashboard chip | [status-indicators.md](docs/onboarding/status-indicators.md) |
+| Manager Chat silent | [api-keys-and-models.md](docs/onboarding/api-keys-and-models.md) |
+| Empty Workspace after agent ran | Card not dispatched — **Dispatch**, re-select card |
+| `jz` errors | [first-run-cli.md](docs/onboarding/first-run-cli.md) |
+| Legacy `.joyzoning/worktrees` folders | Safe to delete; see [jsdp troubleshooting](docs/jsdp.md) |
 
 ---
 
-## Development
+## Learn more (by stage)
+
+| Stage | Docs |
+|-------|------|
+| **Decide** | [Before you begin](docs/onboarding/before-you-begin.md) · [What is JoyZoning?](docs/what-is-joyzoning.md) |
+| **Install** | [Installation](docs/onboarding/installation.md) · [macOS](docs/onboarding/platform-macos.md) · [Linux](docs/onboarding/platform-linux.md) |
+| **Operate** | [Setup checklist](docs/onboarding/setup-checklist.md) · [concepts.md](docs/concepts.md) · [use-cases.md](docs/use-cases.md) |
+| **Integrate** | [control-plane-api.md](docs/control-plane-api.md) · [hermes-integration.md](docs/hermes-integration.md) |
+| **Contribute** | [development.md](docs/development.md) · [CONTRIBUTING.md](CONTRIBUTING.md) |
+
+**All documentation:** [docs/README.md](docs/README.md)
+
+---
+
+## For contributors
 
 ```bash
 dotnet build JoyZoning.sln
-dotnet test tests/JoyZoning.Cli.Tests/JoyZoning.Cli.Tests.csproj
 dotnet test tests/JoyZoning.Tests/JoyZoning.Tests.csproj
 ./scripts/dogfood-validate.sh
 ```
 
-[CONTRIBUTING.md](CONTRIBUTING.md) · [docs/development.md](docs/development.md)
+Architecture overview: [docs/architecture.md](docs/architecture.md)
 
 ## License
 
