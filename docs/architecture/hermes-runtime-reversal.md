@@ -240,3 +240,26 @@ See `tests/JoyZoning.Tests/HabitatLayerBoundaryTests.cs` and
 | Bridge uses `_scope_env()` + `invalidate_config_cache()` | `tools/kanban_broccolidb_bridge.py` |
 | Convergence forensic uses kanban-scoped state | `_joyzoning_forensic_fields()` |
 | Removed LegacyRuntimeShim from `dev-all.ts` labels | `scripts/dev-all.ts` |
+
+## Pass 12 — full dispatch context + lifecycle sync
+
+| Fix | Location |
+|-----|----------|
+| Gateway contextvars for board / run / tenant / session | `gateway/session_context.py` |
+| API runs pass full metadata into `set_joyzoning_run_vars` | `gateway/platforms/api_server.py` |
+| Lifecycle auto-sync forces hive write (complete/block) | `schedule_sync(..., force=True)` |
+| `HERMES_SESSION_ID` in habitat dispatch env | `OrchestrationService.cs` |
+| Drift map only validated `t_…` ids | `compute_drift()` |
+
+## Pass 13 — production cache + workspace hygiene
+
+| Fix | Location |
+|-----|----------|
+| Public `read_scope_env()` (contextvars → env fallback) | `agent/joyzoning/config.py` |
+| Cached `broccolidb_available()` (60s TTL; no FS walk per heartbeat) | `tools/kanban_broccolidb_bridge.py` |
+| `auto_sync_enabled()` requires availability, not config alone | `kanban_broccolidb_bridge.py` |
+| Hive payloads strip `None` keys before TS sync | `sync_task_payload()` |
+| `kanban_broccolidb_record` forces immediate hive sync | `maybe_auto_sync_tool()` |
+| Tools use bridge `broccolidb_available()` (single source) | `tools/kanban_broccolidb_tools.py` |
+| `pnpm-workspace.yaml` lists only real apps (no dead `packages/*`) | JoyZoning root |
+| Orphan `broccolidb/scratch/*.ts` temp file removed | Hermes `broccolidb/scratch/` |

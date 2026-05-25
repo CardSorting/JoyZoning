@@ -643,6 +643,7 @@ public class OrchestrationService
                     };
                     if (!string.IsNullOrWhiteSpace(task.HermesKanbanTaskId))
                         runEnv["HERMES_KANBAN_TASK"] = task.HermesKanbanTaskId!;
+                    runEnv["HERMES_SESSION_ID"] = executionId.ToString();
                     return await adapter.StartRunDetailedAsync(new AgentRunRequest
                     {
                         Prompt = HandoffPacketBuilder.ToExecutorPrompt(handoff),
