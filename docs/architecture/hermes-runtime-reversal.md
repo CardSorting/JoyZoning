@@ -263,3 +263,16 @@ See `tests/JoyZoning.Tests/HabitatLayerBoundaryTests.cs` and
 | Tools use bridge `broccolidb_available()` (single source) | `tools/kanban_broccolidb_tools.py` |
 | `pnpm-workspace.yaml` lists only real apps (no dead `packages/*`) | JoyZoning root |
 | Orphan `broccolidb/scratch/*.ts` temp file removed | Hermes `broccolidb/scratch/` |
+
+## Pass 14 — DRY guards + non-blocking habitat mirror
+
+| Fix | Location |
+|-----|----------|
+| `_skip_result` / `_debounced_result` helpers; unified `broccolidb_available()` gates | `tools/kanban_broccolidb_bridge.py` |
+| `task_row_to_payload()` strips `None` keys at source | `kanban_broccolidb_bridge.py` |
+| Convergence forensic only when real scope ids present (not `"default"`) | `_joyzoning_forensic_fields()` |
+| `record` / `context` events bypass debounce | `_FORCE_SYNC_EVENTS` |
+| Scope register deduped: kanban plugin skips when `joyzoning.enabled` | `sync_on_worker_start()` |
+| Habitat CP mirror is daemon thread (non-blocking agent loop) | `agent/joyzoning/habitat_events.py` |
+| `kanban_create` hive sync uses explicit `force=True` | `plugins/kanban_broccolidb/__init__.py` |
+| Removed `_read_scope_env` back-compat alias | `agent/joyzoning/config.py` |
