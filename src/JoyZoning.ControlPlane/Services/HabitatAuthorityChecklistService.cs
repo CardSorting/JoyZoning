@@ -56,6 +56,7 @@ public class HabitatAuthorityChecklistService
             hermesMessage = "Skipped in Testing";
         }
 
+        var hermesApiBase = snapshot.ApiBaseUrl ?? "";
         var hermesConfigPath = ResolveHermesConfigPath(snapshot.Profile);
         var mirrorUrl = HermesJoyZoningConfigReader.TryReadControlPlaneUrl(hermesConfigPath);
         var mirrorConfigured = !string.IsNullOrWhiteSpace(mirrorUrl);
@@ -126,11 +127,11 @@ public class HabitatAuthorityChecklistService
                     : "Internal token configured for Hermes observation ingest and agent callbacks"),
             new(
                 "habitat_convergence_bridge",
-                "Habitat accept-merge → Hermes CONVERGED bridge script present",
-                HabitatBridgeScriptExists(installRoot),
-                HabitatBridgeScriptExists(installRoot)
-                    ? Path.Combine(installRoot, "scripts", "joyzoning_habitat_ack.py")
-                    : "Set Hermes:InstallRoot to a checkout containing scripts/joyzoning_habitat_ack.py"),
+                "Habitat accept-merge → Hermes CONVERGED bridge (HTTP or script)",
+                HabitatBridgeAvailable(installRoot, hermesApiBase),
+                HabitatBridgeAvailable(installRoot, hermesApiBase)
+                    ? $"POST {hermesApiBase.TrimEnd('/')}/api/internal/joyzoning/habitat-ack (preferred) or scripts/joyzoning_habitat_ack.py"
+                    : "Set Hermes:InstallRoot and Hermes:ApiBaseUrl for HTTP bridge, or ship joyzoning_habitat_ack.py"),
         };
 
         return new HabitatAuthorityChecklist(
@@ -138,6 +139,14 @@ public class HabitatAuthorityChecklistService
             items,
             RuntimeOwner: "hermes",
             HabitatRole: "observe-only");
+    }
+
+    private static bool HabitatBridgeAvailable(string installRoot, string hermesApiBase)
+    {
+        if (!string.IsNullOrWhiteSpace(hermesApiBase)
+            && Uri.TryCreate(hermesApiBase.TrimEnd('/') + "/api/internal/joyzoning/habitat-ack", UriKind.Absolute, out _))
+            return true;
+        return HabitatBridgeScriptExists(installRoot);
     }
 
     private static bool HabitatBridgeScriptExists(string installRoot)

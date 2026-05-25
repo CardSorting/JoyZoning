@@ -175,7 +175,7 @@ joyzoning:
 
 | Control | Location |
 |---------|----------|
-| Habitat accept-merge → Hermes `CONVERGED` | `HermesHabitatBridgeService` + `scripts/joyzoning_habitat_ack.py` |
+| Habitat accept-merge → Hermes `CONVERGED` | `HermesHabitatBridgeService` → `POST /api/internal/joyzoning/habitat-ack` (fallback: `scripts/joyzoning_habitat_ack.py`) |
 | Bridge token | `JOYZONING_HABITAT_BRIDGE_TOKEN` (falls back to `ControlPlane:InternalToken`) |
 | `mutation_verify` before `convergence_request_review` | `agent/joyzoning/mutation_lifecycle.py` |
 | Journal WAL + integrity check | `agent/joyzoning/journal.py` |

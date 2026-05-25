@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -8,9 +10,16 @@ namespace JoyZoning.Agents.Hermes;
 
 /// <summary>
 /// Notifies Hermes runtime journal after habitat operator accept-merge (CONVERGED transition).
+/// Prefers HTTP <c>POST /api/internal/joyzoning/habitat-ack</c> on the Hermes API server;
+/// falls back to <c>scripts/joyzoning_habitat_ack.py</c> when HTTP is unavailable.
 /// </summary>
 public class HermesHabitatBridgeService
 {
+    private static readonly HttpClient BridgeHttp = new()
+    {
+        Timeout = TimeSpan.FromSeconds(12),
+    };
+
     private readonly HermesRuntimeSettings _runtime;
     private readonly ControlPlaneOptions _controlPlane;
     private readonly ILogger<HermesHabitatBridgeService> _logger;
@@ -32,11 +41,90 @@ public class HermesHabitatBridgeService
         string? summary = null,
         CancellationToken cancellationToken = default)
     {
+        var token = Environment.GetEnvironmentVariable("JOYZONING_HABITAT_BRIDGE_TOKEN") ?? "";
+        if (string.IsNullOrWhiteSpace(token) && !string.IsNullOrWhiteSpace(_controlPlane.InternalToken))
+            token = _controlPlane.InternalToken;
+
+        var httpResult = await TryHttpBridgeAsync(
+            taskId, kanbanTaskId, hermesSessionId, summary, token, cancellationToken);
+        if (httpResult is not null)
+            return httpResult;
+
+        return await TryScriptBridgeAsync(
+            taskId, kanbanTaskId, hermesSessionId, summary, token, cancellationToken);
+    }
+
+    private async Task<HabitatBridgeResult?> TryHttpBridgeAsync(
+        Guid taskId,
+        string? kanbanTaskId,
+        string? hermesSessionId,
+        string? summary,
+        string token,
+        CancellationToken cancellationToken)
+    {
+        var snapshot = _runtime.GetSnapshot();
+        if (string.IsNullOrWhiteSpace(snapshot.ApiBaseUrl))
+            return null;
+
+        var url = $"{snapshot.ApiBaseUrl.TrimEnd('/')}/api/internal/joyzoning/habitat-ack";
+        var body = new Dictionary<string, object?>
+        {
+            ["scope_id"] = taskId.ToString(),
+            ["summary"] = summary ?? "Operator accept-merge",
+        };
+        if (!string.IsNullOrWhiteSpace(kanbanTaskId))
+            body["kanban_task"] = kanbanTaskId.Trim();
+        if (!string.IsNullOrWhiteSpace(hermesSessionId))
+            body["hermes_session"] = hermesSessionId.Trim();
+        if (!string.IsNullOrWhiteSpace(token))
+            body["token"] = token;
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(body),
+                    Encoding.UTF8,
+                    "application/json"),
+            };
+            if (!string.IsNullOrWhiteSpace(token))
+                request.Headers.TryAddWithoutValidation("X-JoyZoning-Bridge-Token", token);
+            if (!string.IsNullOrWhiteSpace(snapshot.ApiKey))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", snapshot.ApiKey);
+
+            using var response = await BridgeHttp.SendAsync(request, cancellationToken);
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "Hermes habitat HTTP bridge {Status} for {TaskId}: {Body}",
+                    (int)response.StatusCode, taskId, payload);
+                if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                    return ParseBridgeJson(payload);
+                return null;
+            }
+
+            return ParseBridgeJson(payload);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            _logger.LogDebug(ex, "Hermes habitat HTTP bridge unavailable for {TaskId}", taskId);
+            return null;
+        }
+    }
+
+    private async Task<HabitatBridgeResult> TryScriptBridgeAsync(
+        Guid taskId,
+        string? kanbanTaskId,
+        string? hermesSessionId,
+        string? summary,
+        string token,
+        CancellationToken cancellationToken)
+    {
         var installRoot = _runtime.GetSnapshot().InstallRoot;
         if (string.IsNullOrWhiteSpace(installRoot) || !Directory.Exists(installRoot))
-        {
             return HabitatBridgeResult.FromSkip("Hermes InstallRoot not configured.");
-        }
 
         var script = Path.Combine(installRoot, "scripts", "joyzoning_habitat_ack.py");
         if (!File.Exists(script))
@@ -45,10 +133,6 @@ public class HermesHabitatBridgeService
         var python = ResolvePython(installRoot);
         if (python is null)
             return HabitatBridgeResult.FromSkip("Python venv not found under Hermes InstallRoot.");
-
-        var token = Environment.GetEnvironmentVariable("JOYZONING_HABITAT_BRIDGE_TOKEN") ?? "";
-        if (string.IsNullOrWhiteSpace(token) && !string.IsNullOrWhiteSpace(_controlPlane.InternalToken))
-            token = _controlPlane.InternalToken;
 
         try
         {
@@ -101,29 +185,34 @@ public class HermesHabitatBridgeService
                 return HabitatBridgeResult.FromFailure(stderr.Trim().Length > 0 ? stderr : stdout);
             }
 
-            try
-            {
-                using var doc = JsonDocument.Parse(stdout);
-                var root = doc.RootElement;
-                if (root.TryGetProperty("success", out var ok) && ok.ValueKind == JsonValueKind.True
-                    && ok.GetBoolean())
-                {
-                    var state = root.TryGetProperty("state", out var st) ? st.GetString() : "converged";
-                    return HabitatBridgeResult.FromSuccess(state ?? "converged");
-                }
-
-                var msg = root.TryGetProperty("message", out var m) ? m.GetString() : stdout;
-                return HabitatBridgeResult.FromFailure(msg ?? "Bridge returned success=false");
-            }
-            catch (JsonException)
-            {
-                return HabitatBridgeResult.FromSuccess("converged");
-            }
+            return ParseBridgeJson(stdout);
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Hermes habitat bridge exception for {TaskId}", taskId);
             return HabitatBridgeResult.FromFailure(ex.Message);
+        }
+    }
+
+    private static HabitatBridgeResult ParseBridgeJson(string stdout)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(stdout);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("success", out var ok) && ok.ValueKind == JsonValueKind.True
+                && ok.GetBoolean())
+            {
+                var state = root.TryGetProperty("state", out var st) ? st.GetString() : "converged";
+                return HabitatBridgeResult.FromSuccess(state ?? "converged");
+            }
+
+            var msg = root.TryGetProperty("message", out var m) ? m.GetString() : stdout;
+            return HabitatBridgeResult.FromFailure(msg ?? "Bridge returned success=false");
+        }
+        catch (JsonException)
+        {
+            return HabitatBridgeResult.FromSuccess("converged");
         }
     }
 

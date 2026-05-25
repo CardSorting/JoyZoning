@@ -77,13 +77,21 @@ public class KanbanSyncService
         }
 
         var assignee = task.AssignedAgent == AgentKind.DietCode ? "dietcode" : "hermes";
+        var habitatId = task.Id.ToString();
+        var description = task.Description ?? "";
+        if (!description.Contains("joyzoning:habitat=", StringComparison.OrdinalIgnoreCase))
+            description = string.IsNullOrWhiteSpace(description)
+                ? $"<!-- joyzoning:habitat={habitatId} -->"
+                : $"{description.TrimEnd()}\n\n<!-- joyzoning:habitat={habitatId} -->\n";
+
         var body = new
         {
             title = task.Title,
-            body = task.Description,
+            body = description,
             assignee,
             workspace_kind = "dir",
             workspace_path = workspaceRoot,
+            idempotency_key = $"jz:habitat:{habitatId}",
         };
 
         var write = await PostKanbanAsync("tasks", body, cancellationToken);
