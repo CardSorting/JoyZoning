@@ -33,6 +33,5 @@ These files are polled by the JoyZoning operator dashboard to dynamically displa
 
 ## Technical Details
 
-- **TypeScript Side**: The `WorkspaceModel` in `packages/workspace-core` implements `validatePath(targetPath)` to check if a path lies inside the workspace boundary.
 - **Hermes runtime (external install)**: `tools/file_tools.py` and path security helpers in your `Hermes:InstallRoot` checkout enforce read/write boundaries before disk I/O. JoyZoning no longer vendors Hermes under `apps/agent-runtime/`.
-- **Workspace-core**: still used for JoyZoning-side path validation when legacy scripts reference `WorkspaceModel`; canonical containment for agent work is Hermes + `JOY_WORKSPACE_ROOT`.
+- **Removed**: `packages/workspace-core` (LegacyRuntimeShim only). Canonical containment is Hermes + `JOY_WORKSPACE_ROOT`.

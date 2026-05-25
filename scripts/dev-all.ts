@@ -5,10 +5,9 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 
 // Helper colors for prefixed logging
 const PRETTY_NAMES: Record<string, { prefix: string; color: string }> = {
-  controlPlane: { prefix: '[ControlPlane]', color: '\x1b[36m' }, // Cyan
-  agentRuntime: { prefix: '[LegacyRuntimeShim]', color: '\x1b[32m' }, // dev-only, not started by default
-  watchUi:      { prefix: '[WatchUI]     ', color: '\x1b[33m' }, // Yellow
-  desktopApp:   { prefix: '[DesktopApp]  ', color: '\x1b[35m' }  // Magenta
+  controlPlane: { prefix: '[ControlPlane]', color: '\x1b[36m' },
+  watchUi:      { prefix: '[WatchUI]     ', color: '\x1b[33m' },
+  desktopApp:   { prefix: '[DesktopApp]  ', color: '\x1b[35m' },
 };
 
 const RESET = '\x1b[0m';
@@ -91,14 +90,10 @@ async function main() {
   // 1. Control Plane C# Server
   spawnProcess('controlPlane', 'dotnet', ['run', '--project', 'src/JoyZoning.ControlPlane']);
 
-  // 2. LegacyRuntimeShim (dev-only — not canonical Hermes; use external InstallRoot)
-  // spawnProcess('legacyRuntimeShim', 'pnpm', ['--filter', '@joyzoning/agent-runtime', 'dev']);
-
-  // 3. JoyZoning Watch Next.js UI
+  // 2. JoyZoning Watch Next.js UI
   spawnProcess('watchUi', 'pnpm', ['--filter', '@joyzoning/watch', 'dev']);
 
-  // 4. JoyZoning Desktop Application Client
-  // Give the control plane and API server a brief moment to boot up first
+  // 3. JoyZoning Desktop Application Client
   setTimeout(() => {
     if (!isCleaningUp) {
       spawnProcess('desktopApp', 'dotnet', ['run', '--project', 'src/JoyZoning.App']);

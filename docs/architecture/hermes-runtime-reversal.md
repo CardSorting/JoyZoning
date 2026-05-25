@@ -221,3 +221,22 @@ See `tests/JoyZoning.Tests/HabitatLayerBoundaryTests.cs` and
 | Async hive executor shuts down on process exit | `atexit` in `kanban_broccolidb_bridge.py` |
 | `workspace-core` / `shared-contracts` / `agent-bridge` marked legacy | `packages/*/REMOVED.md` |
 | Setup builds only agent-runtime tombstone | `scripts/setup.ts` |
+
+## Pass 10 — bridge + package purge
+
+| Fix | Location |
+|-----|----------|
+| JoyZoning forensic fields persisted in hive audit + queue payload | `broccolidb/infrastructure/kanban/hive_sync.ts` |
+| Invalid kanban ids never sent to hive sync as `task_id` | `tools/kanban_broccolidb_bridge.py` |
+| Async inflight dedupe bounded; worker errors logged | `kanban_broccolidb_bridge.py` |
+| Deleted `agent-bridge`, `workspace-core`, `shared-contracts` packages | `packages/README.md` |
+
+## Pass 11 — dispatch + DRY scope cluster
+
+| Fix | Location |
+|-----|----------|
+| `HERMES_KANBAN_TASK` in managed-run metadata (habitat dispatch) | `OrchestrationService.cs` → Hermes API `metadata` |
+| Single `register_from_scope_env()` for alias cluster | `agent/joyzoning/scope_registry.py` |
+| Bridge uses `_scope_env()` + `invalidate_config_cache()` | `tools/kanban_broccolidb_bridge.py` |
+| Convergence forensic uses kanban-scoped state | `_joyzoning_forensic_fields()` |
+| Removed LegacyRuntimeShim from `dev-all.ts` labels | `scripts/dev-all.ts` |
