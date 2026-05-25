@@ -26,6 +26,7 @@ public sealed class AgentOperationsCommandTests
         Assert.Contains(AgentOperationsManifest.Commands, c => c.Name == "jsdp init");
         Assert.Contains(AgentOperationsManifest.Commands, c => c.Name == "jsdp inspect");
         Assert.Contains(AgentOperationsManifest.Commands, c => c.Name == "jsdp import-plan");
+        Assert.Contains(AgentOperationsManifest.Commands, c => c.Name == "jsdp diff-plan");
         Assert.True(AgentOperationsManifest.AgentWorkflow.ContainsKey("jsdpHarnessExternalPlan"));
         Assert.True(AgentOperationsManifest.AgentWorkflow.ContainsKey("jsdpHarness"));
         Assert.Contains("jsdp-harness", AgentOperationsManifest.AvailableSurfaces);

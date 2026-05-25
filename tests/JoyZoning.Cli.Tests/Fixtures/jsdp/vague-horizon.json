@@ -1,0 +1,14 @@
+{
+  "contractVersion": "1",
+  "rationale": "Next steps",
+  "stopAfter": "later",
+  "nodes": [
+    {
+      "title": "Implement feature",
+      "intent": "Add feature to the app as needed.",
+      "acceptanceCriteria": ["done"],
+      "verificationCommands": ["echo ok"],
+      "allowedMutationSurface": ["src/"]
+    }
+  ]
+}

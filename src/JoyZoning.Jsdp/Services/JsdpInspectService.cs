@@ -39,6 +39,37 @@ public sealed class JsdpInspectService
         var entries = ledger.ReadAll();
         report.LastLedgerEntry = entries.Count > 0 ? entries[^1] : null;
         report.RepairLineage = BuildRepairLineage(run);
+        report.ExternalPlanning = new JsdpInspectExternalPlanning
+        {
+            PlanningContextPath = JsdpPaths.PlanningContext(workspaceRoot),
+            PlanningContextExists = File.Exists(JsdpPaths.PlanningContext(workspaceRoot)),
+            PlanSchemaPath = JsdpPaths.PlanSchema(workspaceRoot),
+            PlanSchemaExists = File.Exists(JsdpPaths.PlanSchema(workspaceRoot)),
+            PlanningPromptPath = JsdpPaths.PlanningPromptFile(workspaceRoot),
+            PlanningPromptExists = File.Exists(JsdpPaths.PlanningPromptFile(workspaceRoot)),
+        };
+
+        var horizonCtxPath = JsdpPaths.HorizonContext(workspaceRoot);
+        var horizonStale = false;
+        if (File.Exists(horizonCtxPath) && File.Exists(JsdpPaths.Run(workspaceRoot)))
+        {
+            horizonStale = File.GetLastWriteTimeUtc(JsdpPaths.Run(workspaceRoot))
+                > File.GetLastWriteTimeUtc(horizonCtxPath).AddSeconds(2);
+        }
+
+        report.HorizonPlanning = new JsdpInspectHorizonPlanning
+        {
+            HorizonContextPath = horizonCtxPath,
+            HorizonContextExists = File.Exists(horizonCtxPath),
+            HorizonContextStale = horizonStale,
+            HorizonContextBytes = File.Exists(horizonCtxPath) ? (int)new FileInfo(horizonCtxPath).Length : 0,
+            HorizonPromptPath = JsdpPaths.HorizonPromptFile(workspaceRoot),
+            HorizonPromptExists = File.Exists(JsdpPaths.HorizonPromptFile(workspaceRoot)),
+            HorizonSchemaExists = File.Exists(JsdpPaths.HorizonSchema(workspaceRoot)),
+            LastImport = File.Exists(JsdpPaths.HorizonLastImport(workspaceRoot))
+                ? JsdpJson.ReadFile<JsdpHorizonLastImport>(JsdpPaths.HorizonLastImport(workspaceRoot))
+                : null,
+        };
 
         return report;
     }
@@ -70,6 +101,30 @@ public sealed class JsdpInspectReport
     public JsdpNode? CurrentNode { get; set; }
     public LedgerEntry? LastLedgerEntry { get; set; }
     public List<JsdpRepairLineageEntry> RepairLineage { get; set; } = [];
+    public JsdpInspectExternalPlanning? ExternalPlanning { get; set; }
+    public JsdpInspectHorizonPlanning? HorizonPlanning { get; set; }
+}
+
+public sealed class JsdpInspectHorizonPlanning
+{
+    public string HorizonContextPath { get; set; } = "";
+    public bool HorizonContextExists { get; set; }
+    public bool HorizonContextStale { get; set; }
+    public int HorizonContextBytes { get; set; }
+    public string HorizonPromptPath { get; set; } = "";
+    public bool HorizonPromptExists { get; set; }
+    public bool HorizonSchemaExists { get; set; }
+    public JsdpHorizonLastImport? LastImport { get; set; }
+}
+
+public sealed class JsdpInspectExternalPlanning
+{
+    public string PlanningContextPath { get; set; } = "";
+    public bool PlanningContextExists { get; set; }
+    public string PlanSchemaPath { get; set; } = "";
+    public bool PlanSchemaExists { get; set; }
+    public string PlanningPromptPath { get; set; } = "";
+    public bool PlanningPromptExists { get; set; }
 }
 
 public sealed class JsdpInspectRunSummary

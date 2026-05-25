@@ -16,6 +16,7 @@ public sealed class JSDPHarness
     private readonly JSDPVerifier _verifier;
     private readonly JSDPContinuationEngine _continuation = new();
     private JsdpExternalPlanningAdapter? _planningAdapter;
+    private JsdpHorizonService? _horizon;
 
     public JSDPHarness(string? workspaceRoot = null)
     {
@@ -212,7 +213,8 @@ public sealed class JSDPHarness
 
     public JsdpDoctorReport Doctor() => _doctor.Run(_workspaceRoot, _store, _ledger);
 
-    private JsdpExternalPlanningAdapter PlanningAdapter => _planningAdapter ??= new(_workspaceRoot, _store);
+    private JsdpExternalPlanningAdapter PlanningAdapter =>
+        _planningAdapter ??= new(_workspaceRoot, _store, _ledger);
 
     public JsdpExportPlanningContextResult ExportPlanningContext(JsdpPlanningMode mode) =>
         PlanningAdapter.ExportPlanningContext(mode);
@@ -220,11 +222,29 @@ public sealed class JSDPHarness
     public JsdpPlanValidationResult ValidatePlan(string planPath) =>
         PlanningAdapter.ValidatePlan(planPath);
 
-    public JsdpImportPlanResult ImportPlan(string planPath, JsdpPlanningMode? mode = null) =>
-        PlanningAdapter.ImportPlan(planPath, mode);
+    public JsdpImportPlanResult ImportPlan(string planPath, JsdpPlanningMode? mode = null, bool dryRun = false, bool force = false) =>
+        PlanningAdapter.ImportPlan(planPath, mode, dryRun, force);
+
+    public JsdpPlanDiffResult DiffPlan(string planPath) => PlanningAdapter.DiffPlan(planPath);
 
     public JsdpPlanningPromptResult PlanningPrompt(JsdpPlanningMode mode) =>
         PlanningAdapter.WritePlanningPrompt(mode);
+
+    private JsdpHorizonService Horizon => _horizon ??= new(_workspaceRoot, _store, _ledger);
+
+    public JsdpHorizonExportResult HorizonExport(int requestedNodes, JsdpPlanningMode? mode = null) =>
+        Horizon.Export(requestedNodes, mode);
+
+    public JsdpHorizonPromptResult HorizonPrompt(int requestedNodes, JsdpPlanningMode? mode = null) =>
+        Horizon.WritePrompt(requestedNodes, mode);
+
+    public JsdpHorizonValidationResult HorizonValidate(string proposalPath) =>
+        Horizon.ValidateProposal(proposalPath);
+
+    public JsdpHorizonImportResult HorizonImport(string proposalPath, bool dryRun = false, bool force = false) =>
+        Horizon.ImportProposal(proposalPath, dryRun, force);
+
+    public JsdpHorizonStatusReport HorizonStatus() => Horizon.Status();
 
     public LedgerEntry Record(string nodeId, string summary, IReadOnlyList<string>? filesChanged = null)
     {

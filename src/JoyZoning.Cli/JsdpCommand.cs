@@ -8,17 +8,16 @@ public static class JsdpCommand
 {
     public static int DispatchAsync(CliContext ctx, string[] a)
     {
-        RequireArgs(a, 2, "jsdp <init|analyze|plan|...|export-planning-context|import-plan|validate-plan|planning-prompt>");
+        RequireArgs(a, 2, "jsdp <init|analyze|plan|...|diff-plan|export-planning-context|import-plan|validate-plan|planning-prompt>");
 
         var sub = a[1].ToLowerInvariant();
-        var mode = ParsePlanningMode(ctx.Args);
         var harness = CreateHarness();
 
         return sub switch
         {
             "init" => RunInit(ctx, a),
             "analyze" => CliOutput.WriteEnvelope(ctx, harness.Analyze()),
-            "plan" => CliOutput.WriteEnvelope(ctx, harness.Plan(mode)),
+            "plan" => CliOutput.WriteEnvelope(ctx, harness.Plan(RequirePlanningMode(ctx.Args))),
             "next" => WriteNext(ctx, harness),
             "verify" => WriteVerify(ctx, harness),
             "continue" => CliOutput.WriteEnvelope(ctx, harness.Continue()),
@@ -26,13 +25,16 @@ public static class JsdpCommand
             "inspect" => CliOutput.WriteEnvelope(ctx, harness.Inspect()),
             "doctor" => WriteDoctor(ctx, harness),
             "record" => WriteRecord(ctx, harness),
-            "export-planning-context" => WriteExportPlanningContext(ctx, harness, mode),
-            "import-plan" => WriteImportPlan(ctx, harness, a, mode),
+            "export-planning-context" => WriteExportPlanningContext(ctx, harness, RequirePlanningMode(ctx.Args)),
+            "import-plan" => WriteImportPlan(ctx, harness, a),
             "validate-plan" => WriteValidatePlan(ctx, harness, a),
-            "planning-prompt" => WritePlanningPrompt(ctx, harness, mode),
+            "diff-plan" => WriteDiffPlan(ctx, harness, a),
+            "planning-prompt" => WritePlanningPrompt(ctx, harness, RequirePlanningMode(ctx.Args)),
+            "horizon" => JsdpHorizonCommand.Dispatch(ctx, a, harness),
             _ => throw new CliUsageException(
                 "jsdp init | analyze | plan | next | verify | continue | status | inspect | doctor | record | "
-                + "export-planning-context | import-plan | validate-plan | planning-prompt"),
+                + "export-planning-context | import-plan | validate-plan | diff-plan | planning-prompt | "
+                + "horizon export|prompt|validate|import|status"),
         };
     }
 
@@ -106,12 +108,23 @@ public static class JsdpCommand
         return result.Valid ? code : code == 0 ? 1 : code;
     }
 
-    private static int WriteImportPlan(CliContext ctx, JSDPHarness harness, string[] a, JsdpPlanningMode mode)
+    private static int WriteImportPlan(CliContext ctx, JSDPHarness harness, string[] a)
     {
         var path = ResolvePlanPath(a, ctx.Args);
-        var result = harness.ImportPlan(path, ctx.Args.Has("--mode") ? mode : null);
+        JsdpPlanningMode? mode = ctx.Args.Has("--mode") ? RequirePlanningMode(ctx.Args) : null;
+        var dryRun = ctx.Args.Has("--dry-run");
+        var force = ctx.Args.Has("--force");
+        var result = harness.ImportPlan(path, mode, dryRun, force);
         var code = CliOutput.WriteEnvelope(ctx, result);
+        if (dryRun)
+            return result.Validation.Valid ? code : 1;
         return result.Imported ? code : 1;
+    }
+
+    private static int WriteDiffPlan(CliContext ctx, JSDPHarness harness, string[] a)
+    {
+        var path = ResolvePlanPath(a, ctx.Args);
+        return CliOutput.WriteEnvelope(ctx, harness.DiffPlan(path));
     }
 
     private static int WritePlanningPrompt(CliContext ctx, JSDPHarness harness, JsdpPlanningMode mode)
@@ -139,6 +152,8 @@ public static class JsdpCommand
         var entry = harness.Record(nodeId, summary);
         return CliOutput.WriteEnvelope(ctx, entry);
     }
+
+    private static JsdpPlanningMode RequirePlanningMode(CliArgs args) => ParsePlanningMode(args);
 
     private static JsdpPlanningMode ParsePlanningMode(CliArgs args)
     {

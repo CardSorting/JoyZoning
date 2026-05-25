@@ -33,7 +33,7 @@ jz jsdp inspect && jz jsdp doctor && jz jsdp status
 ```bash
 jz jsdp export-planning-context --mode vertical-slices
 jz jsdp planning-prompt --mode vertical-slices
-jz jsdp validate-plan ./plan.json && jz jsdp import-plan ./plan.json
+jz jsdp horizon export --nodes 3 && jz jsdp horizon prompt --nodes 3 && jz jsdp horizon validate ./horizon.json && jz jsdp horizon import ./horizon.json --dry-run && jz jsdp horizon import ./horizon.json
 ```
 
 - **Full docs:** [docs/agent-operations.md](docs/agent-operations.md)

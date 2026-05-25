@@ -1,0 +1,21 @@
+{
+  "planningMode": "vertical-slices",
+  "nodes": [
+    {
+      "id": "001",
+      "title": "Bootstrap MonoGame overworld shell for MiniApp",
+      "intent": "Establish minimal MonoGame runtime with tilemap load and scene bootstrap for MiniApp overworld.",
+      "dependencies": ["002"],
+      "verificationCommands": ["dotnet build MiniApp.sln"],
+      "allowedMutationSurface": ["src/", "tests/"]
+    },
+    {
+      "id": "002",
+      "title": "Implement tilemap collision for overworld movement",
+      "intent": "Add grid collision and blocked-tile rules aligned with OverworldScene invariants.",
+      "dependencies": ["001"],
+      "verificationCommands": ["dotnet build MiniApp.sln"],
+      "allowedMutationSurface": ["src/", "tests/"]
+    }
+  ]
+}

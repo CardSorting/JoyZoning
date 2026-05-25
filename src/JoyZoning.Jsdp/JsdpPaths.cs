@@ -14,6 +14,14 @@ public static class JsdpPaths
     public const string PlanningContextFile = "planning-context.json";
     public const string PlanSchemaFile = "plan-schema.json";
     public const string PlanningPromptFileName = "planning-external.md";
+    public const string ProjectSummaryFile = "project-summary.json";
+    public const string RepoSummaryFile = "repo-summary.json";
+    public const string FrontierFile = "frontier.json";
+    public const string HorizonContextFile = "horizon-context.json";
+    public const string HorizonProposalFile = "horizon-proposal.json";
+    public const string HorizonSchemaFile = "horizon-schema.json";
+    public const string HorizonLastImportFile = "horizon-last-import.json";
+    public const string HorizonPromptFileName = "horizon-external.md";
 
     public static string Root(string workspaceRoot) => Path.Combine(workspaceRoot, RootDir);
 
@@ -47,4 +55,31 @@ public static class JsdpPaths
 
     public static string PlanningPromptFile(string workspaceRoot) =>
         Path.Combine(Prompts(workspaceRoot), PlanningPromptFileName);
+
+    public static string ProjectSummary(string workspaceRoot) =>
+        Path.Combine(State(workspaceRoot), ProjectSummaryFile);
+
+    public static string RepoSummary(string workspaceRoot) =>
+        Path.Combine(State(workspaceRoot), RepoSummaryFile);
+
+    public static string Frontier(string workspaceRoot) =>
+        Path.Combine(State(workspaceRoot), FrontierFile);
+
+    public static string HorizonContext(string workspaceRoot) =>
+        Path.Combine(State(workspaceRoot), HorizonContextFile);
+
+    public static string HorizonProposal(string workspaceRoot) =>
+        Path.Combine(State(workspaceRoot), HorizonProposalFile);
+
+    public static string HorizonSchema(string workspaceRoot) =>
+        Path.Combine(State(workspaceRoot), HorizonSchemaFile);
+
+    public static string HorizonLastImport(string workspaceRoot) =>
+        Path.Combine(State(workspaceRoot), HorizonLastImportFile);
+
+    public static string HorizonPromptFile(string workspaceRoot) =>
+        Path.Combine(Prompts(workspaceRoot), HorizonPromptFileName);
+
+    public static string HorizonImportReport(string workspaceRoot, string stamp) =>
+        Path.Combine(Reports(workspaceRoot), $"horizon-import-{stamp}.md");
 }

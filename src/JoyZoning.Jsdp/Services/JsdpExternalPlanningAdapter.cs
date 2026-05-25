@@ -10,12 +10,16 @@ public sealed class JsdpExternalPlanningAdapter
 {
     private readonly string _workspaceRoot;
     private readonly JSDPStateStore _store;
+    private readonly JSDPLedger? _ledger;
+    private readonly ProjectSpecAnalyzer _analyzer = new();
+    private readonly RepoScanEnricher _repoScan = new();
     private readonly JsdpExternalPlanValidator _validator = new();
 
-    public JsdpExternalPlanningAdapter(string workspaceRoot, JSDPStateStore store)
+    public JsdpExternalPlanningAdapter(string workspaceRoot, JSDPStateStore store, JSDPLedger? ledger = null)
     {
         _workspaceRoot = workspaceRoot;
         _store = store;
+        _ledger = ledger;
     }
 
     public JsdpExportPlanningContextResult ExportPlanningContext(JsdpPlanningMode mode)
@@ -24,12 +28,13 @@ public sealed class JsdpExternalPlanningAdapter
         if (!_store.IsInitialized)
             throw new JsdpException("No JSDP run. Run: jz jsdp init");
 
-        var spec = _store.LoadProjectSpec();
+        var spec = EnsureSpecAnalyzed();
         var config = _store.LoadConfig();
         var run = _store.LoadRun();
 
         var context = new JsdpPlanningContext
         {
+            ContractVersion = JsdpContract.PlanningContextVersion,
             ExportedAt = DateTimeOffset.UtcNow.ToString("O"),
             WorkspaceRoot = _workspaceRoot,
             RunId = run.Id,
@@ -47,6 +52,8 @@ public sealed class JsdpExternalPlanningAdapter
                 Config = JsdpPaths.Config(_workspaceRoot),
                 PlanningContext = JsdpPaths.PlanningContext(_workspaceRoot),
                 Run = JsdpPaths.Run(_workspaceRoot),
+                PlanSchema = JsdpPaths.PlanSchema(_workspaceRoot),
+                PlanningPrompt = JsdpPaths.PlanningPromptFile(_workspaceRoot),
             },
         };
 
@@ -69,29 +76,24 @@ public sealed class JsdpExternalPlanningAdapter
     public JsdpPlanValidationResult ValidatePlan(string planPath)
     {
         var plan = _validator.LoadPlanFile(planPath);
-        ProjectSpecAnalysis? analysis = null;
-        if (_store.IsInitialized)
-        {
-            try
-            {
-                analysis = _store.LoadProjectSpec().Analysis;
-            }
-            catch
-            {
-                // optional context
-            }
-        }
-
-        return _validator.Validate(plan, analysis);
+        return _validator.Validate(plan, LoadSpecAnalysis());
     }
 
-    public JsdpImportPlanResult ImportPlan(string planPath, JsdpPlanningMode? modeOverride = null)
+    public JsdpImportPlanResult ImportPlan(
+        string planPath,
+        JsdpPlanningMode? modeOverride = null,
+        bool dryRun = false,
+        bool force = false)
     {
-        var validation = ValidatePlan(planPath);
+        var fullPath = Path.GetFullPath(planPath);
+        var plan = _validator.LoadPlanFile(fullPath);
+        var validation = _validator.Validate(plan, LoadSpecAnalysis());
+
         var result = new JsdpImportPlanResult
         {
-            PlanPath = Path.GetFullPath(planPath),
+            PlanPath = fullPath,
             Validation = validation,
+            DryRun = dryRun,
         };
 
         if (!validation.Valid || validation.NormalizedNodes is null)
@@ -100,17 +102,46 @@ public sealed class JsdpExternalPlanningAdapter
         if (!_store.IsInitialized)
             throw new JsdpException("No JSDP run. Run: jz jsdp init before import-plan.");
 
-        var plan = _validator.LoadPlanFile(planPath);
         var run = _store.LoadRun();
+        result.ReplacedNodeCount = run.Nodes.Count;
+
+        var verifiedCount = run.Nodes.Values.Count(n => n.Status == JsdpNodeStatus.Verified);
+        if (verifiedCount > 0 && !force && !dryRun)
+        {
+            validation.Errors.Add(
+                $"DAG has {verifiedCount} verified node(s). Re-import discards progress. Use --force to override.");
+            validation.Valid = false;
+            return result;
+        }
+
+        if (run.Nodes.Count > 0)
+            validation.Warnings.Add(
+                $"Replacing existing DAG ({run.Nodes.Count} nodes). Verified progress on removed nodes is not preserved in run.json.");
+
+        result.NodeCount = validation.NormalizedNodes.Count;
+
+        if (dryRun)
+            return result;
+
         run.Nodes = validation.NormalizedNodes;
         run.PlanningMode = modeOverride ?? plan.PlanningMode ?? run.PlanningMode;
         run.CurrentNodeId = null;
 
         _store.SaveRun(run);
         result.Imported = true;
-        result.NodeCount = run.Nodes.Count;
+
+        _ledger?.Append(new LedgerEntry
+        {
+            Timestamp = DateTimeOffset.UtcNow.ToString("O"),
+            NodeId = "plan-import",
+            Summary = $"Imported external plan ({result.NodeCount} nodes) from {Path.GetFileName(fullPath)}",
+            Verification = new LedgerVerification { Passed = true },
+        });
+
         return result;
     }
+
+    public JsdpPlanDiffResult DiffPlan(string planPath) => new JsdpPlanDiffService().Diff(planPath, _store);
 
     public JsdpPlanningPromptResult WritePlanningPrompt(JsdpPlanningMode mode)
     {
@@ -130,12 +161,40 @@ public sealed class JsdpExternalPlanningAdapter
         };
     }
 
+    private ProjectSpecDocument EnsureSpecAnalyzed()
+    {
+        var spec = _store.LoadProjectSpec();
+        if (spec.Analysis is not null)
+            return spec;
+
+        var config = _store.LoadConfig();
+        var scan = _repoScan.Scan(_workspaceRoot, config.RepoScan);
+        spec.Analysis = _repoScan.Enrich(_analyzer.Analyze(spec), scan);
+        spec.RepoScan = scan;
+        _store.SaveProjectSpec(spec);
+        return spec;
+    }
+
+    private ProjectSpecAnalysis? LoadSpecAnalysis()
+    {
+        if (!_store.IsInitialized)
+            return null;
+
+        try
+        {
+            return _store.LoadProjectSpec().Analysis;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private string WritePlanSchemaFile()
     {
         var path = JsdpPaths.PlanSchema(_workspaceRoot);
         Directory.CreateDirectory(JsdpPaths.State(_workspaceRoot));
-        if (!File.Exists(path))
-            File.WriteAllText(path, JsdpPlanningPromptGenerator.SchemaDocument);
+        File.WriteAllText(path, JsdpPlanningPromptGenerator.SchemaDocument);
         return path;
     }
 }
@@ -149,6 +208,7 @@ public static class JsdpPlanningPromptGenerator
           "type": "object",
           "required": ["nodes"],
           "properties": {
+            "contractVersion": { "type": "string", "const": "1" },
             "planningMode": {
               "type": "string",
               "enum": ["vertical-slices", "systems-first", "risk-first"]
@@ -156,6 +216,7 @@ public static class JsdpPlanningPromptGenerator
             "nodes": {
               "type": "array",
               "minItems": 1,
+              "maxItems": 64,
               "items": {
                 "type": "object",
                 "required": [
@@ -211,6 +272,7 @@ public static class JsdpPlanningPromptGenerator
 
             - **Goal:** {context.Goal}
             - **Planning mode:** {mode}
+            - **Contract version:** {JsdpContract.ExternalPlanVersion}
             - **Workspace:** {context.WorkspaceRoot}
             - **Planning context file:** `{contextPath}`
             - **JSON schema:** `{schemaPath}`
@@ -219,14 +281,14 @@ public static class JsdpPlanningPromptGenerator
 
             ## Required output
 
-            Write a single file: `plan.json` matching the schema.
+            Write a single file: `plan.json` matching the schema. Set `"contractVersion": "{JsdpContract.ExternalPlanVersion}"`.
 
             Rules:
 
             1. Nodes must reference **actual** systems, files, runtime, and verification from the project — never generic placeholders like "Implement feature."
-            2. Every node must include non-empty `verificationCommands` and `allowedMutationSurface`.
-            3. Dependencies must form an acyclic DAG (normalized ids: `001`, `002`, …; repair nodes: `007R1`).
-            4. Small steps — resumable, verifiable, convergence-oriented.
+            2. Every node must include non-empty `verificationCommands` and `allowedMutationSurface` (never `.jsdp/`, `.git/`, or `node_modules/`).
+            3. Dependencies must form an acyclic DAG (normalized ids: `001`, `002`, …; repair nodes: `007R1`). No self-dependencies.
+            4. Small steps — resumable, verifiable, convergence-oriented (≤64 nodes).
             5. Do not include nodes that execute work; planning only.
 
             ## Planning mode guidance ({mode})
@@ -237,6 +299,7 @@ public static class JsdpPlanningPromptGenerator
 
             ```bash
             jz jsdp validate-plan ./plan.json
+            jz jsdp import-plan ./plan.json --dry-run   # optional preview
             jz jsdp import-plan ./plan.json
             ```
 

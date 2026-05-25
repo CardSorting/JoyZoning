@@ -4,7 +4,7 @@ namespace JoyZoning.Jsdp.Services;
 
 public static class PromptDAGBuilder
 {
-    public static void WireNextLinks(IReadOnlyList<JsdpNode> nodes)
+    public static void WireNextLinks(IReadOnlyList<JsdpNode> nodes, IReadOnlySet<string>? externalDependencyIds = null)
     {
         var byId = nodes.ToDictionary(n => n.Id, StringComparer.Ordinal);
         foreach (var node in nodes)
@@ -17,7 +17,7 @@ public static class PromptDAGBuilder
         }
 
         ValidateAcyclic(nodes);
-        ValidateDependenciesExist(nodes, byId);
+        ValidateDependenciesExist(nodes, byId, externalDependencyIds);
     }
 
     public static string? FindNextReadyNode(JsdpRun run)
@@ -135,13 +135,16 @@ public static class PromptDAGBuilder
         }
     }
 
-    private static void ValidateDependenciesExist(IReadOnlyList<JsdpNode> nodes, Dictionary<string, JsdpNode> byId)
+    private static void ValidateDependenciesExist(
+        IReadOnlyList<JsdpNode> nodes,
+        Dictionary<string, JsdpNode> byId,
+        IReadOnlySet<string>? externalDependencyIds = null)
     {
         foreach (var node in nodes)
         {
             foreach (var dep in node.Dependencies)
             {
-                if (!byId.ContainsKey(dep))
+                if (!byId.ContainsKey(dep) && externalDependencyIds?.Contains(dep) != true)
                     throw new JsdpException($"Node {node.Id} references missing dependency {dep}");
             }
         }

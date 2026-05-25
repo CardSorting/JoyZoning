@@ -3,6 +3,7 @@ namespace JoyZoning.Jsdp.Models;
 /// <summary>Context bundle for external agents to author a plan (read-only contract).</summary>
 public sealed class JsdpPlanningContext
 {
+    public string ContractVersion { get; set; } = JsdpContract.PlanningContextVersion;
     public string ExportedAt { get; set; } = "";
     public string WorkspaceRoot { get; set; } = "";
     public string RunId { get; set; } = "";
@@ -30,12 +31,15 @@ public sealed class JsdpPlanningContextPaths
     public string ProjectSpec { get; set; } = "";
     public string Config { get; set; } = "";
     public string PlanningContext { get; set; } = "";
+    public string PlanSchema { get; set; } = "";
+    public string PlanningPrompt { get; set; } = "";
     public string Run { get; set; } = "";
 }
 
 /// <summary>External agent-authored plan file (import/validate).</summary>
 public sealed class ExternalJsdpPlanDocument
 {
+    public string? ContractVersion { get; set; }
     public JsdpPlanningMode? PlanningMode { get; set; }
     public List<ExternalJsdpPlanNode> Nodes { get; set; } = [];
 }
@@ -72,8 +76,10 @@ public sealed class JsdpExportPlanningContextResult
 public sealed class JsdpImportPlanResult
 {
     public bool Imported { get; set; }
+    public bool DryRun { get; set; }
     public string PlanPath { get; set; } = "";
     public int NodeCount { get; set; }
+    public int ReplacedNodeCount { get; set; }
     public JsdpPlanValidationResult Validation { get; set; } = new();
 }
 
@@ -82,4 +88,16 @@ public sealed class JsdpPlanningPromptResult
     public string PromptPath { get; set; } = "";
     public string PlanningContextPath { get; set; } = "";
     public string SchemaPath { get; set; } = "";
+}
+
+public sealed class JsdpPlanDiffResult
+{
+    public string PlanPath { get; set; } = "";
+    public bool PlanValid { get; set; }
+    public int CurrentNodeCount { get; set; }
+    public int ProposedNodeCount { get; set; }
+    public List<string> OnlyInPlan { get; set; } = [];
+    public List<string> OnlyInRun { get; set; } = [];
+    public List<string> InBoth { get; set; } = [];
+    public JsdpPlanValidationResult? Validation { get; set; }
 }

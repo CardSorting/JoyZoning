@@ -1,0 +1,16 @@
+{
+  "contractVersion": "1",
+  "rationale": "Extend MiniApp overworld with keyboard movement after tilemap collision converges.",
+  "assumptions": ["Node 002 verified or ready before player controls"],
+  "stopAfter": "Do not plan inventory, quests, camera polish, or multiplayer.",
+  "nodes": [
+    {
+      "title": "Wire keyboard movement for MiniApp overworld",
+      "intent": "Add MonoGame input polling and velocity integration for OverworldScene player entity.",
+      "dependencies": ["002"],
+      "acceptanceCriteria": ["Player moves with arrow keys within collision bounds"],
+      "verificationCommands": ["dotnet build MiniApp.sln"],
+      "allowedMutationSurface": ["src/", "tests/"]
+    }
+  ]
+}

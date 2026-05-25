@@ -98,7 +98,13 @@ public static class AgentOperationsManifest
         new("jsdp export-planning-context", "Export planning context for external agents.", true),
         new("jsdp import-plan", "Import and validate external-agent plan.json.", false),
         new("jsdp validate-plan", "Validate plan.json without writing.", true),
+        new("jsdp diff-plan", "Compare plan.json to current run.json DAG.", true),
         new("jsdp planning-prompt", "Generate external planning prompt and schema paths.", true),
+        new("jsdp horizon export", "Export bounded rolling-horizon context (3–5 nodes).", true),
+        new("jsdp horizon prompt", "Generate external rolling-horizon planning prompt.", true),
+        new("jsdp horizon validate", "Validate horizon.json without modifying DAG.", true),
+        new("jsdp horizon import", "Append validated horizon nodes to existing DAG.", false),
+        new("jsdp horizon status", "Frontier, DAG size, and last horizon import.", true),
     ];
 
     public static readonly IReadOnlyDictionary<string, string> AgentWorkflow = new Dictionary<string, string>
@@ -114,7 +120,8 @@ public static class AgentOperationsManifest
         ["externalSingleTask"] = "jz task start-external <taskId> --agent cursor; jz task prompt <taskId>; jz task mark-ready <taskId>; jz task verify <taskId> --cmd \"...\"; jz task complete <taskId> --yes",
         ["httpFallback"] = "GET /api/agent/manifest, GET /api/agent/context, GET /api/agent/endpoints?agentSafe=true",
         ["jsdpHarness"] = "jz jsdp init --spec ./PROJECT_SPEC.md; jz jsdp analyze; jz jsdp plan; jz jsdp next; jz jsdp verify; jz jsdp continue",
-        ["jsdpHarnessExternalPlan"] = "jz jsdp export-planning-context; jz jsdp planning-prompt; jz jsdp validate-plan ./plan.json; jz jsdp import-plan ./plan.json",
+        ["jsdpHarnessExternalPlan"] = "jz jsdp export-planning-context; jz jsdp planning-prompt; jz jsdp validate-plan ./plan.json; jz jsdp diff-plan ./plan.json; jz jsdp import-plan ./plan.json --dry-run; jz jsdp import-plan ./plan.json",
+        ["jsdpHarnessRollingHorizon"] = "jz jsdp horizon export --nodes 3; jz jsdp horizon prompt --nodes 3; jz jsdp horizon validate ./horizon.json; jz jsdp horizon import ./horizon.json --dry-run; jz jsdp horizon import ./horizon.json; jz jsdp next",
         ["jsdpHarnessInspect"] = "jz jsdp inspect; jz jsdp doctor; jz jsdp status",
     };
 

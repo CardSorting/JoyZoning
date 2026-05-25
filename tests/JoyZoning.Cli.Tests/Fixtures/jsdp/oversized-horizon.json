@@ -1,0 +1,13 @@
+{
+  "contractVersion": "1",
+  "rationale": "Too many nodes for one horizon.",
+  "stopAfter": "n/a",
+  "nodes": [
+    { "title": "Bootstrap MonoGame overworld slice A", "intent": "Establish minimal MonoGame runtime slice A for MiniApp overworld.", "acceptanceCriteria": ["A"], "verificationCommands": ["dotnet build MiniApp.sln"], "allowedMutationSurface": ["src/"] },
+    { "title": "Bootstrap MonoGame overworld slice B", "intent": "Establish minimal MonoGame runtime slice B for MiniApp overworld.", "acceptanceCriteria": ["B"], "verificationCommands": ["dotnet build MiniApp.sln"], "allowedMutationSurface": ["src/"] },
+    { "title": "Bootstrap MonoGame overworld slice C", "intent": "Establish minimal MonoGame runtime slice C for MiniApp overworld.", "acceptanceCriteria": ["C"], "verificationCommands": ["dotnet build MiniApp.sln"], "allowedMutationSurface": ["src/"] },
+    { "title": "Bootstrap MonoGame overworld slice D", "intent": "Establish minimal MonoGame runtime slice D for MiniApp overworld.", "acceptanceCriteria": ["D"], "verificationCommands": ["dotnet build MiniApp.sln"], "allowedMutationSurface": ["src/"] },
+    { "title": "Bootstrap MonoGame overworld slice E", "intent": "Establish minimal MonoGame runtime slice E for MiniApp overworld.", "acceptanceCriteria": ["E"], "verificationCommands": ["dotnet build MiniApp.sln"], "allowedMutationSurface": ["src/"] },
+    { "title": "Bootstrap MonoGame overworld slice F", "intent": "Establish minimal MonoGame runtime slice F for MiniApp overworld.", "acceptanceCriteria": ["F"], "verificationCommands": ["dotnet build MiniApp.sln"], "allowedMutationSurface": ["src/"] }
+  ]
+}

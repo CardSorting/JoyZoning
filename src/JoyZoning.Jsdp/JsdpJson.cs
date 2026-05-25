@@ -20,8 +20,20 @@ public static class JsdpJson
 
     public static void WriteFile<T>(string path, T value)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, JsonSerializer.Serialize(value, Options));
+        var dir = Path.GetDirectoryName(path)!;
+        Directory.CreateDirectory(dir);
+        var json = JsonSerializer.Serialize(value, Options);
+        var temp = Path.Combine(dir, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            File.WriteAllText(temp, json);
+            File.Move(temp, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temp))
+                File.Delete(temp);
+        }
     }
 
     public static T ReadFile<T>(string path)
