@@ -94,6 +94,23 @@ Flow:
 
 Requires valid dashboard token. Status mapping: [architecture.md](architecture.md#task-status-mapping).
 
+## JSDP autonomous tool (`jsdp`)
+
+**Operator guide:** [jsdp-autonomous-path.md](jsdp-autonomous-path.md)
+
+Hermes exposes **`jsdp`** (toolset `joyzoning`) — four actions, zero yaml setup when JoyZoning dispatches work.
+
+| Action | Purpose |
+|--------|---------|
+| `start` | Auto-init `.jsdp/`, return bounded planning context |
+| `apply` | Commit horizon JSON (validate + import in one call) |
+| `advance` | Run next / verify / continue (harness decides) |
+| `guide` | `phase`, `operator_summary`, `agent_next_call` |
+
+Aliases: `prepare`→`start`, `commit`→`apply`, `step`→`advance`, `status`→`guide`.
+
+Dispatch sets `HERMES_KANBAN_WORKSPACE`. JoyZoning CLI is auto-discovered. Skill: `jsdp-rolling-horizon`.
+
 ## SSE → JoyZoning events
 
 `HermesRunEventConsumer` subscribes to Hermes run SSE and ingests:

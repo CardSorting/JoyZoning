@@ -640,6 +640,8 @@ public class OrchestrationService
                     {
                         ["JOYZONING_HABITAT_TASK"] = taskId.ToString(),
                         ["JOYZONING_SCOPE_ID"] = scopeId,
+                        ["HERMES_KANBAN_WORKSPACE"] = handoff.WorktreePath,
+                        ["JOYZONING_WORKSPACE_ROOT"] = handoff.WorktreePath,
                     };
                     if (!string.IsNullOrWhiteSpace(task.HermesKanbanTaskId))
                         runEnv["HERMES_KANBAN_TASK"] = task.HermesKanbanTaskId!;

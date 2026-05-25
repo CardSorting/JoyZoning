@@ -20,20 +20,22 @@ jz task prompt <task-id>    # read handoff — do not mark Complete via API
 jz task mark-ready <task-id>   # operator only
 ```
 
-**Project-local JSDP harness** (`.jsdp/` in target repo cwd — not delivery-chain):
+**JSDP autonomous (Hermes + long-horizon repos)** — operators only Dispatch; agents use `jsdp` tool:
+
+| Step | Who | Action |
+|------|-----|--------|
+| 1 | Operator | JoyZoning → Dispatch (no Hermes config) |
+| 2 | Agent | `jsdp(start)` → `jsdp(apply, proposal_json)` → `jsdp(advance)` |
+| 3 | Operator | `jz task complete <id> --yes` |
+
+Doc: [docs/jsdp-autonomous-path.md](docs/jsdp-autonomous-path.md)
+
+**CLI experts** (manual `.jsdp/` in project cwd):
 
 ```bash
-jz jsdp init --spec ./PROJECT_SPEC.md && jz jsdp analyze && jz jsdp plan
-jz jsdp next && jz jsdp verify && jz jsdp continue
-jz jsdp inspect && jz jsdp doctor && jz jsdp status
-```
-
-**External planning (agent authors DAG; harness validates):**
-
-```bash
-jz jsdp export-planning-context --mode vertical-slices
-jz jsdp planning-prompt --mode vertical-slices
-jz jsdp horizon export --nodes 3 && jz jsdp horizon prompt --nodes 3 && jz jsdp horizon validate ./horizon.json && jz jsdp horizon diff ./horizon.json && jz jsdp horizon import ./horizon.json --dry-run && jz jsdp horizon import ./horizon.json
+jz jsdp init --spec ./PROJECT_SPEC.md && jz jsdp analyze
+jz jsdp horizon export --nodes 3 && jz jsdp horizon prompt --nodes 3
+# … validate, diff, import, next, verify, continue — see docs/jsdp-convergence-harness.md
 ```
 
 - **Full docs:** [docs/agent-operations.md](docs/agent-operations.md)

@@ -14,6 +14,7 @@ JoyZoning supervises work on your machine. **How files get edited** is your choi
 | Using **Cursor** (or Claude Code) on the repo | **External** | `jz task start-external <id> --agent cursor` |
 | Running an **8-role JSDP program** in Cursor | **External chain** | `jz delivery-chain next <chain-id> --external --agent cursor` |
 | Running an **8-role JSDP program** in Hermes | **Managed chain** | `jz delivery-chain queue <id>` → dispatch each role |
+| **Long-horizon repo** (Hermes + `.jsdp/` harness) | **JSDP autonomous** | Dispatch → agent uses `jsdp(start\|apply\|advance)` — [jsdp-autonomous-path.md](jsdp-autonomous-path.md) |
 | A **coding agent** reading this repo | **Contract** | [AGENTS.md](../AGENTS.md) · [external-agent-jsdp.md](external-agent-jsdp.md) |
 
 ---
@@ -116,10 +117,23 @@ Not allowed:
 
 ---
 
+## JSDP autonomous (Hermes + harness)
+
+Operators only **Dispatch** from JoyZoning. Agents use the Hermes **`jsdp`** tool — no yaml paths.
+
+```text
+jsdp(start) → jsdp(apply, proposal_json) → jsdp(advance) … → operator jz task complete --yes
+```
+
+Full guide: [jsdp-autonomous-path.md](jsdp-autonomous-path.md) · harness detail: [jsdp-convergence-harness.md](jsdp-convergence-harness.md)
+
+---
+
 ## Where to read more
 
 | Topic | Doc |
 |-------|-----|
+| JSDP autonomous (operators + agents) | [jsdp-autonomous-path.md](jsdp-autonomous-path.md) |
 | External path (full) | [external-agent-jsdp.md](external-agent-jsdp.md) |
 | JSDP protocol | [jsdp.md](jsdp.md) |
 | Philosophy | [philosophy.md](philosophy.md) |

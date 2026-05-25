@@ -112,6 +112,26 @@ upsert_env() {
   fi
 }
 
+configure_jsdp_harness() {
+  local hermes_bin="$1"
+  local joyzoning_repo="${JOYZONING_REPO:-$(cd "$(dirname "$0")/.." && pwd)}"
+  local jz_cli="$joyzoning_repo/scripts/joyzoning"
+
+  if [ ! -x "$jz_cli" ] && [ ! -f "$jz_cli" ]; then
+    log_status "JoyZoning CLI not found at $jz_cli — skip jsdp harness config (set later in Hermes profile)."
+    return 0
+  fi
+
+  log_status "Enabling JSDP rolling-horizon harness in Hermes joyzoning profile…"
+  "$hermes_bin" -p "$HERMES_PROFILE" config set joyzoning.enabled true >/dev/null 2>&1 || true
+  # Harness auto-detects jz_cli — optional override only when auto-detect fails:
+  "$hermes_bin" -p "$HERMES_PROFILE" config set joyzoning.jsdp.harness.jz_cli "$jz_cli" >/dev/null 2>&1 || true
+
+  local env_file="${HERMES_HOME:-$HOME_DIR/.hermes}/profiles/$HERMES_PROFILE/.env"
+  upsert_env JOYZONING_MONOREPO_ROOT "$joyzoning_repo" "$env_file"
+  upsert_env JOYZONING_JSDP_HARNESS 1 "$env_file"
+}
+
 configure_joyzoning_profile() {
   local hermes_bin
   hermes_bin="$(find_hermes_cli)" || {
@@ -140,6 +160,7 @@ configure_joyzoning_profile() {
 
   "$hermes_bin" -p "$HERMES_PROFILE" config set API_SERVER_ENABLED true >/dev/null 2>&1 || true
   sync_model_from_default_profile "$hermes_bin"
+  configure_jsdp_harness "$hermes_bin"
   log_status "One Hermes install — Manager and executor roles use separate sessions, synced on the kanban board."
 }
 

@@ -10,7 +10,7 @@ public class DietCodeAdapter : IAgentAdapter
 {
     private static readonly string[] ExecutorToolsets =
     {
-        "terminal", "file", "search", "patch",
+        "terminal", "file", "search", "patch", "joyzoning",
     };
 
     private readonly HermesHttpClient _client;

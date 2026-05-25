@@ -113,6 +113,8 @@ public static class HandoffPacketBuilder
 
             {JsdpProtocol.ExecutorHandoffSection}
 
+            {(packet.MergeGateRequired ? JsdpProtocol.RollingHorizonHermesSection : "")}
+
             {(packet.ComplianceWarnings.Count > 0
                 ? "### JSDP compliance warnings\n" + string.Join("\n", packet.ComplianceWarnings.Select(w => $"- {w}"))
                 : "")}

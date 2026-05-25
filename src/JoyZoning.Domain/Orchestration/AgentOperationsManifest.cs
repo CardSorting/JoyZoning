@@ -25,6 +25,7 @@ public static class AgentOperationsManifest
         "docs/AGENT.md",
         "docs/jsdp.md",
         "docs/jsdp-convergence-harness.md",
+        "docs/jsdp-autonomous-path.md",
         "docs/external-agent-jsdp.md",
         "src/JoyZoning.Jsdp/Services/JSDPHarness.cs",
         "docs/execution-paths.md",
@@ -122,6 +123,7 @@ public static class AgentOperationsManifest
         ["httpFallback"] = "GET /api/agent/manifest, GET /api/agent/context, GET /api/agent/endpoints?agentSafe=true",
         ["jsdpHarness"] = "jz jsdp init --spec ./PROJECT_SPEC.md; jz jsdp analyze; jz jsdp plan; jz jsdp next; jz jsdp verify; jz jsdp continue",
         ["jsdpHarnessExternalPlan"] = "jz jsdp export-planning-context; jz jsdp planning-prompt; jz jsdp validate-plan ./plan.json; jz jsdp diff-plan ./plan.json; jz jsdp import-plan ./plan.json --dry-run; jz jsdp import-plan ./plan.json",
+        ["jsdpHarnessHermesAutonomous"] = "Operator: jz task run <id> or Kanban Dispatch (no Hermes yaml). Agent: jsdp(start) → jsdp(apply, proposal_json) → jsdp(advance) → joyzoning(request_review) → operator jz task complete --yes",
         ["jsdpHarnessRollingHorizon"] = "jz jsdp horizon export --nodes 3; jz jsdp horizon prompt --nodes 3; jz jsdp horizon validate ./horizon.json; jz jsdp horizon diff ./horizon.json; jz jsdp horizon import ./horizon.json --dry-run; jz jsdp horizon import ./horizon.json; jz jsdp next",
         ["jsdpHarnessInspect"] = "jz jsdp inspect; jz jsdp doctor; jz jsdp status",
     };

@@ -74,4 +74,15 @@ public static class JsdpProtocol
         Do NOT: rewrite the universe, redesign every pass, expand scope recursively, or bypass the convergence gate.
         Full protocol: {RelativeDocPath}
         """;
+
+    /// <summary>Hermes diet-hermes integration — rolling horizon via <c>jsdp_horizon</c> tool.</summary>
+    public static string RollingHorizonHermesSection =>
+        """
+        ### JSDP autonomous harness (Hermes `jsdp` — operators need zero config)
+        1. `jsdp(action='start')` — session begin (auto `.jsdp/` + planning context).
+        2. `jsdp(action='apply', proposal_json=…)` — ≤5 nodes as JSON.
+        3. `jsdp(action='advance')` — harness runs next/verify/continue.
+        4. `jsdp(action='guide')` — read `phase` and `agent_next_call` when unsure.
+        See `docs/jsdp-autonomous-path.md`. Do NOT use full-project `import-plan`.
+        """;
 }
