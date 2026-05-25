@@ -12,61 +12,58 @@ JoyZoning is the operator habitat. This harness is a **project-aware compiler fo
 
 ---
 
-## Choose a planning mode
+## Planning modes
 
-| Mode | Token profile | DAG | Use when |
-|------|---------------|-----|----------|
-| **Manual** | Minimal | You own the graph | Expert conductor |
-| **Rolling horizon** | Bounded (~32 KiB context) | Append 3–5 nodes | **Safe automation (default)** |
-| **Full `plan.json`** | Unbounded (spec + scan + ledger) | Replace all | Discouraged |
+| Mode | Token profile | DAG mutation | When |
+|------|---------------|--------------|------|
+| **Manual** | Minimal | You control the graph | Expert / conductor |
+| **Rolling horizon** | Bounded (~32 KiB) | Append 3–5 nodes | **Default for automation** |
+| **Full `plan.json`** | Unbounded | Replace entire DAG | Discouraged |
 
-### Anti-patterns (automation)
+### Anti-patterns
 
-| Do not | Why |
-|--------|-----|
-| `planning-prompt` every turn | Pulls full spec, repo scan, ledger — token explosion |
-| `import-plan` over verified DAG without `--force` | Destroys convergence history |
-| `horizon import` with failed nodes | Extends graph before repair |
-| Skip `horizon export` after verify/continue | Stale frontier misleads the planner |
-| Plan >5 nodes per horizon | Violates rolling contract; rejected |
+| Avoid | Why |
+|-------|-----|
+| `planning-prompt` every cycle | Exports full spec + scan + ledger |
+| `import-plan` over verified work | Wipes convergence unless `--force` |
+| `horizon import` with failed nodes | Plans past broken verification |
+| Skipping export after verify/continue | Stale planner context |
+| >5 nodes per horizon | Rejected by contract |
+| Validating without `horizon export` | No `requestedNodeCount` / run binding |
 
 ---
 
-## Rolling horizon (core design)
+## Rolling horizon (recommended)
 
-**Never plan the whole project in one automatic pass.**
+**Never auto-plan the whole project.** Plan only the next **3–5** nodes.
 
 ```mermaid
-flowchart TB
-  subgraph plan [Bounded planning — external agent]
-    E[horizon export]
-    P[horizon prompt]
-    H[horizon.json ≤ N nodes]
-    V[validate]
-    I[import append]
-  end
-  subgraph run [Harness owns execution]
-    N[next]
-    VF[verify]
-    C[continue]
-    L[ledger append-only]
-  end
-  E --> P --> H --> V --> I --> N --> VF --> C --> L
-  L --> E
+flowchart LR
+  E[horizon export] --> P[horizon prompt]
+  P --> H[horizon.json]
+  H --> V[validate]
+  V --> D[diff]
+  D --> I[import append]
+  I --> N[next]
+  N --> VF[verify]
+  VF --> C[continue]
+  C --> E
 ```
 
 ```text
-projectSummary + frontier + 5 ledger summaries + failures + repoSummary
-        ↓  (horizon-context.json, typically < 32 KiB)
-External agent → horizon.json (JSON only, ≤ N nodes, N ∈ [3,5])
+horizon-context.json  (bounded)
         ↓
-validate (live frontier) → import append → execute → verify → repair
+External agent → horizon.json  (≤ N nodes, JSON only)
         ↓
-horizon export again (context auto-refreshed on import)
+validate → diff → import --dry-run → import
+        ↓
+execute → verify → repair → export again
 ```
 
-**Harness owns:** state, limits, validation, verification, repair, convergence, history.  
-**External agent owns:** the next few proposed nodes only.
+| Role | Owns |
+|------|------|
+| External agent | Next few nodes in `horizon.json` |
+| Harness | State, limits, validation, verify, repair, ledger, id allocation |
 
 ---
 
@@ -75,19 +72,19 @@ horizon export again (context auto-refreshed on import)
 ```bash
 jz jsdp init --spec ./PROJECT_SPEC.md
 jz jsdp analyze
-jz jsdp plan --mode vertical-slices          # seed DAG (or import-plan once)
+jz jsdp plan --mode vertical-slices
 
 jz jsdp horizon export --nodes 3
 jz jsdp horizon prompt --nodes 3
-# agent: write horizon.json only (no markdown wrapper)
+# agent writes horizon.json (JSON only)
 
 jz jsdp horizon validate ./horizon.json
-jz jsdp horizon import ./horizon.json --dry-run   # projected ids e.g. 003, 004
+jz jsdp horizon diff ./horizon.json
+jz jsdp horizon import ./horizon.json --dry-run
 jz jsdp horizon import ./horizon.json
 
 jz jsdp next && jz jsdp verify && jz jsdp continue
 jz jsdp horizon status
-# repeat export → prompt → validate → import
 ```
 
 ---
@@ -112,15 +109,13 @@ jz jsdp horizon status
     project-summary.json
     repo-summary.json
     frontier.json
-    horizon-context.json
+    horizon-context.json      # required before validate/import/diff
     horizon-schema.json
     horizon-proposal.json
     horizon-last-import.json
-    planning-context.json
-    plan-schema.json
 ```
 
-Atomic JSON writes (temp file + rename).
+Atomic JSON writes (temp + rename).
 
 ---
 
@@ -128,40 +123,39 @@ Atomic JSON writes (temp file + rename).
 
 | Command | Purpose |
 |---------|---------|
-| `horizon export --nodes <3-5>` | Bounded context + byte size report |
-| `horizon prompt --nodes <3-5>` | `horizon-external.md` + schema |
-| `horizon validate <file>` | Validate; live frontier; runId binding |
-| `horizon import <file>` | Append nodes, report, ledger, **refresh context** |
-| `horizon import --dry-run` | Validate + **projected final node ids** |
-| `horizon import --force` | Import despite verification failures |
-| `horizon status` | Frontier, stale flag, suggested action, context bytes |
+| `horizon export --nodes <3-5>` | Write context; reports byte size + warnings |
+| `horizon prompt --nodes <3-5>` | Agent handoff prompt + schema |
+| `horizon validate <file>` | Validate (requires prior export; live frontier) |
+| `horizon diff <file>` | Preview projected ids, titles, deps, new DAG size |
+| `horizon import <file>` | Append nodes; refresh context; ledger + report |
+| `horizon import --dry-run` | Validate + projected ids only |
+| `horizon import --force` | Import despite active failures |
+| `horizon validate --nodes N` | Override requested count from export |
+| `horizon status` | Frontier, stale flag, `suggestedAction`, bytes |
 
 ---
 
-## Horizon context contract
+## `horizon-context.json` contract
 
-Exported fields (and only these) in `horizon-context.json`:
-
-| Field | Content |
-|-------|---------|
-| `contractVersion` | `"1"` |
-| `runId` / `dagSizeAtExport` | Bind export to active run |
-| `projectSummary` | Goal, systems, stack (no raw spec markdown) |
+| Field | Included |
+|-------|----------|
+| `contractVersion`, `runId`, `dagSizeAtExport` | Run binding |
+| `projectSummary` | Compact goal/systems/stack |
+| `existingNodeSummaries` | Up to 24 × `{id, title, status}` — not full node payloads |
 | `currentFrontier` | verified / ready / blocked / failed ids |
-| `recentLedgerSummaries` | Last **5** entries (summary + pass/fail only) |
-| `activeFailures` | Failed node ids + repair hint |
-| `repoSummary` | Stack, paths, test commands (no source tree) |
+| `recentLedgerSummaries` | Last **5** ledger lines (summary only) |
+| `activeFailures` | Failed ids + short report excerpt |
+| `repoSummary` | Stack, paths, test commands |
 | `requestedNodeCount` | 3–5 |
-| `previousStopAfter` | From last horizon import |
-| `planningGuidance` | Operator hints (repair first, execute ready) |
+| `previousStopAfter`, `planningGuidance` | Prior horizon + operator hints |
 
-**Budget:** `horizon-context.json` should stay ≤ 32 KiB (`JsdpContract.MaxHorizonContextBytes`). Export warns if exceeded.
+**Budget:** ≤ 32 KiB (`MaxHorizonContextBytes`).
 
-**Excluded by design:** full `PROJECT_SPEC.md`, `ledger.jsonl`, verification stdout, full repo scan dumps, entire DAG node payloads.
+**Never exported:** `rawMarkdown`, full `ledger.jsonl`, verification stdout dumps, complete repo file lists, per-node `verificationCommands` from existing DAG.
 
 ---
 
-## Horizon proposal (`horizon.json`)
+## `horizon.json` proposal
 
 ```json
 {
@@ -176,89 +170,71 @@ Exported fields (and only these) in `horizon-context.json`:
       "allowedMutationSurface": ["src/", "tests/"]
     }
   ],
-  "rationale": "Why these nodes are the logical next horizon",
+  "rationale": "Why this is the next horizon",
   "assumptions": ["002 verified"],
-  "stopAfter": "Do not plan inventory, quests, or multiplayer yet"
+  "stopAfter": "What we are intentionally not planning yet"
 }
 ```
 
-### Validation (production)
+### Validation rejects
 
-| Rule | Result |
-|------|--------|
-| Node count > `requestedNodeCount` | Error |
-| `runId` ≠ active run | Error — re-export |
-| Active failed nodes | Error (unless `--force`) |
-| Vague / short title/intent | Error |
-| Missing acceptance / verify / surface | Error |
-| Unknown dependency | Error |
-| Not anchored to verified/ready frontier | Error |
-| Full-project rewrite language | Error |
-| Protected paths in surface | Error |
-| Ready nodes not yet executed | Warning |
-| DAG size changed since export | Warning (frontier still live-refreshed) |
-| Stale context file | Warning |
+| Condition | Result |
+|-----------|--------|
+| No prior `horizon export` | Error |
+| `runId` mismatch | Error |
+| Nodes > `requestedNodeCount` | Error |
+| Active failures | Error (unless `--force`) |
+| Duplicate titles in proposal | Error |
+| Title matches existing DAG node | Error |
+| Vague / missing fields | Error |
+| Unknown deps / bad frontier anchor | Error |
+| Rewrite-all language | Error |
+| Ready nodes exist | Warning |
+| Blocked nodes exist | Warning |
+| Stale context file | Warning (live frontier used) |
 
 ### Import
 
-- Allocates **new** ids (`003`, `004`, …) — never collides with existing
-- Preserves verified/failed on existing nodes
-- Appends ledger (`horizon-import`) — never truncates
-- Writes `reports/horizon-import-<stamp>.md`
-- **Refreshes** `horizon-context.json` + `frontier.json` for the next cycle
+- New ids allocated (`003`, `004`, …)
+- Existing node statuses preserved
+- `horizon-import` ledger append
+- Context + frontier refreshed automatically
+- Report: `reports/horizon-import-<stamp>.md`
 
 ---
 
-## Full-plan path (discouraged)
+## Other paths
 
-```bash
-jz jsdp export-planning-context --mode vertical-slices
-jz jsdp planning-prompt --mode vertical-slices
-jz jsdp validate-plan ./plan.json
-jz jsdp diff-plan ./plan.json
-jz jsdp import-plan ./plan.json --dry-run
-jz jsdp import-plan ./plan.json    # --force if replacing verified DAG
-```
+**Full plan (discouraged):** `export-planning-context` → `planning-prompt` → `validate-plan` → `import-plan`
 
-Use only for initial seeding or deliberate full replans.
-
----
-
-## Built-in heuristic path
-
-```bash
-jz jsdp init --spec ./PROJECT_SPEC.md
-jz jsdp analyze && jz jsdp plan --mode vertical-slices
-jz jsdp next && jz jsdp verify && jz jsdp continue
-```
-
-No LLM — rules from spec analysis.
+**Heuristic:** `jz jsdp plan --mode vertical-slices` (no LLM)
 
 ---
 
 ## Operations
 
-| Command | Purpose |
-|---------|---------|
-| `inspect` | Spec, DAG, planning + **horizon** paths, last import |
-| `doctor` | Integrity, staleness, horizon budget, failures |
-| `status` / `record` | Runtime + operator ledger |
-
-`jz jsdp horizon status` returns `suggestedAction` (e.g. `jz jsdp next` when ready nodes exist).
+```bash
+jz jsdp doctor      # horizon staleness, budget, failures
+jz jsdp inspect     # horizon paths + last import
+jz jsdp horizon status
+```
 
 ---
 
 ## Audit checklist
 
-| Step | Command |
-|------|---------|
-| Health | `jz jsdp doctor` |
-| Context fresh & bounded | `jz jsdp horizon export --nodes 3` |
-| Proposal valid | `jz jsdp horizon validate ./horizon.json` |
-| Preview ids | `jz jsdp horizon import ./horizon.json --dry-run` |
-| Commit horizon | `jz jsdp horizon import ./horizon.json` |
-| Execute | `jz jsdp next` → `verify` → `continue` |
-| Next cycle | `jz jsdp horizon status` |
+| # | Step |
+|---|------|
+| 1 | `jz jsdp doctor` |
+| 2 | `jz jsdp horizon export --nodes 3` (check bytes) |
+| 3 | `jz jsdp horizon prompt --nodes 3` |
+| 4 | Agent writes `horizon.json` |
+| 5 | `jz jsdp horizon validate ./horizon.json` |
+| 6 | `jz jsdp horizon diff ./horizon.json` |
+| 7 | `jz jsdp horizon import ./horizon.json --dry-run` |
+| 8 | `jz jsdp horizon import ./horizon.json` |
+| 9 | `jz jsdp next` → verify → continue |
+| 10 | `jz jsdp horizon status` → repeat from step 2 |
 
 ---
 
@@ -268,25 +244,26 @@ No LLM — rules from spec analysis.
 2. No continue past failed nodes without repair  
 3. No ledger truncation  
 4. No invalid horizon/plan import  
-5. No harness self-mutation via declared surfaces  
-6. No full DAG replace over verified work without `--force`  
-7. No horizon extension over active failures without `--force`  
-8. Horizon context bound to `runId` and byte budget  
-9. Operator reviews diffs vs `allowedMutationSurface`
+5. No protected-path mutation surfaces  
+6. No full DAG replace without `--force`  
+7. No horizon import over failures without `--force`  
+8. Context bound to `runId` + byte budget  
+9. Validate/import require prior export  
+10. Operator reviews diffs vs `allowedMutationSurface`
 
 ---
 
 ## vs delivery-chain
 
-| | Harness (`jz jsdp`) | Delivery chain |
-|--|---------------------|----------------|
-| State | `.jsdp/` in cwd | Control plane + branches |
-| Planning | Rolling horizon / plan / heuristic | 8 fixed roles |
-| Merge gate | Per-node verify | `jz task complete --yes` |
+| | Harness | Delivery chain |
+|--|---------|----------------|
+| State | `.jsdp/` | Control plane |
+| Planning | Rolling horizon | 8 roles |
+| Merge | Per-node verify | `task complete --yes` |
 
 ---
 
-## Samples & fixtures
+## Samples
 
 - [samples/jsdp/](../samples/jsdp/)
 - [tests/JoyZoning.Cli.Tests/Fixtures/jsdp/](../tests/JoyZoning.Cli.Tests/Fixtures/jsdp/)

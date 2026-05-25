@@ -42,6 +42,7 @@ jz jsdp horizon export --nodes 3
 jz jsdp horizon prompt --nodes 3
 # agent writes horizon.json (≤3 nodes)
 jz jsdp horizon validate ./horizon.json
+jz jsdp horizon diff ./horizon.json
 jz jsdp horizon import ./horizon.json --dry-run
 jz jsdp horizon import ./horizon.json
 jz jsdp horizon status

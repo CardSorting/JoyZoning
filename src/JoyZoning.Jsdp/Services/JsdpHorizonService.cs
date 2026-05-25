@@ -57,6 +57,7 @@ public sealed class JsdpHorizonService
             DagSizeAtExport = run.Nodes.Count,
             PreviousStopAfter = lastImport?.StopAfter,
             PlanningGuidance = BuildPlanningGuidance(frontier, failures),
+            ExistingNodeSummaries = BuildExistingNodeSummaries(run),
         };
 
         var projectDoc = new JsdpProjectSummaryDocument
@@ -119,20 +120,48 @@ public sealed class JsdpHorizonService
         };
     }
 
-    public JsdpHorizonValidationResult ValidateProposal(string proposalPath, bool refreshContext = true)
+    public JsdpHorizonValidationResult ValidateProposal(string proposalPath, int? requestedNodeOverride = null)
     {
+        EnsureHorizonContextExists();
         var proposal = _validator.LoadProposalFile(proposalPath);
         var run = _store.LoadRun();
-        var context = PrepareContextForValidation(refreshContext, run);
+        var context = PrepareContextForValidation(run, requestedNodeOverride);
         return _validator.Validate(proposal, context, run);
+    }
+
+    public JsdpHorizonDiffResult HorizonDiff(string proposalPath, int? requestedNodeOverride = null)
+    {
+        EnsureHorizonContextExists();
+        var proposal = _validator.LoadProposalFile(proposalPath);
+        var run = _store.LoadRun();
+        var context = PrepareContextForValidation(run, requestedNodeOverride);
+        var validation = _validator.Validate(proposal, context, run);
+
+        var result = new JsdpHorizonDiffResult
+        {
+            PlanValid = validation.Valid,
+            CurrentDagSize = run.Nodes.Count,
+            Validation = validation,
+        };
+
+        if (!validation.Valid || validation.NormalizedNodes is null)
+            return result;
+
+        var idMap = BuildAppendIdMap(run, validation.NormalizedNodes);
+        result = new JsdpHorizonDiffService().Diff(proposal, validation, run, idMap);
+        result.ProjectedDagSize = run.Nodes.Count + result.ProjectedAppends.Count;
+        result.Validation = validation;
+        result.PlanValid = true;
+        return result;
     }
 
     public JsdpHorizonImportResult ImportProposal(string proposalPath, bool dryRun = false, bool force = false)
     {
+        EnsureHorizonContextExists();
         var fullPath = Path.GetFullPath(proposalPath);
         var proposal = _validator.LoadProposalFile(fullPath);
         var run = _store.LoadRun();
-        var context = PrepareContextForValidation(true, run);
+        var context = PrepareContextForValidation(run);
         var validation = _validator.Validate(proposal, context, run, force);
 
         var result = new JsdpHorizonImportResult
@@ -245,29 +274,26 @@ public sealed class JsdpHorizonService
         };
     }
 
-    private JsdpHorizonContext PrepareContextForValidation(bool refreshFromDisk, JsdpRun run)
+    private void EnsureHorizonContextExists()
     {
-        JsdpHorizonContext context;
-        if (refreshFromDisk && File.Exists(JsdpPaths.HorizonContext(_workspaceRoot)))
-        {
-            context = _validator.LoadContext(_workspaceRoot);
-            if (IsHorizonContextStale())
-                context.PlanningGuidance = (context.PlanningGuidance ?? "") +
-                    " WARNING: horizon-context.json is stale — frontier refreshed from live run.json.";
-        }
-        else
-        {
-            context = new JsdpHorizonContext
-            {
-                RequestedNodeCount = JsdpContract.DefaultHorizonNodes,
-                ProjectSummary = BuildProjectSummary(_store.LoadProjectSpec(), run.Goal),
-                PlanningMode = run.PlanningMode,
-            };
-        }
+        if (!File.Exists(JsdpPaths.HorizonContext(_workspaceRoot)))
+            throw new JsdpException("Missing horizon-context.json. Run: jz jsdp horizon export --nodes 3");
+    }
+
+    private JsdpHorizonContext PrepareContextForValidation(JsdpRun run, int? requestedNodeOverride = null)
+    {
+        var context = _validator.LoadContext(_workspaceRoot);
+        if (requestedNodeOverride is int n)
+            context.RequestedNodeCount = ClampRequestedNodes(n);
+
+        if (IsHorizonContextStale())
+            context.PlanningGuidance = (context.PlanningGuidance ?? "") +
+                " WARNING: horizon-context.json is stale — frontier refreshed from live run.json.";
 
         context.CurrentFrontier = ComputeFrontier(run);
         context.ActiveFailures = BuildActiveFailures(run);
         context.ExistingNodeIds = run.Nodes.Keys.OrderBy(x => x, StringComparer.Ordinal).ToList();
+        context.ExistingNodeSummaries = BuildExistingNodeSummaries(run);
         return context;
     }
 
@@ -308,6 +334,7 @@ public sealed class JsdpHorizonService
         context.RunId = run.Id;
         context.PreviousStopAfter = proposal.StopAfter;
         context.PlanningGuidance = BuildPlanningGuidance(context.CurrentFrontier, context.ActiveFailures);
+        context.ExistingNodeSummaries = BuildExistingNodeSummaries(run);
 
         JsdpJson.WriteFile(JsdpPaths.HorizonContext(_workspaceRoot), context);
         JsdpJson.WriteFile(JsdpPaths.Frontier(_workspaceRoot), new JsdpFrontierDocument
@@ -399,15 +426,42 @@ public sealed class JsdpHorizonService
             .ToList();
     }
 
-    private static List<JsdpHorizonActiveFailure> BuildActiveFailures(JsdpRun run) =>
+    private List<JsdpHorizonActiveFailure> BuildActiveFailures(JsdpRun run) =>
         run.Nodes.Values
             .Where(n => n.Status == JsdpNodeStatus.Failed)
             .Select(n => new JsdpHorizonActiveFailure
             {
                 NodeId = n.Id,
-                FailureSummary = $"Node {n.Id} failed verification — repair via jsdp continue before extending horizon.",
+                FailureSummary = BuildFailureSummary(n.Id),
             })
             .ToList();
+
+    private string BuildFailureSummary(string nodeId)
+    {
+        var reportPath = JsdpPaths.VerificationReportFile(_workspaceRoot, nodeId);
+        if (!File.Exists(reportPath))
+            return $"Node {nodeId} failed verification — repair via jsdp continue before extending horizon.";
+
+        var text = File.ReadAllText(reportPath);
+        var failedIdx = text.IndexOf("FAILED", StringComparison.OrdinalIgnoreCase);
+        var excerpt = failedIdx >= 0 ? text[failedIdx..] : text;
+        return Truncate(excerpt.Replace('\n', ' ').Trim(), 280);
+    }
+
+    private static List<JsdpHorizonNodeSummary> BuildExistingNodeSummaries(JsdpRun run) =>
+        run.Nodes.Values
+            .OrderBy(n => n.Id, StringComparer.Ordinal)
+            .Take(JsdpContract.MaxHorizonExistingNodeSummaries)
+            .Select(n => new JsdpHorizonNodeSummary
+            {
+                Id = n.Id,
+                Title = n.Title,
+                Status = n.Status.ToString(),
+            })
+            .ToList();
+
+    private static string Truncate(string value, int max) =>
+        value.Length <= max ? value : value[..max] + "…";
 
     private static JsdpHorizonRepoSummary BuildRepoSummary(RepoScanSnapshot? scan, JsdpConfig config)
     {
@@ -632,6 +686,7 @@ public static class JsdpHorizonPromptGenerator
             - Do **not** include future architecture beyond this horizon.
             - Do **not** rewrite existing verified work.
             - Dependencies may reference existing node IDs: {existingIds}
+            - Existing DAG summaries are in horizon-context (`existingNodeSummaries`) — do not replan them
 
             ## Context file
 
@@ -666,6 +721,8 @@ public static class JsdpHorizonPromptGenerator
 
             ```bash
             jz jsdp horizon validate ./horizon.json
+            jz jsdp horizon diff ./horizon.json
+            jz jsdp horizon import ./horizon.json --dry-run
             jz jsdp horizon import ./horizon.json
             ```
             """;

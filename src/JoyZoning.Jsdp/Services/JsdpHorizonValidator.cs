@@ -55,6 +55,11 @@ public sealed class JsdpHorizonValidator
                 $"Ready nodes not yet verified: {string.Join(", ", context.CurrentFrontier.Ready)}. "
                 + "Prefer jz jsdp next → verify → continue before extending the horizon.");
 
+        if (context.CurrentFrontier.Blocked.Count > 0)
+            result.Warnings.Add(
+                $"Blocked nodes in DAG: {string.Join(", ", context.CurrentFrontier.Blocked)}. "
+                + "Resolve blocked/repair chains before planning parallel expansion.");
+
         if (proposal.Nodes.Count == 0)
         {
             result.Errors.Add("Horizon proposal must contain at least one node.");
@@ -67,6 +72,8 @@ public sealed class JsdpHorizonValidator
 
         ValidateContractVersion(proposal, result);
         ValidateProposalMeta(proposal, result);
+        ValidateDuplicateTitles(proposal, result);
+        ValidateTitlesAgainstExistingDag(proposal, run, result);
 
         for (var i = 0; i < proposal.Nodes.Count; i++)
         {
@@ -89,13 +96,6 @@ public sealed class JsdpHorizonValidator
 
         if (nodeValidation.NormalizedNodes is null)
         {
-            result.NormalizedNodes = null;
-            return Finalize(result);
-        }
-
-        if (nodeValidation.Errors.Count > 0)
-        {
-            result.Errors.AddRange(nodeValidation.Errors);
             result.NormalizedNodes = null;
             return Finalize(result);
         }
@@ -184,6 +184,39 @@ public sealed class JsdpHorizonValidator
         if (!string.Equals(proposal.ContractVersion.Trim(), JsdpContract.HorizonProposalVersion, StringComparison.Ordinal))
             result.Errors.Add(
                 $"Unsupported contractVersion: {proposal.ContractVersion} (expected {JsdpContract.HorizonProposalVersion}).");
+    }
+
+    private static void ValidateDuplicateTitles(JsdpHorizonProposalDocument proposal, JsdpHorizonValidationResult result)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var node in proposal.Nodes)
+        {
+            var title = node.Title?.Trim() ?? "";
+            if (title.Length == 0)
+                continue;
+            if (!seen.Add(title))
+                result.Errors.Add($"Duplicate horizon node title: {title}");
+        }
+    }
+
+    private static void ValidateTitlesAgainstExistingDag(
+        JsdpHorizonProposalDocument proposal,
+        JsdpRun run,
+        JsdpHorizonValidationResult result)
+    {
+        var existing = run.Nodes.Values
+            .Select(n => n.Title?.Trim() ?? "")
+            .Where(t => t.Length > 0)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var node in proposal.Nodes)
+        {
+            var title = node.Title?.Trim() ?? "";
+            if (title.Length == 0)
+                continue;
+            if (existing.Contains(title))
+                result.Errors.Add($"Horizon title duplicates existing DAG node: {title}");
+        }
     }
 
     private static void ValidateProposalMeta(JsdpHorizonProposalDocument proposal, JsdpHorizonValidationResult result)

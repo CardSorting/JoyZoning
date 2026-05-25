@@ -1,0 +1,23 @@
+{
+  "contractVersion": "1",
+  "rationale": "Duplicate titles in same horizon.",
+  "stopAfter": "n/a",
+  "nodes": [
+    {
+      "title": "Wire keyboard movement for MiniApp overworld",
+      "intent": "Add MonoGame input polling and velocity integration for OverworldScene player entity.",
+      "dependencies": ["002"],
+      "acceptanceCriteria": ["moves"],
+      "verificationCommands": ["dotnet build MiniApp.sln"],
+      "allowedMutationSurface": ["src/"]
+    },
+    {
+      "title": "Wire keyboard movement for MiniApp overworld",
+      "intent": "Add camera follow behavior for overworld player in MiniApp scene graph.",
+      "dependencies": ["002"],
+      "acceptanceCriteria": ["camera"],
+      "verificationCommands": ["dotnet build MiniApp.sln"],
+      "allowedMutationSurface": ["src/"]
+    }
+  ]
+}

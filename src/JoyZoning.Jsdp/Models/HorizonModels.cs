@@ -17,6 +17,14 @@ public sealed class JsdpHorizonContext
     public int DagSizeAtExport { get; set; }
     public string? PreviousStopAfter { get; set; }
     public string? PlanningGuidance { get; set; }
+    public List<JsdpHorizonNodeSummary> ExistingNodeSummaries { get; set; } = [];
+}
+
+public sealed class JsdpHorizonNodeSummary
+{
+    public string Id { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string Status { get; set; } = "";
 }
 
 public sealed class JsdpHorizonFrontier
@@ -141,4 +149,20 @@ public sealed class JsdpFrontierDocument
 {
     public JsdpHorizonFrontier Frontier { get; set; } = new();
     public string ExportedAt { get; set; } = "";
+}
+
+public sealed class JsdpHorizonDiffResult
+{
+    public bool PlanValid { get; set; }
+    public int CurrentDagSize { get; set; }
+    public int ProjectedDagSize { get; set; }
+    public List<JsdpHorizonDiffNode> ProjectedAppends { get; set; } = [];
+    public JsdpHorizonValidationResult? Validation { get; set; }
+}
+
+public sealed class JsdpHorizonDiffNode
+{
+    public string ProjectedId { get; set; } = "";
+    public string Title { get; set; } = "";
+    public List<string> Dependencies { get; set; } = [];
 }

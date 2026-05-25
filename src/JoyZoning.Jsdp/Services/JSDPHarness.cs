@@ -238,8 +238,11 @@ public sealed class JSDPHarness
     public JsdpHorizonPromptResult HorizonPrompt(int requestedNodes, JsdpPlanningMode? mode = null) =>
         Horizon.WritePrompt(requestedNodes, mode);
 
-    public JsdpHorizonValidationResult HorizonValidate(string proposalPath) =>
-        Horizon.ValidateProposal(proposalPath);
+    public JsdpHorizonValidationResult HorizonValidate(string proposalPath, int? requestedNodeOverride = null) =>
+        Horizon.ValidateProposal(proposalPath, requestedNodeOverride);
+
+    public JsdpHorizonDiffResult HorizonDiff(string proposalPath, int? requestedNodeOverride = null) =>
+        Horizon.HorizonDiff(proposalPath, requestedNodeOverride);
 
     public JsdpHorizonImportResult HorizonImport(string proposalPath, bool dryRun = false, bool force = false) =>
         Horizon.ImportProposal(proposalPath, dryRun, force);

@@ -1,0 +1,15 @@
+{
+  "contractVersion": "1",
+  "rationale": "Accidentally replans an existing node by title.",
+  "stopAfter": "n/a",
+  "nodes": [
+    {
+      "title": "Implement tilemap collision for overworld movement",
+      "intent": "Re-implement collision grid for overworld — should be a new incremental step instead.",
+      "dependencies": ["002"],
+      "acceptanceCriteria": ["collision works"],
+      "verificationCommands": ["dotnet build MiniApp.sln"],
+      "allowedMutationSurface": ["src/"]
+    }
+  ]
+}

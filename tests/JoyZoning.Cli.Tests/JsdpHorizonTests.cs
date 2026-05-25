@@ -295,6 +295,96 @@ public sealed class JsdpHorizonTests : IDisposable
     }
 
     [Fact]
+    public void HorizonValidate_requires_prior_export()
+    {
+        var harness = JSDPHarness.ForInit(_root);
+        harness.Init("MiniApp", null);
+        harness.Analyze();
+
+        Assert.Throws<JsdpException>(() =>
+            harness.HorizonValidate(Path.Combine(_fixture, "valid-horizon.json")));
+    }
+
+    [Fact]
+    public void HorizonDiff_requires_prior_export()
+    {
+        var harness = JSDPHarness.ForInit(_root);
+        harness.Init("MiniApp", null);
+        harness.Analyze();
+
+        Assert.Throws<JsdpException>(() =>
+            harness.HorizonDiff(Path.Combine(_fixture, "valid-horizon.json")));
+    }
+
+    [Fact]
+    public void HorizonDiff_reports_projected_appends()
+    {
+        var harness = JSDPHarness.ForInit(_root);
+        harness.Init("MiniApp", null);
+        harness.Analyze();
+        harness.ImportPlan(Path.Combine(_fixture, "valid-plan.json"));
+
+        var store = new JSDPStateStore(_root);
+        var run = store.LoadRun();
+        run.Nodes["001"].Status = JsdpNodeStatus.Verified;
+        run.Nodes["002"].Status = JsdpNodeStatus.Verified;
+        store.SaveRun(run);
+
+        harness.HorizonExport(5);
+        var diff = harness.HorizonDiff(Path.Combine(_fixture, "valid-horizon.json"));
+
+        Assert.True(diff.PlanValid);
+        Assert.Single(diff.ProjectedAppends);
+        Assert.Equal(3, diff.ProjectedDagSize);
+        Assert.Equal("003", diff.ProjectedAppends[0].ProjectedId);
+    }
+
+    [Fact]
+    public void HorizonValidate_rejects_title_matching_existing_dag_node()
+    {
+        var harness = JSDPHarness.ForInit(_root);
+        harness.Init("MiniApp", null);
+        harness.Analyze();
+        harness.ImportPlan(Path.Combine(_fixture, "valid-plan.json"));
+        harness.HorizonExport(5);
+
+        var result = harness.HorizonValidate(
+            Path.Combine(_fixture, "existing-dag-title-horizon.json"));
+        Assert.False(result.Valid);
+        Assert.Contains(result.Errors, e => e.Contains("duplicates existing DAG", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void HorizonValidate_rejects_duplicate_titles()
+    {
+        var harness = JSDPHarness.ForInit(_root);
+        harness.Init("MiniApp", null);
+        harness.Analyze();
+        harness.ImportPlan(Path.Combine(_fixture, "valid-plan.json"));
+        harness.HorizonExport(5);
+
+        var result = harness.HorizonValidate(Path.Combine(_fixture, "duplicate-title-horizon.json"));
+        Assert.False(result.Valid);
+        Assert.Contains(result.Errors, e => e.Contains("Duplicate", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void HorizonExport_includes_existing_node_summaries_not_full_nodes()
+    {
+        var harness = JSDPHarness.ForInit(_root);
+        harness.Init("MiniApp", null);
+        harness.Analyze();
+        harness.ImportPlan(Path.Combine(_fixture, "valid-plan.json"));
+
+        var export = harness.HorizonExport(3);
+        var json = File.ReadAllText(export.HorizonContextPath);
+
+        Assert.Contains("existingNodeSummaries", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"prompt\"", json);
+        Assert.DoesNotContain("verificationCommands", json);
+    }
+
+    [Fact]
     public void HorizonExport_reports_context_byte_size()
     {
         var harness = JSDPHarness.ForInit(_root);

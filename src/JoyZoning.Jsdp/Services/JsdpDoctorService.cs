@@ -159,7 +159,7 @@ public sealed class JsdpDoctorService
             var runTime = File.GetLastWriteTimeUtc(runPath);
             if (runTime > ctxTime.AddSeconds(2))
                 add("horizon_context_stale", "warn",
-                    "run.json is newer than horizon-context.json — re-export before validate/import");
+                    "run.json is newer than horizon-context.json — re-export before validate/diff/import");
         }
 
         var failed = run.Nodes.Values.Count(n => n.Status == JsdpNodeStatus.Failed);

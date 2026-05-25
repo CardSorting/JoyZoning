@@ -15,4 +15,5 @@ public static class JsdpContract
     public const int DefaultHorizonNodes = 5;
     public const int MaxHorizonLedgerSummaries = 5;
     public const int MaxHorizonContextBytes = 32 * 1024;
+    public const int MaxHorizonExistingNodeSummaries = 24;
 }

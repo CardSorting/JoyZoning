@@ -34,7 +34,7 @@ public static class JsdpCommand
             _ => throw new CliUsageException(
                 "jsdp init | analyze | plan | next | verify | continue | status | inspect | doctor | record | "
                 + "export-planning-context | import-plan | validate-plan | diff-plan | planning-prompt | "
-                + "horizon export|prompt|validate|import|status"),
+                + "horizon export|prompt|validate|diff|import|status"),
         };
     }
 
