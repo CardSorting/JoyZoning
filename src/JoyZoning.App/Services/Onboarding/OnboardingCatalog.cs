@@ -32,7 +32,7 @@ public static class OnboardingCatalog
             3,
             "API gateway",
             "Hermes HTTP API (default :8642) for manager chat and task orchestration.",
-            "Manager Chat and dispatch call into this gateway; it must be healthy before operators work.",
+            "Manager Chat and managed-run requests call into this gateway; it must be healthy before operators work.",
             "Start gateway",
             1,
             null,
@@ -65,7 +65,7 @@ public static class OnboardingCatalog
             OnboardingStepIds.FirstChat,
             6,
             "Send a Manager Chat message",
-            "Ask Hermes to plan work before dispatching DietCode.",
+            "Ask Hermes to plan work before requesting a supervised run from Kanban.",
             "Validates end-to-end LLM connectivity through your configured gateway.",
             "Open Manager Chat",
             2,
@@ -75,7 +75,7 @@ public static class OnboardingCatalog
         new(
             OnboardingStepIds.FirstDispatch,
             7,
-            "Dispatch a kanban task",
+            "Request first Hermes run",
             "Move a card to execution and observe the DietCode viewport.",
             "Confirms task pipeline + SignalR events are flowing.",
             "Open Kanban",
@@ -100,11 +100,11 @@ public static class OnboardingCatalog
     [
         new(OnboardingSurfaceIds.Manager,
             "Manager Chat",
-            "Talk to Hermes like a tech lead: decompose goals, parse replies into tasks, then dispatch from Kanban.",
+            "Talk to Hermes like a tech lead: decompose goals, parse replies into tasks, then request a Hermes run from Kanban.",
             null),
         new(OnboardingSurfaceIds.Kanban,
             "Kanban board",
-            "Import from Hermes, drag columns, and Dispatch to start DietCode. Status syncs back when connected.",
+            "Import from Hermes, drag columns, and request a managed Hermes run. Status syncs back when connected.",
             null),
         new(OnboardingSurfaceIds.Execution,
             "Execution viewport",
@@ -123,7 +123,7 @@ public static class OnboardingCatalog
     public static IReadOnlyList<OnboardingWhatsNextCard> CompletionCards { get; } =
     [
         new("Plan with Hermes", "Open Manager Chat and describe what you want to ship.", OnboardingSurfaceIds.Manager, "Go to Manager Chat"),
-        new("Sync kanban", "Import tasks from Hermes or create one and dispatch.", OnboardingSurfaceIds.Kanban, "Go to Kanban"),
+        new("Sync kanban", "Import tasks from Hermes or create one and request a managed run.", OnboardingSurfaceIds.Kanban, "Go to Kanban"),
         new("Live TUI", "Connect the embedded Hermes terminal for interactive sessions.", OnboardingSurfaceIds.Execution, "Go to Execution"),
     ];
 

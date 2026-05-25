@@ -1,5 +1,9 @@
 import { api } from "@/lib/api";
 import type { ChatAction } from "@/lib/chat-types";
+import {
+  REQUEST_MANAGED_RUN_LABEL,
+  REQUEST_MANAGED_RUN_TOAST,
+} from "@/lib/operator-labels";
 
 export async function runChatAction(
   actionId: string,
@@ -64,8 +68,8 @@ export async function runChatAction(
       break;
     case "start-task":
       if (taskId) {
-        await api.dispatchTask(taskId);
-        onNotify?.("Task dispatch started.", "tool");
+        await api.requestManagedRun(taskId);
+        onNotify?.(REQUEST_MANAGED_RUN_TOAST, "tool");
       }
       break;
     case "stop-task":
@@ -91,7 +95,7 @@ export function defaultActionsForCard(
     "open-console": { id: "open-console", label: "Open operator console" },
     "run-reconcile": { id: "run-reconcile", label: "Run reconciliation", variant: "primary" },
     evidence: { id: "evidence", label: "Show evidence" },
-    "start-task": { id: "start-task", label: "Start task", variant: "primary" },
+    "start-task": { id: "start-task", label: REQUEST_MANAGED_RUN_LABEL, variant: "primary" },
     "stop-task": { id: "stop-task", label: "Stop task", variant: "danger" },
   };
   return actionIds.map((id) => labels[id]).filter(Boolean);

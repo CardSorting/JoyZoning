@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Execution Mode — JSDP worker orchestration (canonical workspace, sequential roles).
- * @see docs/operational-modes.md
+ * Execution Mode — runtime observers (Hermes executes; JoyZoning supervises JSDP chains).
+ * @see docs/architecture/hermes-runtime-reversal.md
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -14,6 +14,10 @@ import { ModeHandoffLink } from "./ModeHandoffLink";
 import type { JoyZoningOperationalMode } from "@/lib/operational-modes";
 import { isOperationalMode } from "@/lib/operational-modes";
 import { PathActionNotice } from "./PathActionNotice";
+import {
+  RUNTIME_OBSERVERS_DESCRIPTION,
+  RUNTIME_OBSERVERS_TITLE,
+} from "@/lib/operator-labels";
 
 function shortId(id: string) {
   return id.length > 12 ? `${id.slice(0, 8)}…` : id;
@@ -291,7 +295,7 @@ export function ParallelWorkersPanel({
         <div className="flex items-center gap-2">
           <Layers className={`h-4 w-4 ${muted}`} />
           <h3 className={`text-sm font-bold uppercase tracking-wide ${text}`}>
-            Parallel workers
+            {RUNTIME_OBSERVERS_TITLE}
           </h3>
         </div>
         <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-300">
@@ -301,7 +305,7 @@ export function ParallelWorkersPanel({
 
       {inspectOnly && (
         <p className={`mb-3 text-xs ${muted}`}>
-          Inspect runtime only — merge and revoke live in Review mode.
+          {RUNTIME_OBSERVERS_DESCRIPTION} Merge and revoke live in Review mode.
         </p>
       )}
 

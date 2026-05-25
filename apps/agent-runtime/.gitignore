@@ -1,0 +1,11 @@
+# Vendored Hermes must not be re-copied into this tombstone package
+venv/
+.venv/
+node_modules/
+__pycache__/
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.*
+!.env.example

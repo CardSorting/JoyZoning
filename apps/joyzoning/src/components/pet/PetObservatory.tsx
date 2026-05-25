@@ -39,7 +39,7 @@ export function PetObservatory({
       {open && (
         <div className="space-y-4 border-t border-pet-elevated/60 px-4 pb-4 pt-3 text-sm">
           <p className="text-xs text-pet-muted">
-            Real orchestration data. Friendly UI lives upstairs; errors live here.
+            Real supervised runtime data. Friendly UI lives upstairs; errors live here.
           </p>
 
           <section

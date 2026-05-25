@@ -66,9 +66,9 @@ This is the central mental model.
 - Each **kanban card** is one piece of work.
 - When you care about **what changed**, you **select that card**.
 - JoyZoning resolves **one inspection path** for that card — always your opened project folder.
-- **Review**, **git status**, **verification**, and **timeline events** all refer to **that same path** (and branch when dispatched).
+- **Review**, **git status**, **verification**, and **timeline events** all refer to **that same path** (and branch when a managed Hermes run is active).
 
-After you **dispatch**, the agent works on branch `joyzoning/card-<id>` in that folder — like a **feature branch per ticket**, not a hidden sandbox copy. Before dispatch, you see your normal project on the default branch.
+After you **request a managed Hermes run**, execution happens on branch `joyzoning/card-<id>` in that folder — like a **feature branch per ticket**, not a hidden sandbox copy. JoyZoning supervises; Hermes runs tools and owns the operational journal. Before a run starts, you see your normal project on the default branch.
 
 | Familiar pattern | JoyZoning |
 |------------------|-----------|

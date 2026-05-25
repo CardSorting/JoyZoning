@@ -1,11 +1,13 @@
 "use client";
 
+import { NOT_CONNECTED_SUPERVISION } from "@/lib/operator-labels";
+
 /**
  * Explicit non-live shells — never mount OperatorModeShell with stub data.
  */
 
 export function WatchOperatorDisconnected({
-  title = "Not connected to live orchestration",
+  title = NOT_CONNECTED_SUPERVISION,
   reason,
   hint,
   onRetry,

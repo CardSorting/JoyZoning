@@ -28,7 +28,7 @@ public partial class KanbanViewModel : ViewModelBase
     private Guid? _sessionId;
 
     [ObservableProperty]
-    private string _hint = "Select a card, then use Move / Dispatch.";
+    private string _hint = "Select a card, then Move or request a Hermes run.";
 
     [ObservableProperty]
     private bool _showHermesBanner;
@@ -162,7 +162,7 @@ public partial class KanbanViewModel : ViewModelBase
 
         if (SelectedCard.Risk == nameof(RiskLevel.Critical) && !ApproveCriticalDispatch)
         {
-            Hint = "Critical card — check “Approve critical dispatch” before dispatching.";
+            Hint = "Critical card — check “Approve critical dispatch” before requesting a managed Hermes run.";
             return;
         }
 
@@ -171,7 +171,7 @@ public partial class KanbanViewModel : ViewModelBase
             new DispatchOptions(ApproveCriticalDispatch));
 
         Hint = result.Success
-            ? $"Dispatched: {SelectedCard.Title}"
+            ? $"Managed run requested: {SelectedCard.Title}"
             : FormatApiError(result.Error);
 
         _shell.DietCodeStatus = result.Success ? "Running" : "Error";

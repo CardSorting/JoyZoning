@@ -1,7 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { apiUrl } from "@/lib/config";
+import { HabitatAuthorityChecklistPanel } from "@/components/HabitatAuthorityChecklistPanel";
 import type { ActiveTaskSummary, WatchSession } from "@/lib/types";
+
+type HermesHealthSnapshot = {
+  state?: string;
+  message?: string;
+  apiUrl?: string;
+  runtimeOwner?: string;
+  habitatRole?: string;
+};
 
 export function OperatorEntryFlow({
   sessions,
@@ -23,35 +33,32 @@ export function OperatorEntryFlow({
   onEnter: () => void;
 }) {
   const [step, setStep] = useState<"pick" | "confirm">("pick");
-  const [runtimeHealth, setRuntimeHealth] = useState<any>(null);
+  const [runtimeHealth, setRuntimeHealth] = useState<HermesHealthSnapshot | null>(null);
   const [loadingHealth, setLoadingHealth] = useState(true);
 
-  // Poll runtime health
   useEffect(() => {
     let active = true;
     const checkHealth = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:9090/health");
+        const res = await fetch(apiUrl("/api/hermes/health"), { credentials: "include" });
         if (res.ok) {
-          const data = await res.json();
+          const data = (await res.json()) as HermesHealthSnapshot;
           if (active) {
             setRuntimeHealth(data);
             setLoadingHealth(false);
           }
-        } else {
-          if (active) {
-            setRuntimeHealth(null);
-            setLoadingHealth(false);
-          }
+        } else if (active) {
+          setRuntimeHealth(null);
+          setLoadingHealth(false);
         }
-      } catch (err) {
+      } catch {
         if (active) {
           setRuntimeHealth(null);
           setLoadingHealth(false);
         }
       }
     };
-    checkHealth();
+    void checkHealth();
     const interval = setInterval(checkHealth, 3000);
     return () => {
       active = false;
@@ -61,8 +68,7 @@ export function OperatorEntryFlow({
 
   const hasRuntime = runtimeHealth !== null;
   const isWorkspaceSelected = !!sessionId;
-  const isGatewayOnline = runtimeHealth?.status === "healthy";
-  const isContainmentStrict = runtimeHealth?.containmentStatus?.strictMode === true;
+  const isGatewayOnline = runtimeHealth?.state === "Healthy";
   const selectedWorkspacePath = sessions.find((s) => s.id === sessionId)?.workspaceRoot || "";
 
   return (
@@ -73,66 +79,72 @@ export function OperatorEntryFlow({
         </p>
         <h1 className="mt-2 text-2xl font-bold">Operator console</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          One screen — task status, workers, merge actions, and live events. No mode hunting.
+          JoyZoning supervises execution. Hermes runs tools; you review and accept-merge here.
         </p>
       </header>
 
-      {/* Onboarding Visual Checklist */}
       <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5 space-y-4">
         <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-          Onboarding & Containment Status
+          Habitat onboarding
         </h2>
-        
+
         <div className="space-y-3 text-sm">
-          {/* Step 1 */}
           <div className="flex items-center justify-between">
-            <span className="text-zinc-300">Step 1: Detect Runtime</span>
-            <span className={`px-2 py-0.5 rounded text-xs font-medium ${hasRuntime ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"}`}>
-              {hasRuntime ? "Detected" : "Not Found"}
+            <span className="text-zinc-300">Step 1: Connect Hermes runtime</span>
+            <span
+              className={`rounded border px-2 py-0.5 text-xs font-medium ${hasRuntime ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-rose-500/20 bg-rose-500/10 text-rose-400"}`}
+            >
+              {loadingHealth ? "Checking…" : hasRuntime ? "Reachable" : "Not found"}
             </span>
           </div>
 
-          {/* Step 2 */}
           <div className="flex items-center justify-between">
-            <span className="text-zinc-300">Step 2: Validate Workspace</span>
-            <span className={`px-2 py-0.5 rounded text-xs font-medium ${isWorkspaceSelected ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-zinc-800 text-zinc-400"}`}>
-              {isWorkspaceSelected ? "Valid" : "Select Below"}
+            <span className="text-zinc-300">Step 2: Select workspace</span>
+            <span
+              className={`rounded border px-2 py-0.5 text-xs font-medium ${isWorkspaceSelected ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-zinc-700 bg-zinc-800 text-zinc-400"}`}
+            >
+              {isWorkspaceSelected ? "Selected" : "Choose below"}
             </span>
           </div>
 
-          {/* Step 3 */}
           <div className="flex items-center justify-between">
-            <span className="text-zinc-300">Step 3: Start Local Agent Runtime</span>
-            <span className={`px-2 py-0.5 rounded text-xs font-medium ${isGatewayOnline ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"}`}>
-              {isGatewayOnline ? "Gateway Online" : "Gateway Offline"}
-            </span>
-          </div>
-
-          {/* Step 4 */}
-          <div className="flex items-center justify-between">
-            <span className="text-zinc-300">Step 4: Confirm Containment</span>
-            <span className={`px-2 py-0.5 rounded text-xs font-medium ${isContainmentStrict ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"}`}>
-              {isContainmentStrict ? "Strict Containment" : "Soft Sandbox"}
+            <span className="text-zinc-300">Step 3: Hermes gateway ready</span>
+            <span
+              className={`rounded border px-2 py-0.5 text-xs font-medium ${isGatewayOnline ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-rose-500/20 bg-rose-500/10 text-rose-400"}`}
+            >
+              {isGatewayOnline ? "Healthy" : "Offline"}
             </span>
           </div>
         </div>
 
-        {/* Diagnostic Metadata */}
         {hasRuntime && (
-          <div className="pt-3 border-t border-zinc-900 space-y-1 text-xs text-zinc-500">
-            <div><span className="text-zinc-400">Workspace Root:</span> {runtimeHealth?.allowedWorkspaceRoot}</div>
-            {isWorkspaceSelected && (
-              <div><span className="text-zinc-400">Active Workspace:</span> {selectedWorkspacePath}</div>
-            )}
-            <div><span className="text-zinc-400">Blocked Attempts:</span> {runtimeHealth?.containmentStatus?.blockedWritesCount || 0}</div>
-            {runtimeHealth?.containmentStatus?.lastBlockedAttempt && (
-              <div className="text-rose-400">
-                <span className="text-zinc-400">Last Blocked:</span> {runtimeHealth.containmentStatus.lastBlockedAttempt.path}
+          <div className="space-y-1 border-t border-zinc-900 pt-3 text-xs text-zinc-500">
+            <div>
+              <span className="text-zinc-400">Runtime owner:</span>{" "}
+              {runtimeHealth?.runtimeOwner ?? "hermes"}
+            </div>
+            <div>
+              <span className="text-zinc-400">Habitat role:</span>{" "}
+              {runtimeHealth?.habitatRole ?? "observe-only"}
+            </div>
+            {runtimeHealth?.apiUrl && (
+              <div>
+                <span className="text-zinc-400">Hermes API:</span> {runtimeHealth.apiUrl}
               </div>
+            )}
+            {isWorkspaceSelected && (
+              <div>
+                <span className="text-zinc-400">Workspace:</span> {selectedWorkspacePath}
+              </div>
+            )}
+            {runtimeHealth?.message && (
+              <div className="text-zinc-400">{runtimeHealth.message}</div>
             )}
           </div>
         )}
       </div>
+
+      <HabitatAuthorityChecklistPanel />
 
       {step === "pick" && (
         <div className="space-y-4 rounded-2xl border border-zinc-700 bg-zinc-900/60 p-5">
@@ -175,7 +187,7 @@ export function OperatorEntryFlow({
           {activeTasks.length > 0 && (
             <div className="flex flex-wrap gap-2">
               <span className="w-full text-[10px] uppercase tracking-widest text-zinc-500">
-                Active runs
+                Supervised runs
               </span>
               {activeTasks.slice(0, 6).map((t) => (
                 <button
@@ -200,7 +212,7 @@ export function OperatorEntryFlow({
             onClick={() => setStep("confirm")}
             className="w-full rounded-xl bg-sky-600 py-3 text-sm font-bold text-white disabled:opacity-40"
           >
-            {!isGatewayOnline ? "Waiting for Agent Runtime..." : "Continue"}
+            {!isGatewayOnline ? "Waiting for Hermes runtime…" : "Continue"}
           </button>
         </div>
       )}
@@ -208,8 +220,8 @@ export function OperatorEntryFlow({
       {step === "confirm" && (
         <div className="space-y-4 rounded-2xl border border-zinc-700 bg-zinc-900/60 p-5 text-center">
           <p className="text-sm text-zinc-400">
-            Open the unified console for this task. Approve, revoke, and workspace actions stay on
-            one page.
+            Open the unified console for this task. Review, accept-merge, and revoke stay on one
+            page — JoyZoning does not execute tools directly.
           </p>
           <button
             type="button"

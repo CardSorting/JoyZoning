@@ -302,7 +302,7 @@ export function buildThoughtBubbles(
 
   const merged = [...fromEvents, ...fromRecent].filter(Boolean);
   if (merged.length === 0 && pulseTicks > 0) {
-    merged.push("Listening for orchestration signals…");
+    merged.push("Listening for supervised runtime signals…");
   }
   if (merged.length === 0) {
     merged.push("Pet is calm. No recent thoughts yet.");

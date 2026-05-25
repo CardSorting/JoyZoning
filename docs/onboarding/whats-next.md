@@ -6,8 +6,8 @@ Your checklist is green (or you used the **Cursor-first** track: control plane +
 
 | Path | Start work with | Guide section |
 |------|-----------------|---------------|
-| **Managed (Hermes)** | Kanban **Dispatch** | Steps below |
-| **External (Cursor)** | `jz task start-external` | [Alternative — Cursor-first](#alternative--cursor-first-no-hermes-dispatch) |
+| **Managed (Hermes)** | Kanban **Request Hermes run** | Steps below |
+| **External (Cursor)** | `jz task start-external` | [Alternative — Cursor-first](#alternative--cursor-first-no-managed-run) |
 
 Strategy overview: [execution-paths.md](../execution-paths.md).
 
@@ -20,8 +20,8 @@ Strategy overview: [execution-paths.md](../execution-paths.md).
 ```mermaid
 flowchart LR
   P[Plan in Manager Chat] --> T[Task on Kanban]
-  T --> D[Dispatch]
-  D --> E[Executor works in worktree]
+  T --> D[Request Hermes run]
+  D --> E[Hermes executes in worktree — habitat supervises]
   E --> V[Verify commands]
   V --> R[ready_for_review]
   R --> M[You merge]
@@ -59,10 +59,12 @@ flowchart LR
 
 ---
 
-## Step 3 — Dispatch (start executor)
+## Step 3 — Request managed Hermes run
 
-1. Drag card toward **In Progress** or click **Dispatch**  
+1. Drag card toward **In Progress** or click **Request Hermes run** (legacy API: `POST …/dispatch`)  
 2. For **critical**: check approval box  
+
+JoyZoning **supervises**; Hermes **executes** tools and owns the operational journal (`~/.hermes/joyzoning/journal.db`).
 
 **You should see:**
 

@@ -1,60 +1,102 @@
 # Onboarding and Setup Guide
 
-This guide outlines how to prepare, build, and run the integrated JoyZoning and Agent Runtime workspace.
+JoyZoning is the **habitat** (observe, review, accept-merge). **Hermes** is the **runtime** (execution, journal, gates) and must be installed separately.
+
+See [Hermes runtime reversal](architecture/hermes-runtime-reversal.md) before changing integration code.
 
 ## Prerequisites
 
-Ensure you have the following installed on your system:
-- **Node.js** (v18.x or newer, v20+ recommended)
-- **pnpm** (v9.x or newer)
-- **.NET 8.0 SDK** (required for the C# Control Plane and Desktop Client)
-- **Python 3.11** (required for the underlying agent runtime)
+- **Node.js** v20+ and **pnpm** v9+
+- **.NET 8.0 SDK** (control plane + desktop)
+- **Python 3.11+** for your **external** Hermes checkout (not inside this repo)
 
 ---
 
-## One-Touch Setup Playbook
+## One-touch setup
 
-Getting the entire monorepo environment ready is simplified into three primary commands.
+### 1. Install JS dependencies
 
-### Step 1: Install Dependencies
-Run this at the root of the workspace to install all JS/TS dependencies:
 ```bash
 pnpm install
 ```
 
-### Step 2: Run Setup Wizard
-Run the setup wizard to check compatibility, configure environment files, initialize folders, build package projects, and configure the Python virtual environment:
+### 2. Run setup wizard
+
 ```bash
 pnpm setup
 ```
 
-The script will automatically:
-- Verify your Node, pnpm, and .NET SDK versions.
-- Ensure ports `9000`, `8642`, `9470`, and `3000` are free.
-- Create local `.env` files from templates if they do not exist.
-- Initialize the `.joy-workspaces/default/` folders.
-- Build the TypeScript contracts and bridges.
-- Prepare the Python virtual environment under `apps/agent-runtime/venv` and install its dependencies using `setup-hermes.sh` in non-interactive mode.
+The wizard:
 
-### Step 3: Run the Development Stack
-To launch all processes concurrently, run:
+- Checks Node, pnpm, and .NET SDK versions
+- Verifies ports `9470` (control plane) and `3000` (Watch) are free
+- Creates `.env` from `.env.example` when missing
+- Initializes `.joy-workspaces/default/`
+- Builds the `agent-runtime` tombstone package (410 stub on `:9090`)
+
+It does **not** install a Python venv under `apps/agent-runtime/` — that vendored tree was removed.
+
+### 3. Configure external Hermes
+
+Copy `.env.example` to `.env` and set:
+
+```bash
+HERMES_INSTALL_ROOT=/path/to/diet-hermes-main-master
+HERMES_API_URL=http://127.0.0.1:8642
+```
+
+In the Hermes checkout:
+
+```bash
+source .venv/bin/activate   # or venv/
+hermes setup                # API keys → ~/.hermes/.env
+```
+
+In `~/.hermes/config.yaml` (JoyZoning integration):
+
+```yaml
+joyzoning:
+  enabled: true
+  emit_habitat_events: true
+  control_plane:
+    url: http://127.0.0.1:9470
+    observe_only: true
+```
+
+Set matching tokens for ingest/bridge (control plane `InternalToken`).
+
+### 4. Run the development stack
+
 ```bash
 pnpm dev
 ```
 
-This starts:
-1. **Control Plane** (port `9470`)
-2. **TypeScript Agent Runtime API** (port `9000`)
-3. **Next.js Watch UI** (port `3000`)
-4. **Desktop App Client** (launches macOS desktop GUI)
+Starts:
+
+1. **Control plane** — `9470`
+2. **Watch UI** — `3000`
+3. **Desktop app** — after a short delay
+
+LegacyRuntimeShim (`:9090`) is **not** started. If you hit it accidentally, it returns **410 Gone** with migration JSON.
 
 ---
 
-## Configuration & Secrets
+## Configuration and secrets
 
-Secrets (e.g., API keys) must be set in `apps/agent-runtime/.env`. 
-Open `apps/agent-runtime/.env` and configure key variables such as:
-- `OPENAI_API_KEY` (or other provider tokens)
-- `HERMES_HOME` (defaults to `~/.hermes`)
+| Secret / setting | Where |
+|------------------|--------|
+| Provider API keys | `~/.hermes/.env` (Hermes home) |
+| JoyZoning ↔ Hermes tokens | Control plane `InternalToken`, env `JOYZONING_INGEST_TOKEN`, `JOYZONING_HABITAT_BRIDGE_TOKEN` |
+| Install path | Control plane `Hermes:InstallRoot` — must **not** end with `apps/agent-runtime` |
 
-Non-secret preferences can be edited in `~/.hermes/config.yaml` or through the interactive setup.
+Non-secret Hermes preferences: `~/.hermes/config.yaml`.
+
+---
+
+## Authority checklist
+
+After boot, open Watch or `GET /api/habitat/authority-checklist` and confirm:
+
+- External Hermes InstallRoot (not `apps/agent-runtime`)
+- LegacyRuntimeShim inactive
+- Habitat observe-only role

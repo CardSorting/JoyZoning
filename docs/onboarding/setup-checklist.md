@@ -11,7 +11,7 @@ Use this page alongside the in-app **Getting Started** hub. Check items off as y
 | **Full (Hermes + desktop)** | All five core steps below | Default Getting Started |
 | **Cursor-first (external JSDP)** | Steps **1** + **5** only; Hermes optional | [external-agent-jsdp.md](../external-agent-jsdp.md) · [execution-paths.md](../execution-paths.md) |
 
-> **Cursor-first:** Skip steps 2–4 until you want Manager Chat or managed dispatch. You still need `:9470` and an opened workspace before `jz task start-external`.
+> **Cursor-first:** Skip steps 2–4 until you want Manager Chat or managed Hermes runs. You still need `:9470` and an opened workspace before `jz task start-external`.
 
 ---
 
@@ -45,7 +45,7 @@ Use this page alongside the in-app **Getting Started** hub. Check items off as y
 | | |
 |---|---|
 | **What** | Hermes HTTP API on port **8642** (profile `joyzoning`) |
-| **Why** | Manager Chat and **managed** task dispatch call this API |
+| **Why** | Manager Chat and **managed run requests** call this API (Hermes executes) |
 | **Verify** | Green **API** chip · `curl -s http://127.0.0.1:8642/health` |
 | **Fix** | **Hermes → Ensure Gateway** · `POST /api/hermes/ensure` |
 
@@ -80,7 +80,7 @@ These do **not** block the health grade but confirm end-to-end flow:
 | ☐ | Milestone | Confirms |
 |---|-----------|----------|
 | ☐ | **First Manager Chat message** | LLM API keys + model work — [api-keys-and-models.md](api-keys-and-models.md) |
-| ☐ | **First kanban dispatch** | Managed lease + executor pipeline |
+| ☐ | **First managed Hermes run** | Managed lease + supervised execution pipeline |
 | ☐ | **First external start** | `jz task start-external` — no lease — [external-agent-jsdp.md](../external-agent-jsdp.md) |
 | ☐ | **Hermes TUI connected** | Dashboard WebSocket on Execution surface |
 
@@ -111,7 +111,7 @@ CONNECT     [ ] API gateway (:8642)
 
 OPERATE     [ ] Workspace opened
 
-OPTIONAL    [ ] Manager message  [ ] Dispatch  [ ] TUI
+OPTIONAL    [ ] Manager message  [ ] Hermes run  [ ] TUI
 ```
 
 **Cursor-first track (external JSDP):**

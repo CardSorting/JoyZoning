@@ -12,7 +12,7 @@ const RED = '\x1b[31m';
 const CYAN = '\x1b[36m';
 const NC = '\x1b[0m';
 
-console.log(`${CYAN}⚕ JoyZoning & Agent-Runtime Integration Setup Wizard${NC}\n`);
+console.log(`${CYAN}⚕ JoyZoning Habitat Setup Wizard${NC}\n`);
 
 // 1. Check Node.js and package manager versions
 function checkVersions() {
@@ -67,10 +67,8 @@ async function checkPort(port: number): Promise<boolean> {
 async function validatePorts() {
   console.log(`${CYAN}→${NC} Validating port availability...`);
   const ports = [
-    { port: 9090, name: 'Agent Runtime TS Proxy API Server' },
-    { port: 8642, name: 'Python Agent Gateway' },
     { port: 9470, name: 'JoyZoning Control Plane Server' },
-    { port: 3000, name: 'JoyZoning Watch Next.js UI' }
+    { port: 3000, name: 'JoyZoning Watch Next.js UI' },
   ];
 
   for (const { port, name } of ports) {
@@ -91,12 +89,8 @@ function setupEnvFiles() {
   const envConfigs = [
     {
       example: path.join(ROOT_DIR, '.env.example'),
-      target: path.join(ROOT_DIR, '.env')
+      target: path.join(ROOT_DIR, '.env'),
     },
-    {
-      example: path.join(ROOT_DIR, 'apps', 'agent-runtime', '.env.example'),
-      target: path.join(ROOT_DIR, 'apps', 'agent-runtime', '.env')
-    }
   ];
 
   for (const { example, target } of envConfigs) {
@@ -151,11 +145,9 @@ function initWorkspaceDirectories() {
 function buildPackages() {
   console.log(`${CYAN}→${NC} Building workspace packages...`);
   
+  // Tombstone packages only — legacy bridge/workspace/contracts have no runtime consumers.
   const projects = [
-    { name: '@joyzoning/shared-contracts', dir: 'packages/shared-contracts' },
-    { name: '@joyzoning/workspace-core', dir: 'packages/workspace-core' },
-    { name: '@joyzoning/agent-bridge', dir: 'packages/agent-bridge' },
-    { name: '@joyzoning/agent-runtime', dir: 'apps/agent-runtime' }
+    { name: '@joyzoning/agent-runtime', dir: 'apps/agent-runtime' },
   ];
 
   for (const proj of projects) {
@@ -172,26 +164,11 @@ function buildPackages() {
   console.log(`  ${GREEN}✓ All TypeScript projects built successfully.${NC}`);
 }
 
-// 6. Setup Python Virtual Environment for Agent-Runtime
-function setupPythonEnv() {
-  console.log(`${CYAN}→${NC} Setting up Python virtual environment for agent-runtime...`);
-  const agentRuntimeDir = path.join(ROOT_DIR, 'apps', 'agent-runtime');
-  
-  // We can execute setup-hermes.sh by passing 'n' for prompts
-  console.log(`  Running setup-hermes.sh inside apps/agent-runtime...`);
-  
-  // We pipe inputs "n\nn" to prevent interactive prompts for ripgrep and wizard setup
-  const setupRes = spawnSync('sh', ['setup-hermes.sh'], {
-    cwd: agentRuntimeDir,
-    input: 'n\nn\n',
-    stdio: ['pipe', 'inherit', 'inherit']
-  });
-
-  if (setupRes.status !== 0) {
-    console.log(`  ${RED}✗ Python setup script failed!${NC}`);
-    process.exit(1);
-  }
-  console.log(`  ${GREEN}✓ Python virtual environment set up successfully.${NC}`);
+function printHermesReminder() {
+  console.log(`${CYAN}→${NC} External Hermes (runtime) is not installed by this wizard.`);
+  console.log(`  Set HERMES_INSTALL_ROOT in .env to your diet-hermes checkout.`);
+  console.log(`  Run ${CYAN}hermes setup${NC} there; configure joyzoning.control_plane in ~/.hermes/config.yaml.`);
+  console.log(`  See docs/architecture/hermes-runtime-reversal.md`);
 }
 
 async function main() {
@@ -200,12 +177,13 @@ async function main() {
   setupEnvFiles();
   initWorkspaceDirectories();
   buildPackages();
-  setupPythonEnv();
+  printHermesReminder();
 
-  console.log(`\n${GREEN}✓ Integration Setup Complete!${NC}\n`);
+  console.log(`\n${GREEN}✓ JoyZoning habitat setup complete!${NC}\n`);
   console.log('Next Steps:');
-  console.log('  1. Configure your API keys in apps/agent-runtime/.env');
-  console.log('  2. Run the full stack concurrently:');
+  console.log('  1. Configure external Hermes (~/.hermes/.env + config.yaml)');
+  console.log('  2. Set HERMES_INSTALL_ROOT in JoyZoning .env / control plane settings');
+  console.log('  3. Run the habitat stack:');
   console.log(`     ${CYAN}pnpm dev${NC}\n`);
 }
 

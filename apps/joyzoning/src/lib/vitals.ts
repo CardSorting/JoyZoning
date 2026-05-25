@@ -117,7 +117,7 @@ export function buildMemoryParticles(
   const fromEvents = events.slice(-6).map((e) => e.summary ?? e.Summary ?? "");
   const fromRecent = recentActivity.slice(-4);
   if (pulseTicks > 0 && fromEvents.length === 0) {
-    fromEvents.push("Orchestration pulse received.");
+    fromEvents.push("Hermes runtime pulse received.");
   }
   return [...fromEvents, ...fromRecent].filter(Boolean).slice(-8);
 }

@@ -6,7 +6,7 @@ public class AuthorityOptions
     public const string SectionName = "Authority";
 
     /// <summary>When false, no automatic accept after verification (Conservative-like).</summary>
-    public bool AutopilotEnabled { get; set; } = true;
+    public bool AutopilotEnabled { get; set; } = false;
 
     /// <summary>Re-evaluate ReadyForReview leases during lease reconciliation ticks.</summary>
     public bool ReconcileReadyForReview { get; set; } = true;

@@ -51,6 +51,13 @@ if (builder.Environment.IsEnvironment("Testing"))
 builder.Services.AddJoyZoningAdapters();
 
 builder.Services.AddScoped<EventIngestor>();
+builder.Services.AddSingleton<JoyZoning.Domain.Orchestration.HermesObservationReadModel>();
+builder.Services.AddScoped<HermesObservationIngestService>();
+builder.Services.AddSingleton<HermesObservationClient>();
+builder.Services.AddSingleton<HabitatInternalAuth>();
+builder.Services.AddSingleton<HermesObservationDedupe>();
+builder.Services.AddSingleton<HermesObservationRateLimiter>();
+builder.Services.AddSingleton<HabitatAuthorityChecklistService>();
 builder.Services.AddSingleton<OperatorHubNotifier>();
 builder.Services.AddScoped<WorkspaceEventPublisher>();
 builder.Services.AddScoped<WorkerMergeObservabilityBuilder>();

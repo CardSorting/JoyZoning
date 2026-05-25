@@ -1,14 +1,13 @@
 {
   "name": "@joyzoning/agent-bridge",
   "version": "1.0.0",
+  "description": "Deprecated tombstone — throws on use; see REMOVED.md",
+  "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"
-  },
-  "dependencies": {
-    "@joyzoning/shared-contracts": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

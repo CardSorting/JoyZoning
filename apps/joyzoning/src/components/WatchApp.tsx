@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { api } from "@/lib/api";
+import { HABITAT_SUPERVISION_LOADING } from "@/lib/operator-labels";
 import type { IntentKind } from "@/lib/pet";
 import { loadIntent } from "@/lib/session-prefs";
 import type { WatchBootstrap } from "@/lib/types";
@@ -226,7 +227,7 @@ export function WatchApp({
       {watching && !live.snapshot && !live.error && (
         <OperatorEmpty
           title="Loading live snapshot"
-          body="Pulling the first live snapshot from orchestration."
+          body={HABITAT_SUPERVISION_LOADING}
           hint="Usually just a moment."
           pulse
         />

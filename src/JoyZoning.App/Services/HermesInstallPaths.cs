@@ -6,6 +6,8 @@ namespace JoyZoning.App.Services;
 /// </summary>
 public static class HermesInstallPaths
 {
+    private const string LegacyShimMarker = "LEGACY_RUNTIME_SHIM.md";
+
     private static string? FindMonorepoRoot()
     {
         var dir = AppDomain.CurrentDomain.BaseDirectory;
@@ -22,7 +24,16 @@ public static class HermesInstallPaths
         return null;
     }
 
-    /// <summary>Canonical diet-hermes checkout (master install).</summary>
+    public static bool IsLegacyRuntimeShimPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+        var normalized = path.Replace('\\', '/').TrimEnd('/');
+        return normalized.EndsWith("apps/agent-runtime", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("/apps/agent-runtime/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Canonical external diet-hermes checkout — never the embedded LegacyRuntimeShim.</summary>
     public static string CanonicalInstallRoot
     {
         get
@@ -30,12 +41,13 @@ public static class HermesInstallPaths
             var monorepoRoot = FindMonorepoRoot();
             if (monorepoRoot != null)
             {
-                var localRuntime = Path.Combine(monorepoRoot, "apps", "agent-runtime");
-                if (Directory.Exists(localRuntime))
-                {
-                    return localRuntime;
-                }
+                var siblingHermes = Path.Combine(
+                    Directory.GetParent(monorepoRoot)?.FullName ?? monorepoRoot,
+                    "diet-hermes-main-master");
+                if (IsDietHermesCheckout(siblingHermes) && !IsLegacyRuntimeShimPath(siblingHermes))
+                    return siblingHermes;
             }
+
             return Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                 "Downloads",
@@ -45,13 +57,17 @@ public static class HermesInstallPaths
 
     public static bool IsDietHermesCheckout(string path)
     {
-        if (!Directory.Exists(path))
+        if (!Directory.Exists(path) || IsLegacyRuntimeShimPath(path))
+            return false;
+
+        if (File.Exists(Path.Combine(path, LegacyShimMarker)))
             return false;
 
         return File.Exists(Path.Combine(path, "pyproject.toml"))
                && (
                    Directory.Exists(Path.Combine(path, "broccolidb"))
                    || Directory.Exists(Path.Combine(path, "plugins", "joyzoning_governance"))
+                   || Directory.Exists(Path.Combine(path, "agent", "joyzoning"))
                    || File.Exists(Path.Combine(path, "tools", "broccolidb.py"))
                    || File.Exists(Path.Combine(path, "run_agent.py")));
     }

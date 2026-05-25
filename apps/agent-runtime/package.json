@@ -1,0 +1,17 @@
+{
+  "name": "@joyzoning/agent-runtime",
+  "version": "1.0.0",
+  "description": "LegacyRuntimeShim tombstone — vendored Hermes removed; use external InstallRoot",
+  "private": true,
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx server.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.2",
+    "tsx": "^4.19.2"
+  }
+}

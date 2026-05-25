@@ -59,7 +59,7 @@ public static class VerificationRunner
         var psi = new ProcessStartInfo
         {
             FileName = isWindows ? "cmd.exe" : "/bin/sh",
-            Arguments = isWindows ? $"/c {commandLine}" : $"-c {commandLine}",
+            Arguments = isWindows ? $"/c \"{commandLine}\"" : $"-c \"{commandLine.Replace("\"", "\\\"")}\"",
             WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true,

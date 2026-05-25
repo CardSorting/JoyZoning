@@ -50,7 +50,7 @@ export const OPERATIONAL_MODES: Record<JoyZoningOperationalMode, OperationalMode
     primaryQuestion: "What are workers doing?",
     shortDescription: "Leases, Hermes sessions, canonical workspace, runtime health",
     mentalModel: "Live workers, leases, workspace activity",
-    canonicalMetaphor: "Worker orchestration",
+    canonicalMetaphor: "Runtime observation",
     isCanonicalOperationalSurface: true,
     canonicalSurfaces: ["ParallelWorkersPanel", "live snapshot", "Timeline"],
     forbiddenInMode: ["final_merge_approve", "final_merge_revoke"],

@@ -1,4 +1,5 @@
 using JoyZoning.Agents;
+using JoyZoning.Agents.Hermes;
 using JoyZoning.Domain.Agents;
 using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Entities;
@@ -80,6 +81,11 @@ public class LeaseRuntimeServiceTests : IDisposable
         services.AddSingleton<JoyZoning.Domain.Orchestration.IWorkspaceGitMerger, JoyZoning.Adapters.Workspace.WorkspaceGitMerger>();
         services.AddScoped<AuthorityAutopilotMergeContextBuilder>();
         services.AddScoped<AuthorityAutopilotService>();
+        services.Configure<HermesOptions>(_ => { });
+        services.Configure<ControlPlaneOptions>(_ => { });
+        services.AddSingleton<HermesRuntimeSettings>(sp =>
+            new HermesRuntimeSettings(sp.GetRequiredService<IOptions<HermesOptions>>().Value));
+        services.AddSingleton<HermesHabitatBridgeService>();
         services.AddScoped<KanbanExecutionOrchestrator>();
 
         _services = services.BuildServiceProvider();

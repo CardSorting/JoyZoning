@@ -53,7 +53,7 @@ export function PetEntryFlow({
             </p>
             <h1 className="mt-4 text-3xl font-bold text-pet-cream">JoyZone Watch</h1>
             <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-pet-muted">
-              Tamagotchi for agent orchestration — one synthesis pet, real stack traces in
+              Tamagotchi for supervised runtime health — one synthesis pet, real stack traces in
               the basement.
             </p>
             <ul className="mx-auto mt-6 max-w-xs space-y-2 text-left text-xs text-pet-muted">
@@ -168,7 +168,7 @@ export function PetEntryFlow({
             <p className="text-4xl">◈</p>
             <h2 className="mt-4 text-xl font-bold text-pet-cream">Ready to watch</h2>
             <p className="mt-3 text-sm text-pet-muted">
-              Your synthesis pet will mirror orchestration health. When things break, the
+              Your synthesis pet will mirror supervised runtime health. When things break, the
               stack trace lives in Observatory — not hidden, not scary-first.
             </p>
             <button

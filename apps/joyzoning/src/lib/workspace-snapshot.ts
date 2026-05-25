@@ -40,7 +40,7 @@ export function buildWorkspaceTaskSnapshot(
       headline: leaseStatus ? leaseLabel(leaseStatus) : "No active lease",
       subheadline: active
         ? `${fileCount} changed file(s) in workspace`
-        : (opts.idleMessage ?? "Dispatch a role to start JSDP delivery."),
+        : (opts.idleMessage ?? "Request a managed Hermes run to start JSDP delivery."),
       activityState: active ? "active" : "waiting",
       progressPercent: active ? Math.min(95, 10 + fileCount * 3) : 0,
       currentStepIndex: 0,

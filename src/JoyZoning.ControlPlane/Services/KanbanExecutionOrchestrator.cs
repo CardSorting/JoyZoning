@@ -1,4 +1,5 @@
 using JoyZoning.Adapters.Workspace;
+using JoyZoning.Agents.Hermes;
 using JoyZoning.Domain.Configuration;
 using JoyZoning.Domain.Entities;
 using JoyZoning.Domain.Enums;
@@ -27,6 +28,7 @@ public class KanbanExecutionOrchestrator
     private readonly LeaseRuntimeOptions _options;
     private readonly IWorkspaceGitMerger _gitMerger;
     private readonly AuthorityAutopilotService _autopilot;
+    private readonly HermesHabitatBridgeService _habitatBridge;
 
     public KanbanExecutionOrchestrator(
         IWorkTaskRepository tasks,
@@ -36,7 +38,8 @@ public class KanbanExecutionOrchestrator
         LeaseRuntimeService runtime,
         IOptions<LeaseRuntimeOptions> options,
         IWorkspaceGitMerger gitMerger,
-        AuthorityAutopilotService autopilot)
+        AuthorityAutopilotService autopilot,
+        HermesHabitatBridgeService habitatBridge)
     {
         _tasks = tasks;
         _sessions = sessions;
@@ -46,6 +49,7 @@ public class KanbanExecutionOrchestrator
         _options = options.Value;
         _gitMerger = gitMerger;
         _autopilot = autopilot;
+        _habitatBridge = habitatBridge;
     }
 
     public async Task<(ExecutionLease Lease, HandoffPacket Handoff)> BeginLeaseAsync(
@@ -642,6 +646,29 @@ public class KanbanExecutionOrchestrator
 
         await _events.IngestAsync(cardId, EventSource.JoyZoning, EventTypes.ExecutionLeaseMerged,
             new { lease.Id, gitConvergence = convergence?.Strategy }, cancellationToken);
+
+        var bridge = await _habitatBridge.NotifyMergeAcceptedAsync(
+            cardId,
+            kanbanTaskId: task.HermesKanbanTaskId,
+            hermesSessionId: task.LinkedRunId,
+            summary: "Operator accept-merge",
+            cancellationToken);
+        if (bridge.Succeeded)
+        {
+            await _events.IngestAsync(
+                cardId,
+                EventSource.JoyZoning,
+                "habitat.hermes.convergence_ack",
+                new { bridge.State, scopeId = cardId.ToString() },
+                cancellationToken);
+        }
+        else if (!bridge.WasSkipped)
+        {
+            AppendEvidence(lease, "habitat.hermes_bridge_failed", actor,
+                ExecutionLeaseStatus.Merged, ExecutionLeaseStatus.Merged,
+                summary: bridge.Message ?? "Hermes convergence bridge failed",
+                detail: new { taskId = cardId });
+        }
 
         JsdpWorkspaceExecution.PruneLegacySandboxArtifacts(session.WorkspaceRoot);
 

@@ -633,11 +633,19 @@ public class OrchestrationService
                 async () =>
                 {
                     var adapter = _agents.Get(task.AssignedAgent);
+                    var scopeId = !string.IsNullOrWhiteSpace(task.HermesKanbanTaskId)
+                        ? task.HermesKanbanTaskId!
+                        : taskId.ToString();
                     return await adapter.StartRunDetailedAsync(new AgentRunRequest
                     {
                         Prompt = HandoffPacketBuilder.ToExecutorPrompt(handoff),
                         SessionId = executionId.ToString(),
                         WorkspaceRoot = handoff.WorktreePath,
+                        Environment = new Dictionary<string, string>
+                        {
+                            ["JOYZONING_HABITAT_TASK"] = taskId.ToString(),
+                            ["JOYZONING_SCOPE_ID"] = scopeId,
+                        },
                     }, cancellationToken);
                 },
                 cancellationToken);

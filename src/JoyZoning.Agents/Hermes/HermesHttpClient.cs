@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
@@ -121,15 +122,25 @@ public class HermesHttpClient
 
     private static HttpRequestMessage BuildRunRequest(AgentRunRequest request)
     {
+        var meta = new Dictionary<string, object?>
+        {
+            ["workspace_root"] = request.WorkspaceRoot,
+            ["role"] = request.Role.ToString(),
+        };
+        if (request.Environment is not null)
+        {
+            foreach (var (key, value) in request.Environment)
+            {
+                if (!string.IsNullOrWhiteSpace(key) && !string.IsNullOrWhiteSpace(value))
+                    meta[key] = value;
+            }
+        }
+
         var body = new
         {
             input = request.Prompt,
             session_id = request.SessionId,
-            metadata = new
-            {
-                workspace_root = request.WorkspaceRoot,
-                role = request.Role.ToString(),
-            },
+            metadata = meta,
         };
 
         var message = new HttpRequestMessage(HttpMethod.Post, "v1/runs")

@@ -1,3 +1,5 @@
+import { HERMES_RUN_STARTED_LABEL } from "@/lib/operator-labels";
+
 export type ChatMessageRole =
   | "user"
   | "assistant"
@@ -9,6 +11,7 @@ export type ChatMessageRole =
 export type StatusCardKind =
   | "task_started"
   | "worker_dispatched"
+  | "hermes_run_started"
   | "verification_passed"
   | "verification_failed"
   | "autopilot_accepted"
@@ -88,7 +91,8 @@ export function statusCardLabel(kind: StatusCardKind): string {
     case "task_started":
       return "Task started";
     case "worker_dispatched":
-      return "Worker dispatched";
+    case "hermes_run_started":
+      return HERMES_RUN_STARTED_LABEL;
     case "verification_passed":
       return "Verification passed";
     case "verification_failed":
@@ -115,6 +119,7 @@ export function statusCardTone(kind: StatusCardKind): string {
     case "git_convergence_succeeded":
     case "task_started":
     case "worker_dispatched":
+    case "hermes_run_started":
       return "border-emerald-500/40 bg-emerald-500/10 text-emerald-200";
     case "verification_failed":
     case "git_convergence_failed":

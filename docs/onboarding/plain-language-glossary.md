@@ -25,7 +25,7 @@ For precise API terms see [glossary.md](../glossary.md). **How one card maps to 
 | **Local coordinator** | Control plane (`:9470`) | Air traffic control — remembers tasks and rules |
 | **AI engine** | diet-hermes | One engine; different “channels” for manager vs worker |
 | **Your project folder** | Session workspace / `workspaceRoot` | The repo you opened — same idea as “Open Folder” in VS Code |
-| **Card branch** | `joyzoning/card-<id>` | Feature branch for one ticket after **Dispatch** |
+| **Card branch** | `joyzoning/card-<id>` | Feature branch for one ticket after **Request Hermes run** |
 | **Files changed tab** | Workspace → Changed | Same idea as GitHub PR “Files changed” — one card, one workspace |
 | **1:1 workspace state** | Card-scoped inspection | Pick a card → every panel shows that card’s path and branch |
 | **Hidden agent notes** | `.joyzoning/context.json` | Sticky note in the project: task id, what agent may/may not do |
@@ -48,7 +48,7 @@ For precise API terms see [glossary.md](../glossary.md). **How one card maps to 
 
 | Everyday term | Technical term | Who can do it |
 |---------------|----------------|---------------|
-| **Start worker on card** | Dispatch | **You** |
+| **Start supervised Hermes run** | Request managed run (`POST …/dispatch`) | **You** (habitat); Hermes executes |
 | **Approve risky action** | Approval resolve (Once/Task/Session/Deny) | **You** |
 | **Run tests as proof** | Verify | **You** or worker (`jz agent verify`) |
 | **Sign off / ship it** | Merge → Complete | **You only** — never the agent |

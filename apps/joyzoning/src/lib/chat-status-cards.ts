@@ -6,6 +6,7 @@ import {
 import type { ChatAction, ChatMessage, StatusCardKind } from "@/lib/chat-types";
 import type { MergeWorkerEntry } from "@/lib/merge-queue";
 import type { ParallelWorkerEntry } from "@/lib/parallel-workers";
+import { HERMES_RUN_STARTED_LABEL } from "@/lib/operator-labels";
 
 function workerWorkspacePath(worker: ParallelWorkerEntry | MergeWorkerEntry): string | null | undefined {
   return worker.workspacePath ?? worker.mergeReadiness?.worktreePath ?? null;
@@ -180,9 +181,9 @@ export function cardFromJoyEvent(
     case "dietcode.execution.started":
       return {
         ...base,
-        statusCard: "worker_dispatched",
-        title: "Worker dispatched",
-        content: summary || "DietCode worker dispatched.",
+        statusCard: "hermes_run_started",
+        title: HERMES_RUN_STARTED_LABEL,
+        content: summary || "Hermes runtime accepted a managed run. JoyZoning supervises.",
         actions: correlationId
           ? [{ id: "open-worker", label: "Open worker" }]
           : undefined,

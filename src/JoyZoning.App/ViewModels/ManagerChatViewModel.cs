@@ -247,10 +247,10 @@ public partial class ManagerChatViewModel : ViewModelBase
                 CardTitle = "Task started",
                 TaskId = evt.CorrelationId == Guid.Empty ? null : evt.CorrelationId,
             },
-            "dietcode.execution.started" => new ChatLineViewModel("System", "Worker dispatched.", ChatLineKind.StatusCard)
+            "dietcode.execution.started" => new ChatLineViewModel("System", "Hermes run started (supervised).", ChatLineKind.StatusCard)
             {
-                StatusCardKind = "worker_dispatched",
-                CardTitle = "Worker dispatched",
+                StatusCardKind = "hermes_run_started",
+                CardTitle = "Hermes run started (supervised)",
                 TaskId = evt.CorrelationId == Guid.Empty ? null : evt.CorrelationId,
             },
             "verification.report.attached" => new ChatLineViewModel("System", evt.Type, ChatLineKind.StatusCard)

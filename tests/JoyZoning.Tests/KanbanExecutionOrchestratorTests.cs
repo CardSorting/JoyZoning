@@ -1,4 +1,5 @@
 using JoyZoning.Adapters.Workspace;
+using JoyZoning.Agents.Hermes;
 using JoyZoning.Domain.Configuration;
 using AuthorityProfileKind = JoyZoning.Domain.Configuration.AuthorityProfileKind;
 using JoyZoning.Domain.Entities;
@@ -28,10 +29,14 @@ public class KanbanExecutionOrchestratorTests : IDisposable
     {
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
+        _services = CreateServices(_connection, new WorkspaceGitMerger());
+    }
 
+    private static ServiceProvider CreateServices(SqliteConnection connection, IWorkspaceGitMerger gitMerger)
+    {
         var services = new ServiceCollection();
         services.AddUnitTestHost();
-        services.AddDbContext<JoyZoningDbContext>(o => o.UseSqlite(_connection));
+        services.AddDbContext<JoyZoningDbContext>(o => o.UseSqlite(connection));
         services.AddScoped<IWorkTaskRepository, WorkTaskRepository>();
         services.AddScoped<IOperatorSessionRepository, OperatorSessionRepository>();
         services.AddScoped<IExecutionLeaseRepository, ExecutionLeaseRepository>();
@@ -70,17 +75,21 @@ public class KanbanExecutionOrchestratorTests : IDisposable
         services.AddSingleton(mockHub.Object);
         services.AddSingleton<IBroccoliQBridge, DisabledBroccoliQBridge>();
 
-        services.AddSingleton<IWorkspaceGitMerger, WorkspaceGitMerger>();
+        services.AddSingleton<IWorkspaceGitMerger>(gitMerger);
         services.AddLogging();
         services.AddScoped<AuthorityAutopilotMergeContextBuilder>();
         services.AddScoped<AuthorityAutopilotService>();
+        services.Configure<HermesOptions>(_ => { });
+        services.Configure<ControlPlaneOptions>(_ => { });
+        services.AddSingleton<HermesRuntimeSettings>(sp =>
+            new HermesRuntimeSettings(sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<HermesOptions>>().Value));
+        services.AddSingleton<HermesHabitatBridgeService>();
         services.AddScoped<EventIngestor>();
         services.AddScoped<KanbanExecutionOrchestrator>();
 
-        _services = services.BuildServiceProvider();
-
-        var db = _services.GetRequiredService<JoyZoningDbContext>();
-        db.Database.EnsureCreated();
+        var provider = services.BuildServiceProvider();
+        provider.GetRequiredService<JoyZoningDbContext>().Database.EnsureCreated();
+        return provider;
     }
 
     public void Dispose()
@@ -209,7 +218,8 @@ public class KanbanExecutionOrchestratorTests : IDisposable
     public async Task Accept_result_does_not_mark_merged_when_git_convergence_fails()
     {
         var (_, cardId) = await SeedCardWithGitAsync(RiskLevel.Low);
-        var orchestrator = _services.GetRequiredService<KanbanExecutionOrchestrator>();
+        using var failServices = CreateServices(_connection, new FailingWorkspaceGitMerger());
+        var orchestrator = failServices.GetRequiredService<KanbanExecutionOrchestrator>();
         var sessions = _services.GetRequiredService<IOperatorSessionRepository>();
         var tasks = _services.GetRequiredService<IWorkTaskRepository>();
 
@@ -224,29 +234,16 @@ public class KanbanExecutionOrchestratorTests : IDisposable
         await orchestrator.AgentTransitionLeaseAsync(cardId, ExecutionLeaseStatus.Verifying);
         await orchestrator.SubmitVerificationAsync(cardId, PassingReport(cardId));
 
-        await GitCommandRunner.RunAsync(root, "checkout main", default);
-        await File.WriteAllTextAsync(Path.Combine(root, "conflict.txt"), "main edit");
-        await GitCommandRunner.RunAsync(root, "add conflict.txt", default);
-        await GitCommandRunner.RunAsync(root, "commit -m \"main conflict\"", default);
-        await GitCommandRunner.RunAsync(root, $"checkout \"{lease.BranchName}\"", default);
-        await File.WriteAllTextAsync(Path.Combine(root, "conflict.txt"), "worker edit");
-        await GitCommandRunner.RunAsync(root, "add conflict.txt", default);
-        await GitCommandRunner.RunAsync(root, "commit -m \"worker conflict\"", default);
-        await GitCommandRunner.RunAsync(root, "checkout main", default);
-
         var ex = await Assert.ThrowsAsync<LeaseOrchestrationException>(() =>
             orchestrator.AcceptResultAsync(cardId));
         Assert.Equal(409, ex.StatusCode);
+        Assert.Contains("simulated git convergence", ex.Message, StringComparison.OrdinalIgnoreCase);
 
-        var leases = _services.GetRequiredService<IExecutionLeaseRepository>();
+        var leases = failServices.GetRequiredService<IExecutionLeaseRepository>();
         var active = await leases.GetActiveByTaskIdAsync(cardId);
         Assert.NotNull(active);
         Assert.Equal(ExecutionLeaseStatus.ReadyForReview, active!.Status);
-        Assert.True(
-            active.EvidenceLogJson.Contains("git.convergence.failed", StringComparison.Ordinal)
-            || active.BlockedReason?.Contains("conflict", StringComparison.OrdinalIgnoreCase) == true
-            || ex.Message.Contains("conflict", StringComparison.OrdinalIgnoreCase)
-            || ex.Message.Contains("merge", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains("git.convergence.failed", active.EvidenceLogJson, StringComparison.Ordinal);
     }
 
     [Fact]

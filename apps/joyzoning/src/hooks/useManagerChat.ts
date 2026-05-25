@@ -3,6 +3,7 @@
 import * as signalR from "@microsoft/signalr";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { RUNTIME_OBSERVATION_LABEL } from "@/lib/operator-labels";
 import { cardFingerprint, cardFromJoyEvent, cardsFromWorkers } from "@/lib/chat-status-cards";
 import {
   loadThreadMessages,
@@ -236,8 +237,8 @@ export function useManagerChat(sessionId: string | null) {
         const headline = dto.headline ?? dto.Headline;
         if (taskId && headline) {
           appendStatusCard({
-            statusCard: "worker_dispatched",
-            title: "Worker update",
+            statusCard: "hermes_run_started",
+            title: RUNTIME_OBSERVATION_LABEL,
             taskId,
             content: headline,
             timestamp: new Date().toISOString(),

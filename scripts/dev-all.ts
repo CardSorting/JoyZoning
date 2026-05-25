@@ -6,7 +6,7 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 // Helper colors for prefixed logging
 const PRETTY_NAMES: Record<string, { prefix: string; color: string }> = {
   controlPlane: { prefix: '[ControlPlane]', color: '\x1b[36m' }, // Cyan
-  agentRuntime: { prefix: '[AgentRuntime]', color: '\x1b[32m' }, // Green
+  agentRuntime: { prefix: '[LegacyRuntimeShim]', color: '\x1b[32m' }, // dev-only, not started by default
   watchUi:      { prefix: '[WatchUI]     ', color: '\x1b[33m' }, // Yellow
   desktopApp:   { prefix: '[DesktopApp]  ', color: '\x1b[35m' }  // Magenta
 };
@@ -91,8 +91,8 @@ async function main() {
   // 1. Control Plane C# Server
   spawnProcess('controlPlane', 'dotnet', ['run', '--project', 'src/JoyZoning.ControlPlane']);
 
-  // 2. Agent Runtime Local Proxy & Gateway
-  spawnProcess('agentRuntime', 'pnpm', ['--filter', '@joyzoning/agent-runtime', 'dev']);
+  // 2. LegacyRuntimeShim (dev-only — not canonical Hermes; use external InstallRoot)
+  // spawnProcess('legacyRuntimeShim', 'pnpm', ['--filter', '@joyzoning/agent-runtime', 'dev']);
 
   // 3. JoyZoning Watch Next.js UI
   spawnProcess('watchUi', 'pnpm', ['--filter', '@joyzoning/watch', 'dev']);

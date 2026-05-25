@@ -27,7 +27,7 @@ public partial class ExecutionViewportViewModel : ViewModelBase, IAsyncDisposabl
 
     [ObservableProperty]
     private string _terminalOutput =
-        "DietCode execution viewport — dispatch a task from Kanban to begin.\n";
+        "Execution viewport — request a managed Hermes run from Kanban to begin (JoyZoning supervises).\n";
 
     [ObservableProperty]
     private string _ptyStatus = "Disconnected";

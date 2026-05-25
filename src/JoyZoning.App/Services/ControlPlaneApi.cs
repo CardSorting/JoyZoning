@@ -31,7 +31,7 @@ public static class OperatorApiHints
         return errorCode switch
         {
             "lease_forbidden" when message?.Contains("humanApprovedCritical", StringComparison.OrdinalIgnoreCase) == true
-                => "Check “Approve critical dispatch” and try again.",
+                => "Check “Approve critical dispatch” and try again before requesting a managed run.",
             "lease_forbidden" when message?.Contains("human", StringComparison.OrdinalIgnoreCase) == true
                 => "Use Merge on the kanban card after verification passes.",
             "lease_conflict" when message?.Contains("critical", StringComparison.OrdinalIgnoreCase) == true
@@ -46,7 +46,7 @@ public static class OperatorApiHints
                 => "Provide a reason when moving the lease to Blocked.",
             "lease_invalid_request" when message?.Contains("commandsRun", StringComparison.OrdinalIgnoreCase) == true
                 => "Include at least one command with pass/fail and a summary.",
-            "lease_not_found" => "Dispatch the card first to create an execution lease.",
+            "lease_not_found" => "Request a managed Hermes run first to create an execution lease.",
             "task_not_found" => "Refresh the board and select a valid card.",
             _ => null,
         };

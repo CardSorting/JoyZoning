@@ -1,8 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ArrowRight, FolderGit2, GitBranch, Info } from "lucide-react";
 import { buildConvergenceModel, formatCommitLine } from "@/lib/convergence";
+import {
+  fetchHermesConvergence,
+  formatHermesConvergenceState,
+  type HermesConvergenceSnapshot,
+} from "@/lib/hermes-convergence";
 import type { ConsoleWorker } from "@/lib/operator-console";
+import { HERMES_CONVERGENCE_NOTE } from "@/lib/operator-labels";
 import { openPathInShell } from "@/lib/path-actions";
 import type { LiveTaskSnapshot } from "@/lib/types";
 
@@ -29,6 +36,27 @@ export function ConvergencePanel({
   onPathNotice?: (message: string, variant: "info" | "error") => void;
 }) {
   const model = buildConvergenceModel(snapshot, worker, sessionWorkspaceRoot);
+  const scopeId = snapshot.taskId ?? worker?.taskId ?? "";
+  const [hermesState, setHermesState] = useState<HermesConvergenceSnapshot | null>(null);
+
+  useEffect(() => {
+    if (!scopeId) return;
+    let active = true;
+    const load = async () => {
+      try {
+        const data = await fetchHermesConvergence(scopeId);
+        if (active) setHermesState(data);
+      } catch {
+        if (active) setHermesState(null);
+      }
+    };
+    void load();
+    const interval = setInterval(load, 5000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [scopeId]);
 
   const openPath = async (path: string | null, label: string) => {
     if (!path) {
@@ -65,6 +93,21 @@ export function ConvergencePanel({
           ? "This worker's changes were applied into the main workspace on accept."
           : "This worker's changes live in the worktree below. Accept result converges them into the main workspace before marking Merged."}
       </p>
+
+      <div
+        className="mb-3 rounded-lg border border-sky-500/30 bg-sky-950/30 px-3 py-2"
+        data-testid="hermes-convergence-observe"
+      >
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-sky-300">
+          Hermes runtime (observe-only)
+        </p>
+        <p className="mt-1 text-xs text-zinc-300">
+          {hermesState?.observed
+            ? formatHermesConvergenceState(hermesState.state)
+            : "No Hermes observations ingested yet for this task."}
+        </p>
+        <p className="mt-1 text-[10px] text-zinc-500">{HERMES_CONVERGENCE_NOTE}</p>
+      </div>
 
       {model.codeEnteredMainWorkspace && (
         <p

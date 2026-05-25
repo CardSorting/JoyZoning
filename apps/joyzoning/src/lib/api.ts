@@ -4,6 +4,7 @@ import type { ParallelWorkersSnapshot } from "./parallel-workers";
 import type { MergeQueueSnapshot } from "./merge-queue";
 import type { DecisionPreflightSnapshot, OperatorDecisionAction } from "./operator-decision";
 import type { JoyZoningOperationalMode } from "./operational-modes";
+import type { HermesConvergenceSnapshot } from "./hermes-convergence";
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(apiUrl(path), {
@@ -110,12 +111,28 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, workspaceRoot, hermesProfile: hermesProfile ?? null }),
     }),
+  /** Request a managed run on Hermes runtime (habitat does not execute tools). */
+  requestManagedRun: (taskId: string, humanApprovedCritical?: boolean) =>
+    fetchJson<unknown>(`/api/tasks/${encodeURIComponent(taskId)}/dispatch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ humanApprovedCritical: humanApprovedCritical ?? false }),
+    }),
+  /** @deprecated Use requestManagedRun — dispatch implied JoyZoning executed locally. */
   dispatchTask: (taskId: string, humanApprovedCritical?: boolean) =>
     fetchJson<unknown>(`/api/tasks/${encodeURIComponent(taskId)}/dispatch`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ humanApprovedCritical: humanApprovedCritical ?? false }),
     }),
+  habitatAuthorityChecklist: () =>
+    fetchJson<import("./habitat-authority-checklist").HabitatAuthorityChecklist>(
+      "/api/habitat/authority-checklist",
+    ),
+  hermesConvergence: (scopeId: string) =>
+    fetchJson<HermesConvergenceSnapshot>(
+      `/api/hermes/convergence/${encodeURIComponent(scopeId)}`,
+    ),
   createTask: (
     sessionId: string,
     title: string,

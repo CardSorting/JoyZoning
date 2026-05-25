@@ -627,10 +627,16 @@ public static class ApiEndpoints
         });
 
         app.MapPost("/api/tasks/{id:guid}/lease/agent-evidence", async (
+            HttpRequest http,
             Guid id,
             AgentEvidenceRequest req,
-            KanbanExecutionOrchestrator exec) =>
+            KanbanExecutionOrchestrator exec,
+            HabitatInternalAuth internalAuth) =>
         {
+            var denied = internalAuth.RequireInternal(http);
+            if (denied is not null)
+                return denied;
+
             try
             {
                 if (string.IsNullOrWhiteSpace(req.Kind))
@@ -744,11 +750,17 @@ public static class ApiEndpoints
         });
 
         app.MapPost("/api/tasks/{id:guid}/lease/agent-status", async (
+            HttpRequest http,
             Guid id,
             AgentLeaseStatusRequest req,
             IWorkTaskRepository tasks,
-            KanbanExecutionOrchestrator exec) =>
+            KanbanExecutionOrchestrator exec,
+            HabitatInternalAuth internalAuth) =>
         {
+            var denied = internalAuth.RequireInternal(http);
+            if (denied is not null)
+                return denied;
+
             try
             {
                 if (!KanbanExecutionRules.AgentAllowedLeaseTargets.Contains(req.Status))
@@ -775,12 +787,18 @@ public static class ApiEndpoints
         });
 
         app.MapPost("/api/tasks/{id:guid}/verification", async (
+            HttpRequest http,
             Guid id,
             SubmitVerificationRequest req,
             IWorkTaskRepository tasks,
             KanbanExecutionOrchestrator exec,
-            ExternalTaskExecutionService external) =>
+            ExternalTaskExecutionService external,
+            HabitatInternalAuth internalAuth) =>
         {
+            var denied = internalAuth.RequireInternal(http);
+            if (denied is not null)
+                return denied;
+
             try
             {
                 if (req.Report.CommandsRun.Count == 0)
@@ -988,9 +1006,20 @@ public static class ApiEndpoints
                         },
                         statusCode: 403);
 
+                // Habitat requests a managed Hermes run — JoyZoning does not execute tools itself.
                 var execution = await orch.DispatchTaskAsync(id, wantsCritical);
                 consumer.TrackRun(execution.HermesRunId, AgentKind.DietCode, id);
-                return Results.Accepted($"/api/executions/{execution.Id}", execution);
+                return Results.Accepted(
+                    $"/api/executions/{execution.Id}",
+                    new
+                    {
+                        execution.Id,
+                        execution.WorkTaskId,
+                        execution.HermesRunId,
+                        runtimeOwner = "hermes",
+                        habitatRole = "supervise",
+                        message = "Managed run requested on Hermes runtime. JoyZoning observes; accept-merge stays operator-owned.",
+                    });
             }
             catch (Exception ex)
             {
@@ -1145,6 +1174,98 @@ public static class ApiEndpoints
                 });
         });
 
+        app.MapGet("/api/habitat/authority-checklist", async (
+            HabitatAuthorityChecklistService checklist,
+            CancellationToken cancellationToken) =>
+        {
+            var report = await checklist.BuildAsync(cancellationToken);
+            return Results.Ok(new
+            {
+                allPassed = report.AllPassed,
+                runtimeOwner = report.RuntimeOwner,
+                habitatRole = report.HabitatRole,
+                items = report.Items.Select(i => new
+                {
+                    id = i.Id,
+                    label = i.Label,
+                    ok = i.Ok,
+                    detail = i.Detail,
+                }),
+            });
+        });
+
+        app.MapPost("/api/internal/hermes-observation", async (
+            HttpRequest http,
+            HermesObservationPayload req,
+            HermesObservationIngestService ingest,
+            HabitatInternalAuth internalAuth,
+            CancellationToken cancellationToken) =>
+        {
+            var denied = internalAuth.RequireInternal(http);
+            if (denied is not null)
+                return denied;
+
+            var rateKey = http.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            var result = await ingest.IngestAsync(req, rateKey, cancellationToken);
+            if (!result.Ok)
+            {
+                var status = result.Error == "rate_limited"
+                    ? StatusCodes.Status429TooManyRequests
+                    : StatusCodes.Status403Forbidden;
+                return Results.Json(
+                    new { error = result.Error, message = result.Message },
+                    statusCode: status);
+            }
+
+            if (result.Duplicate)
+            {
+                return Results.Accepted(
+                    $"/api/hermes/convergence/{result.CorrelationId}",
+                    new { accepted = true, duplicate = true, correlationId = result.CorrelationId });
+            }
+
+            return Results.Accepted(
+                $"/api/hermes/convergence/{req.ScopeId ?? req.SessionId}",
+                new
+                {
+                    ok = true,
+                    eventId = result.EventId,
+                    correlationId = result.CorrelationId,
+                    authoritative = false,
+                });
+        });
+
+        app.MapGet("/api/hermes/convergence/{scopeId}", (
+            string scopeId,
+            HermesObservationClient observation) =>
+        {
+            var state = observation.GetConvergenceState(scopeId);
+            if (state is null)
+            {
+                return Results.Ok(new
+                {
+                    scopeId,
+                    observed = false,
+                    authoritative = false,
+                    note = HermesJournalAdapter.DisplayNote,
+                    journalHint = HermesJournalAdapter.CanonicalJournalHint,
+                });
+            }
+
+            return Results.Ok(new
+            {
+                scopeId = state.ScopeId,
+                observed = true,
+                authoritative = false,
+                state = state.State,
+                lastEventType = state.LastEventType,
+                layer = state.Layer,
+                runId = state.RunId,
+                observedAt = state.ObservedAt,
+                note = HermesJournalAdapter.DisplayNote,
+            });
+        });
+
         app.MapGet("/api/hermes/health", async (
             HermesConnectivityService connectivity,
             HermesRuntimeSettings runtime) =>
@@ -1155,6 +1276,8 @@ public static class ApiEndpoints
                 state = report.State.ToString(),
                 message = report.Message,
                 apiUrl = runtime.GetSnapshot().ApiBaseUrl,
+                runtimeOwner = "hermes",
+                habitatRole = "observe-only",
             });
         });
 

@@ -16,7 +16,7 @@ This page is the conceptual spine. **Philosophy (canonical workspace + JSDP):** 
 | Restarts lose track of in-flight runs | **SQLite + events** survive restarts; recovery flows |
 | Two Hermes installs drift out of sync | **One diet-hermes**; kanban syncs sessions |
 
-JoyZoning does not replace your IDE, Hermes CLI, or kanban plugin. It **sits above them** as the place you dispatch, watch, approve, and sign off.
+JoyZoning does not replace your IDE, Hermes CLI, or kanban plugin. It **sits above them** as the habitat where you **request supervised runs**, watch mirrored runtime state, approve, and sign off — Hermes remains the execution authority.
 
 ---
 
@@ -27,7 +27,7 @@ JoyZoning is intentionally **multi-mode**. Users think differently when planning
 | Mode | Metaphor | Canonical state |
 |------|----------|-----------------|
 | **Planning** | Jira / Kanban | `WorkTask`, kanban sync |
-| **Execution** | JSDP worker orchestration | managed leases **or** external agents (Cursor, etc.), canonical workspace |
+| **Execution** | JSDP supervised runtime observers | managed Hermes runs **or** external agents (Cursor, etc.), canonical workspace |
 | **Review** | GitHub PR | merge queue, verification, approve/revoke |
 | **Habitat** | Ambient (optional) | pet / atmosphere — not authoritative ops |
 
@@ -144,7 +144,7 @@ This split is **intentional**. Autonomous agents are productive inside a lease; 
 | Dashboard + PTY | Embedded TUI in Execution surface |
 | Approvals at tool boundary | Inbox + grants correlated to tasks |
 
-JoyZoning **orchestrates**; Hermes **executes**. Neither duplicates the other.
+JoyZoning **supervises** (observe-only mirror, operator merge, leases); Hermes **executes** (tools, journal, convergence gates). Neither duplicates the other.
 
 ---
 

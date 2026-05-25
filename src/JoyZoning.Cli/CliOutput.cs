@@ -118,7 +118,7 @@ public static class CliOutput
               --tui, -t              Interactive operator shell
 
             Operator workflows:
-              task run <id>          Dispatch + show lease [--poll 5] [--timeout 600]
+              task run <id>          Request managed run + show lease [--poll 5] [--timeout 600]
               task watch <id>        Poll workspace changes from control plane [--interval 5] [--once]
               task verify <id>       Run --cmd locally in worktree, submit report
               task complete <id>     Human merge (--yes required)
@@ -143,7 +143,7 @@ public static class CliOutput
               endpoints --markdown     Endpoint map for docs
               snapshot --json          Git, tests, sessions, approvals snapshot
               plan "<goal>"            Create task from goal (--session required)
-              run <task-id>            Dispatch and run a task lease
+              run <task-id>            Request managed Hermes run (lease)
               verify --manifest        Run manifest verification commands in workspace root
               verify --manifest --fast Run fast verification (typecheck + build only)
 

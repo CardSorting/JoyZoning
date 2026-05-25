@@ -35,6 +35,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<HermesProcessService>();
         services.AddSingleton<HermesDashboardService>();
         services.AddSingleton<KanbanSyncService>();
+        services.AddSingleton<HermesHabitatBridgeService>();
         return services;
     }
 

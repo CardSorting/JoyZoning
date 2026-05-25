@@ -18,10 +18,10 @@
       <Button Content="Refresh" Command="{Binding RefreshBoardCommand}" />
       <Button Content="Import from Hermes" Command="{Binding ImportFromHermesCommand}" />
       <Button Content="New Task" Click="OnNewTask" />
-      <CheckBox Content="Approve critical dispatch"
+      <CheckBox Content="Approve critical managed run"
                 IsVisible="{Binding ShowCriticalApproval}"
                 IsChecked="{Binding ApproveCriticalDispatch}" />
-      <Button Content="Dispatch" Command="{Binding DispatchSelectedCommand}" />
+      <Button Content="Request Hermes run" Command="{Binding DispatchSelectedCommand}" />
       <Button Content="Revoke lease" Command="{Binding RevokeLeaseCommand}" />
       <ComboBox Width="140" SelectedIndex="0" Name="MoveStatusCombo">
         <ComboBoxItem Content="Planned" />

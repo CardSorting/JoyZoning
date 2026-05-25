@@ -38,7 +38,7 @@ public static class JoyZoningEndpointRegistry
             "Update task status; agents cannot use this to mark Complete.",
             "UpdateTaskStatusRequest", "WorkTask", false),
         new("dispatch-task", "POST", "/api/tasks/{id}/dispatch",
-            "Dispatch a task to an executor lease.",
+            "Request a managed Hermes run (JoyZoning supervises; Hermes executes).",
             "DispatchTaskRequest", "ExecutionSession", false),
         new("get-task-lease", "GET", "/api/tasks/{id}/lease",
             "Read active execution lease for a task.",

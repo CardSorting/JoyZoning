@@ -11,10 +11,3 @@ public class HermesOptions
     public bool AutoStartGateway { get; set; } = true;
     public string? ApiKey { get; set; }
 }
-
-public class ControlPlaneOptions
-{
-    public const string SectionName = "ControlPlane";
-
-    public string ListenUrl { get; set; } = "http://127.0.0.1:9470";
-}
