@@ -201,6 +201,37 @@ jz delivery-chain queue "$CHAIN"
 
 Managed Hermes dispatch for a chain role still uses `jz task dispatch <task-id>` on the role’s task when the queue shows eligible. See [jsdp.md](jsdp.md).
 
+## JSDP convergence harness (local prompt DAG)
+
+Project-specific staged mutation runtime (`.jsdp/` in the **current directory**). Full guide: [jsdp-convergence-harness.md](jsdp-convergence-harness.md).
+
+| Command | Purpose |
+|---------|---------|
+| `jsdp init "<goal>"` | Create `.jsdp/` run state |
+| `jsdp init --spec ./PROJECT_SPEC.md` | Init from markdown spec |
+| `jsdp analyze` | Extract metadata → `project-spec.json` |
+| `jsdp plan --mode vertical-slices` | Build dependency-aware DAG |
+| `jsdp next` | Emit `.jsdp/prompts/<id>.md` for next ready node |
+| `jsdp verify` | Run node verification commands |
+| `jsdp continue` | Advance after pass or create repair node |
+| `jsdp status` | Convergence health + node states |
+| `jsdp record --node <id> --summary "..."` | Append operator ledger entry |
+| `jsdp inspect` | Spec analysis, DAG, current node, ledger, repair lineage |
+| `jsdp doctor` | Validate `.jsdp/` integrity and readiness |
+
+```bash
+cd "$HOME/src/mygame"
+jz jsdp init --spec ./PROJECT_SPEC.md
+jz jsdp analyze
+jz jsdp plan --mode vertical-slices
+jz jsdp next
+# agent executes prompt …
+jz jsdp verify
+jz jsdp continue
+```
+
+**Note:** `jz jsdp` is the local harness; `jz delivery-chain` is the 8-role JoyZoning delivery protocol.
+
 Critical dispatch:
 
 ```bash

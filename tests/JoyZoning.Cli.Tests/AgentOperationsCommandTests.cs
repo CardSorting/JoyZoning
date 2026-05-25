@@ -23,6 +23,22 @@ public sealed class AgentOperationsCommandTests
         Assert.Contains("docs/philosophy.md", AgentOperationsManifest.ImportantFiles);
         Assert.True(AgentOperationsManifest.AgentWorkflow.ContainsKey("jsdpDeliveryExternal"));
         Assert.Contains(AgentOperationsManifest.Commands, c => c.Name == "task start-external");
+        Assert.Contains(AgentOperationsManifest.Commands, c => c.Name == "jsdp init");
+        Assert.Contains(AgentOperationsManifest.Commands, c => c.Name == "jsdp inspect");
+        Assert.Contains(AgentOperationsManifest.Commands, c => c.Name == "jsdp import-plan");
+        Assert.True(AgentOperationsManifest.AgentWorkflow.ContainsKey("jsdpHarnessExternalPlan"));
+        Assert.True(AgentOperationsManifest.AgentWorkflow.ContainsKey("jsdpHarness"));
+        Assert.Contains("jsdp-harness", AgentOperationsManifest.AvailableSurfaces);
+    }
+
+    [Fact]
+    public void ShellRunner_avoids_bash_lc_quote_errors()
+    {
+        var root = FindRepoRoot();
+        var cmd = AgentOperationsManifest.VerificationCommands["typecheck"];
+        var (_, _, stderr) = JoyZoning.Jsdp.ShellRunner.Run(root, cmd);
+        Assert.DoesNotContain("unexpected EOF", stderr, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("syntax error: unexpected end of file", stderr, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

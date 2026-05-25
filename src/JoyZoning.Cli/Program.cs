@@ -1,4 +1,5 @@
 using JoyZoning.Cli.Tui;
+using JoyZoning.Jsdp.Services;
 
 namespace JoyZoning.Cli;
 
@@ -35,6 +36,14 @@ public static class Program
             else
                 Console.Error.WriteLine(ex.Message);
             return 2;
+        }
+        catch (JsdpException ex)
+        {
+            if (!ctx.Quiet)
+                CliOutput.WriteUsageError(ex.Message);
+            else
+                Console.Error.WriteLine(ex.Message);
+            return 1;
         }
     }
 }

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>JoyZoning.Jsdp</RootNamespace>
+    <Description>JSDP autonomous convergence harness — local prompt DAG runtime</Description>
+  </PropertyGroup>
+</Project>

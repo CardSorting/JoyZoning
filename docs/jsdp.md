@@ -10,6 +10,7 @@ You are operating under the **JoyZoning Sequential Delivery Protocol (JSDP)**.
 |--------------|------------|
 | JoyZoning + Hermes dispatch | [Operator checklist — managed](#operator-checklist) below |
 | **Cursor / Claude Code / manual** | [external-agent-jsdp.md](external-agent-jsdp.md) · `jz delivery-chain next <chain-id> --external --agent cursor` |
+| **Project-local prompt DAG** (any repo) | [jsdp-convergence-harness.md](jsdp-convergence-harness.md) · `jz jsdp init` → `plan` → `next` → `verify` |
 | Unsure | Read [Execution modes](#execution-modes-managed-vs-external) — same gates, different engine |
 
 ---

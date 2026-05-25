@@ -20,9 +20,26 @@ jz task prompt <task-id>    # read handoff — do not mark Complete via API
 jz task mark-ready <task-id>   # operator only
 ```
 
+**Project-local JSDP harness** (`.jsdp/` in target repo cwd — not delivery-chain):
+
+```bash
+jz jsdp init --spec ./PROJECT_SPEC.md && jz jsdp analyze && jz jsdp plan
+jz jsdp next && jz jsdp verify && jz jsdp continue
+jz jsdp inspect && jz jsdp doctor && jz jsdp status
+```
+
+**External planning (agent authors DAG; harness validates):**
+
+```bash
+jz jsdp export-planning-context --mode vertical-slices
+jz jsdp planning-prompt --mode vertical-slices
+jz jsdp validate-plan ./plan.json && jz jsdp import-plan ./plan.json
+```
+
 - **Full docs:** [docs/agent-operations.md](docs/agent-operations.md)
 - **Contract:** [docs/AGENT.md](docs/AGENT.md)
 - **Sequential delivery:** [docs/jsdp.md](docs/jsdp.md) (JSDP)
+- **Local prompt DAG harness:** [docs/jsdp-convergence-harness.md](docs/jsdp-convergence-harness.md) · `jz jsdp` (discover via `agent-manifest --json`)
 - **Execution paths:** [docs/execution-paths.md](docs/execution-paths.md) (managed vs external)
 - **External path:** [docs/external-agent-jsdp.md](docs/external-agent-jsdp.md)
 - **Framework (optional):** [docs/whitepaper-summary.md](docs/whitepaper-summary.md) — C1–C7; product is Annex A embodiment only

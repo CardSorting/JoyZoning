@@ -43,7 +43,8 @@ public static class CliDispatcher
             "completion" => DispatchCompletion(ctx, a),
             "agent" => await DispatchAgentAsync(client, ctx, a),
             "yolo" => await YoloCommand.DispatchAsync(client, ctx, a),
-            "delivery-chain" or "jsdp" => CliOutput.WriteResult(ctx, await DispatchDeliveryChainAsync(client, ctx, a)),
+            "delivery-chain" => CliOutput.WriteResult(ctx, await DispatchDeliveryChainAsync(client, ctx, a)),
+            "jsdp" => JsdpCommand.DispatchAsync(ctx, a),
             "raw" => CliOutput.WriteResult(ctx, await DispatchRawAsync(client, ctx, a)),
             _ => throw new CliUsageException($"Unknown command: {cmd}. Run jz --help."),
         };

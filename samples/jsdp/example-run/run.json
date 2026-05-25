@@ -1,0 +1,238 @@
+{
+  "id": "4cc9d060f159",
+  "goal": "JoyMon \u2014 Tile Overworld Prototype",
+  "planningMode": "vertical-slices",
+  "createdAt": "2026-05-25T18:46:25.4472000\u002B00:00",
+  "currentNodeId": "001R1",
+  "nodes": {
+    "001": {
+      "id": "001",
+      "title": "Bootstrap runtime for JoyMon \u2014 Tile Overworld Prototype",
+      "intent": "Establish minimal runnable shell for JoyMon \u2014 Tile Overworld Prototype using MonoGame 3.8, .NET 8, Tiled map pipeline.",
+      "prompt": "# JSDP Node: 001 \u2014 Bootstrap runtime for JoyMon \u2014 Tile Overworld Prototype\n\n## Goal\n\nEstablish minimal runnable shell for JoyMon \u2014 Tile Overworld Prototype using MonoGame 3.8, .NET 8, Tiled map pipeline.\n\n## Scope\n\nComplete only the work described for node \u0060001\u0060. Do not expand into downstream nodes.\n\n## Dependencies\n\n- None (root node)\n\n## Acceptance Criteria\n\n- Bootstrap runtime for JoyMon \u2014 Tile Overworld Prototype is implemented within declared mutation surface only.\n- Verification commands pass with zero silent skips.\n- Operational summary recorded for ledger append.\n\n## Required Verification\n\n- \u0060dotnet build JoyMon.sln\u0060\n- \u0060dotnet test JoyMon.Tests/JoyMon.Tests.csproj\u0060\n- \u0060echo \u0022simulation: overworld smoke\u0022\u0060\n\n## Allowed Mutation Surface\n\n- \u0060Tilemap rendering and collision/\u0060\n- \u0060Overworld movement with zone transitions/\u0060\n- \u0060Encounter zone hooks/\u0060\n- \u0060Turn-order battle state machine/\u0060\n\n## Stop Condition\n\nStop after this node.\nDo not proceed to future nodes.\n\n## Required Response Format\n\n- Summary\n- Files changed\n- Verification commands run\n- Result\n- Recommended next action",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Bootstrap runtime for JoyMon \u2014 Tile Overworld Prototype is implemented within declared mutation surface only.",
+        "Verification commands pass with zero silent skips.",
+        "Operational summary recorded for ledger append."
+      ],
+      "verificationCommands": [
+        "dotnet build JoyMon.sln",
+        "dotnet test JoyMon.Tests/JoyMon.Tests.csproj",
+        "echo \u0022simulation: overworld smoke\u0022"
+      ],
+      "allowedMutationSurface": [
+        "Tilemap rendering and collision/",
+        "Overworld movement with zone transitions/",
+        "Encounter zone hooks/",
+        "Turn-order battle state machine/"
+      ],
+      "status": "blocked",
+      "outputs": [
+        "src/",
+        "scripts/",
+        "package.json",
+        "global.json"
+      ],
+      "next": [
+        "002"
+      ]
+    },
+    "002": {
+      "id": "002",
+      "title": "Implement core domain model for Tilemap rendering and collision",
+      "intent": "Model entities and invariants for Tilemap rendering and collision aligned with Product goal, Tech stack, Core systems.",
+      "prompt": "Model entities and invariants for Tilemap rendering and collision aligned with Product goal, Tech stack, Core systems.",
+      "dependencies": [
+        "001"
+      ],
+      "acceptanceCriteria": [
+        "Implement core domain model for Tilemap rendering and collision is implemented within declared mutation surface only.",
+        "Verification commands pass with zero silent skips.",
+        "Operational summary recorded for ledger append."
+      ],
+      "verificationCommands": [
+        "dotnet build JoyMon.sln",
+        "dotnet test JoyMon.Tests/JoyMon.Tests.csproj",
+        "echo \u0022simulation: overworld smoke\u0022"
+      ],
+      "allowedMutationSurface": [
+        "Tilemap rendering and collision/",
+        "Overworld movement with zone transitions/",
+        "Encounter zone hooks/",
+        "Turn-order battle state machine/"
+      ],
+      "status": "pending",
+      "outputs": [
+        "src/",
+        "tests/"
+      ],
+      "next": [
+        "003"
+      ]
+    },
+    "003": {
+      "id": "003",
+      "title": "Wire persistence and state for Overworld movement with zone transitions",
+      "intent": "Add durable storage and migration-safe state transitions for Overworld movement with zone transitions.",
+      "prompt": "Add durable storage and migration-safe state transitions for Overworld movement with zone transitions.",
+      "dependencies": [
+        "002"
+      ],
+      "acceptanceCriteria": [
+        "Wire persistence and state for Overworld movement with zone transitions is implemented within declared mutation surface only.",
+        "Verification commands pass with zero silent skips.",
+        "Operational summary recorded for ledger append."
+      ],
+      "verificationCommands": [
+        "dotnet build JoyMon.sln",
+        "dotnet test JoyMon.Tests/JoyMon.Tests.csproj",
+        "echo \u0022simulation: overworld smoke\u0022"
+      ],
+      "allowedMutationSurface": [
+        "Tilemap rendering and collision/",
+        "Overworld movement with zone transitions/",
+        "Encounter zone hooks/",
+        "Turn-order battle state machine/"
+      ],
+      "status": "pending",
+      "outputs": [
+        "src/",
+        "migrations/",
+        "tests/"
+      ],
+      "next": [
+        "004"
+      ]
+    },
+    "004": {
+      "id": "004",
+      "title": "Add orchestration runtime for Encounter zone hooks",
+      "intent": "Connect dispatch, scheduling, and bounded mutation surfaces for JoyMon \u2014 Tile Overworld Prototype.",
+      "prompt": "Connect dispatch, scheduling, and bounded mutation surfaces for JoyMon \u2014 Tile Overworld Prototype.",
+      "dependencies": [
+        "003"
+      ],
+      "acceptanceCriteria": [
+        "Add orchestration runtime for Encounter zone hooks is implemented within declared mutation surface only.",
+        "Verification commands pass with zero silent skips.",
+        "Operational summary recorded for ledger append."
+      ],
+      "verificationCommands": [
+        "dotnet build JoyMon.sln",
+        "dotnet test JoyMon.Tests/JoyMon.Tests.csproj",
+        "echo \u0022simulation: overworld smoke\u0022"
+      ],
+      "allowedMutationSurface": [
+        "Tilemap rendering and collision/",
+        "Overworld movement with zone transitions/",
+        "Encounter zone hooks/",
+        "Turn-order battle state machine/"
+      ],
+      "status": "pending",
+      "outputs": [
+        "src/",
+        "tests/"
+      ],
+      "next": [
+        "005"
+      ]
+    },
+    "005": {
+      "id": "005",
+      "title": "Integrate operator surface for JoyMon \u2014 Tile Overworld Prototype",
+      "intent": "Expose CLI/UI hooks with verification gates and resumable checkpoints.",
+      "prompt": "Expose CLI/UI hooks with verification gates and resumable checkpoints.",
+      "dependencies": [
+        "004"
+      ],
+      "acceptanceCriteria": [
+        "Integrate operator surface for JoyMon \u2014 Tile Overworld Prototype is implemented within declared mutation surface only.",
+        "Verification commands pass with zero silent skips.",
+        "Operational summary recorded for ledger append."
+      ],
+      "verificationCommands": [
+        "dotnet build JoyMon.sln",
+        "dotnet test JoyMon.Tests/JoyMon.Tests.csproj",
+        "echo \u0022simulation: overworld smoke\u0022"
+      ],
+      "allowedMutationSurface": [
+        "Tilemap rendering and collision/",
+        "Overworld movement with zone transitions/",
+        "Encounter zone hooks/",
+        "Turn-order battle state machine/"
+      ],
+      "status": "pending",
+      "outputs": [
+        "src/",
+        "apps/",
+        "docs/"
+      ],
+      "next": [
+        "006"
+      ]
+    },
+    "006": {
+      "id": "006",
+      "title": "End-to-end convergence slice for JoyMon \u2014 Tile Overworld Prototype",
+      "intent": "Deliver one vertical path from input to verified output with acceptance criteria met.",
+      "prompt": "Deliver one vertical path from input to verified output with acceptance criteria met.",
+      "dependencies": [
+        "005"
+      ],
+      "acceptanceCriteria": [
+        "End-to-end convergence slice for JoyMon \u2014 Tile Overworld Prototype is implemented within declared mutation surface only.",
+        "Verification commands pass with zero silent skips.",
+        "Operational summary recorded for ledger append."
+      ],
+      "verificationCommands": [
+        "dotnet build JoyMon.sln",
+        "dotnet test JoyMon.Tests/JoyMon.Tests.csproj",
+        "echo \u0022simulation: overworld smoke\u0022"
+      ],
+      "allowedMutationSurface": [
+        "Tilemap rendering and collision/",
+        "Overworld movement with zone transitions/",
+        "Encounter zone hooks/",
+        "Turn-order battle state machine/"
+      ],
+      "status": "pending",
+      "outputs": [
+        "src/",
+        "tests/",
+        "docs/"
+      ]
+    },
+    "001R1": {
+      "id": "001R1",
+      "title": "Repair Bootstrap runtime for JoyMon \u2014 Tile Overworld Prototype",
+      "intent": "Repair failures from node 001: isolate fix for Establish minimal runnable shell for JoyMon \u2014 Tile Overworld Prototype using MonoGame 3.8, .NET 8, Tiled map pipeline. without unrelated mutation.",
+      "prompt": "Repair node for 001. Address verification failures only within allowed surfaces.",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Root cause from node 001 is fixed.",
+        "All verification commands pass.",
+        "No changes outside allowed mutation surface."
+      ],
+      "verificationCommands": [
+        "dotnet build JoyMon.sln",
+        "dotnet test JoyMon.Tests/JoyMon.Tests.csproj",
+        "echo \u0022simulation: overworld smoke\u0022"
+      ],
+      "allowedMutationSurface": [
+        "Tilemap rendering and collision/",
+        "Overworld movement with zone transitions/",
+        "Encounter zone hooks/",
+        "Turn-order battle state machine/"
+      ],
+      "status": "pending",
+      "outputs": [
+        "src/",
+        "scripts/",
+        "package.json",
+        "global.json"
+      ],
+      "repairOf": "001"
+    }
+  }
+}

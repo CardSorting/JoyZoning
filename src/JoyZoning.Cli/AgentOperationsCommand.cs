@@ -376,54 +376,8 @@ public static class AgentOperationsCommand
         return File.GetLastWriteTimeUtc(publishPath) >= File.GetLastWriteTimeUtc(sourcePath);
     }
 
-    private static (int ExitCode, string Stdout, string Stderr) RunShellCommand(string workingDirectory, string command)
-    {
-        try
-        {
-            ProcessStartInfo psi;
-            if (OperatingSystem.IsWindows())
-            {
-                psi = new ProcessStartInfo("cmd.exe", $"/c {command}")
-                {
-                    WorkingDirectory = workingDirectory,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                };
-            }
-            else
-            {
-                psi = new ProcessStartInfo("/bin/bash", $"-lc {QuoteShell(command)}")
-                {
-                    WorkingDirectory = workingDirectory,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                };
-            }
-
-            using var process = Process.Start(psi);
-            if (process is null)
-                return (-1, "", "process did not start");
-
-            if (!process.WaitForExit(600_000))
-            {
-                try { process.Kill(); } catch { /* ignore */ }
-                return (-1, "", "process timed out");
-            }
-
-            return (process.ExitCode, process.StandardOutput.ReadToEnd(), process.StandardError.ReadToEnd());
-        }
-        catch (Exception ex)
-        {
-            return (-1, "", ex.Message);
-        }
-    }
-
-    private static string QuoteShell(string command) =>
-        "'" + command.Replace("'", "'\\''", StringComparison.Ordinal) + "'";
+    private static (int ExitCode, string Stdout, string Stderr) RunShellCommand(string workingDirectory, string command) =>
+        JoyZoning.Jsdp.ShellRunner.Run(workingDirectory, command);
 
     public static string FindWorkspaceRoot(string? start = null)
     {

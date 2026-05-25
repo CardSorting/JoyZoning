@@ -1,0 +1,23 @@
+{
+  "planningMode": "vertical-slices",
+  "nodes": [
+    {
+      "id": "001",
+      "title": "Bootstrap MonoGame overworld shell for MiniApp",
+      "intent": "Establish minimal MonoGame runtime with tilemap load and scene bootstrap for MiniApp overworld.",
+      "dependencies": [],
+      "acceptanceCriteria": ["Overworld scene loads without errors"],
+      "verificationCommands": ["echo \"miniapp ok\""],
+      "allowedMutationSurface": ["src/", "tests/"]
+    },
+    {
+      "id": "002",
+      "title": "Implement tilemap collision for overworld movement",
+      "intent": "Add grid collision and blocked-tile rules aligned with OverworldScene invariants.",
+      "dependencies": ["001"],
+      "acceptanceCriteria": ["Player cannot walk through solid tiles"],
+      "verificationCommands": ["echo \"miniapp ok\""],
+      "allowedMutationSurface": ["src/", "tests/"]
+    }
+  ]
+}

@@ -24,7 +24,9 @@ public static class AgentOperationsManifest
         "src/JoyZoning.Domain/Orchestration/JoyZoningRuntimeContext.cs",
         "docs/AGENT.md",
         "docs/jsdp.md",
+        "docs/jsdp-convergence-harness.md",
         "docs/external-agent-jsdp.md",
+        "src/JoyZoning.Jsdp/Services/JSDPHarness.cs",
         "docs/execution-paths.md",
         "docs/whitepaper-summary.md",
         "docs/philosophy.md",
@@ -83,6 +85,20 @@ public static class AgentOperationsManifest
         new("verify", "Context-aware local verification shortcut.", false),
         new("verify --manifest", "Run manifest verification commands in workspace root.", true),
         new("verify --manifest --fast", "Run fast manifest verification (typecheck + build only).", true),
+        new("jsdp init", "Create local .jsdp/ harness (goal or --spec).", true),
+        new("jsdp analyze", "Analyze spec and repo scan into project-spec.json.", true),
+        new("jsdp plan", "Generate project-specific dependency-aware prompt DAG.", true),
+        new("jsdp next", "Emit prompt for next dependency-ready DAG node.", true),
+        new("jsdp verify", "Run node verification commands; append ledger.", false),
+        new("jsdp continue", "Advance after verified node or create repair node.", false),
+        new("jsdp status", "Show DAG progress and convergence health.", true),
+        new("jsdp inspect", "Show spec, DAG, current node, ledger, repair lineage.", true),
+        new("jsdp doctor", "Validate .jsdp/ files, DAG integrity, verification readiness.", true),
+        new("jsdp record", "Append operator summary to append-only ledger.", true),
+        new("jsdp export-planning-context", "Export planning context for external agents.", true),
+        new("jsdp import-plan", "Import and validate external-agent plan.json.", false),
+        new("jsdp validate-plan", "Validate plan.json without writing.", true),
+        new("jsdp planning-prompt", "Generate external planning prompt and schema paths.", true),
     ];
 
     public static readonly IReadOnlyDictionary<string, string> AgentWorkflow = new Dictionary<string, string>
@@ -97,6 +113,9 @@ public static class AgentOperationsManifest
         ["jsdpAcceptMerge"] = "jz task complete <taskId> --yes",
         ["externalSingleTask"] = "jz task start-external <taskId> --agent cursor; jz task prompt <taskId>; jz task mark-ready <taskId>; jz task verify <taskId> --cmd \"...\"; jz task complete <taskId> --yes",
         ["httpFallback"] = "GET /api/agent/manifest, GET /api/agent/context, GET /api/agent/endpoints?agentSafe=true",
+        ["jsdpHarness"] = "jz jsdp init --spec ./PROJECT_SPEC.md; jz jsdp analyze; jz jsdp plan; jz jsdp next; jz jsdp verify; jz jsdp continue",
+        ["jsdpHarnessExternalPlan"] = "jz jsdp export-planning-context; jz jsdp planning-prompt; jz jsdp validate-plan ./plan.json; jz jsdp import-plan ./plan.json",
+        ["jsdpHarnessInspect"] = "jz jsdp inspect; jz jsdp doctor; jz jsdp status",
     };
 
     public static readonly IReadOnlyDictionary<string, string> HttpSurfaces = new Dictionary<string, string>
@@ -110,7 +129,7 @@ public static class AgentOperationsManifest
 
     public static readonly IReadOnlyList<string> AvailableSurfaces =
     [
-        "chat", "sessions", "workers", "approvals", "verification", "workspace", "endpoints", "agent-manifest",
+        "chat", "sessions", "workers", "approvals", "verification", "workspace", "endpoints", "agent-manifest", "jsdp-harness",
     ];
 
     public static readonly IReadOnlyList<string> WorkspaceAssumptions =
@@ -125,6 +144,7 @@ public static class AgentOperationsManifest
         "Use doctor before scanning the repo when manifest assumptions look stale.",
         "HTTP /api/agent/manifest and /api/agent/context mirror agent operations when CLI is unavailable.",
         "Cached manifest lives at .joyzoning/agent-manifest.json after agent-manifest or passing doctor.",
+        "Local JSDP convergence harness uses .jsdp/ in project cwd (jz jsdp) — distinct from jz delivery-chain.",
     ];
 
     public static readonly IReadOnlyList<string> Entrypoints =
@@ -135,6 +155,8 @@ public static class AgentOperationsManifest
         "joyzoning doctor --json",
         "jz delivery-chain next <chain-id> --external --agent cursor",
         "jz task start-external <task-id> --agent cursor",
+        "jz jsdp init --spec ./PROJECT_SPEC.md",
+        "jz jsdp inspect",
         "./scripts/role-chain-dispatch.sh --status --chain <guid>",
     ];
 

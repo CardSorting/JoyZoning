@@ -1,0 +1,19 @@
+{
+  "defaultVerificationPreset": "fast",
+  "verificationPresets": {
+    "fast": [
+      "dotnet build JoyMon.sln",
+      "dotnet test JoyMon.Tests/JoyMon.Tests.csproj",
+      "echo \"simulation: overworld smoke\""
+    ],
+    "full": [
+      "dotnet build JoyMon.sln",
+      "dotnet test JoyMon.Tests/JoyMon.Tests.csproj",
+      "echo \"simulation: overworld smoke\""
+    ]
+  },
+  "repoScan": {
+    "enabled": true,
+    "maxDepth": 4
+  }
+}

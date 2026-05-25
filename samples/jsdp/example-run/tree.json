@@ -1,0 +1,69 @@
+{
+  "runId": "4cc9d060f159",
+  "goal": "JoyMon \u2014 Tile Overworld Prototype",
+  "planningMode": "vertical-slices",
+  "nodes": [
+    {
+      "id": "001",
+      "title": "Bootstrap runtime for JoyMon \u2014 Tile Overworld Prototype",
+      "status": "blocked",
+      "dependencies": []
+    },
+    {
+      "id": "001R1",
+      "title": "Repair Bootstrap runtime for JoyMon \u2014 Tile Overworld Prototype",
+      "status": "pending",
+      "dependencies": [],
+      "repairOf": "001"
+    },
+    {
+      "id": "002",
+      "title": "Implement core domain model for Tilemap rendering and collision",
+      "status": "pending",
+      "dependencies": [
+        "001"
+      ]
+    },
+    {
+      "id": "003",
+      "title": "Wire persistence and state for Overworld movement with zone transitions",
+      "status": "pending",
+      "dependencies": [
+        "002"
+      ]
+    },
+    {
+      "id": "004",
+      "title": "Add orchestration runtime for Encounter zone hooks",
+      "status": "pending",
+      "dependencies": [
+        "003"
+      ]
+    },
+    {
+      "id": "005",
+      "title": "Integrate operator surface for JoyMon \u2014 Tile Overworld Prototype",
+      "status": "pending",
+      "dependencies": [
+        "004"
+      ]
+    },
+    {
+      "id": "006",
+      "title": "End-to-end convergence slice for JoyMon \u2014 Tile Overworld Prototype",
+      "status": "pending",
+      "dependencies": [
+        "005"
+      ]
+    }
+  ],
+  "convergence": {
+    "total": 7,
+    "verified": 0,
+    "failed": 0,
+    "blocked": 1,
+    "pending": 6,
+    "running": 0,
+    "health": "blocked"
+  }
+}

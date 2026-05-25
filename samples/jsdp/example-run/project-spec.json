@@ -1,0 +1,50 @@
+{
+  "goal": "JoyMon \u2014 Tile Overworld Prototype",
+  "specPath": "./PROJECT_SPEC.md",
+  "rawMarkdown": "# JoyMon \u2014 Tile Overworld Prototype\n\n## Product goal\n\nDeliver a MonoGame tile overworld where the player moves on a grid, triggers encounter zones, and enters a minimal turn-based battle loop.\n\n## Tech stack\n\n- MonoGame 3.8\n- .NET 8\n- Tiled map pipeline\n\n## Core systems\n\n- Tilemap rendering and collision\n- Overworld movement with zone transitions\n- Encounter zone hooks\n- Turn-order battle state machine\n\n## Domain concepts\n\n- \u0060OverworldScene\u0060\n- \u0060EncounterZone\u0060\n- \u0060BattleLoop\u0060\n- \u0060TileCollider\u0060\n\n## Constraints\n\n- Deterministic turn order (no hidden RNG in MVP)\n- All gameplay state serializable for replay tests\n- No network stack in slice 1\n\n## Non-goals\n\n- Multiplayer\n- Full Pok\u00E9dex-style content pipeline\n- Procedural world generation\n\n## Acceptance criteria\n\n- Player can walk on a 16\u00D716 tilemap with solid tiles blocking movement\n- Entering an encounter zone starts a battle with at least one enemy action\n- Battle ends with win/loss UI feedback\n\n## Verification\n\n- dotnet build JoyMon.sln\n- dotnet test JoyMon.Tests/JoyMon.Tests.csproj\n- echo \u0022simulation: overworld smoke\u0022\n",
+  "analysis": {
+    "productGoal": "JoyMon \u2014 Tile Overworld Prototype",
+    "techStack": [
+      "MonoGame 3.8",
+      ".NET 8",
+      "Tiled map pipeline"
+    ],
+    "domainConcepts": [
+      "Product goal",
+      "Tech stack",
+      "Core systems",
+      "Domain concepts",
+      "OverworldScene",
+      "EncounterZone",
+      "BattleLoop",
+      "TileCollider",
+      "Non-goals"
+    ],
+    "coreSystems": [
+      "Tilemap rendering and collision",
+      "Overworld movement with zone transitions",
+      "Encounter zone hooks",
+      "Turn-order battle state machine"
+    ],
+    "constraints": [
+      "Deterministic turn order (no hidden RNG in MVP)",
+      "All gameplay state serializable for replay tests",
+      "No network stack in slice 1"
+    ],
+    "nonGoals": [
+      "Multiplayer",
+      "Full Pok\u00E9dex-style content pipeline",
+      "Procedural world generation"
+    ],
+    "acceptanceCriteria": [
+      "Player can walk on a 16\u00D716 tilemap with solid tiles blocking movement",
+      "Entering an encounter zone starts a battle with at least one enemy action",
+      "Battle ends with win/loss UI feedback"
+    ],
+    "verificationStrategy": [
+      "dotnet build JoyMon.sln",
+      "dotnet test JoyMon.Tests/JoyMon.Tests.csproj",
+      "echo \u0022simulation: overworld smoke\u0022"
+    ]
+  }
+}

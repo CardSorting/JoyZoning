@@ -11,5 +11,6 @@
   <ItemGroup>
     <ProjectReference Include="..\JoyZoning.Agents\JoyZoning.Agents.csproj" />
     <ProjectReference Include="..\JoyZoning.Domain\JoyZoning.Domain.csproj" />
+    <ProjectReference Include="..\JoyZoning.Jsdp\JoyZoning.Jsdp.csproj" />
   </ItemGroup>
 </Project>

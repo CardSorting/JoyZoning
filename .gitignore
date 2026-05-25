@@ -31,6 +31,10 @@ __pycache__/
 # Local workspaces and agent states
 .joy-workspaces/
 .joyzoning/
+.jsdp/
+
+# Keep committed harness samples
+!samples/jsdp/example-run/
 
 # Local developer overrides (copy from appsettings.example.json)
 src/JoyZoning.ControlPlane/appsettings.Development.json
